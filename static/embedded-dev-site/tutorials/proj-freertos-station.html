@@ -1,0 +1,675 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0"><title>教程10: FreeRTOS多任务环境监测站</title><style>:root{--bg:#0d1117;--bg2:#161b22;--bg3:#21262d;--br:#30363d;--t:#c9d1d9;--t2:#8b949e;--a:#58a6ff;--g:#3fb950;--o:#d29922;--r:#f85149;--p:#a371f7;--c1:#39c5cf}body{background:var(--bg);color:var(--t);font-family:system-ui,sans-serif;line-height:1.8;max-width:900px;margin:0 auto;padding:20px}h1{text-align:center;background:linear-gradient(135deg,var(--a),var(--p));-webkit-background-clip:text;-webkit-text-fill-color:transparent}h2{color:var(--a);border-bottom:2px solid var(--br);padding-bottom:6px;margin-top:32px}h3{color:var(--c1);margin-top:22px}pre{background:#1c2128;border:1px solid var(--br);border-radius:8px;padding:14px;overflow-x:auto;font-size:.84em}code{font-family:'Cascadia Code',Consolas,monospace}:not(pre)>code{background:var(--bg3);padding:2px 6px;border-radius:4px;color:var(--c1)}table{width:100%;border-collapse:collapse;margin:12px 0}th{background:var(--bg3);color:var(--a);padding:8px 12px;border:1px solid var(--br);text-align:left}td{padding:8px 12px;border:1px solid var(--br)}.note{background:rgba(88,166,255,.08);border-left:3px solid var(--a);border-radius:8px;padding:12px 16px;margin:12px 0}.warn{background:rgba(248,81,73,.08);border-left:3px solid var(--r);border-radius:8px;padding:12px 16px;margin:12px 0}.tip{background:rgba(63,185,80,.08);border-left:3px solid var(--g);border-radius:8px;padding:12px 16px;margin:12px 0}.step{background:var(--bg2);border:1px solid var(--br);border-radius:8px;padding:12px 16px;margin:10px 0}</style></head><body>
+
+<h1>教程10: FreeRTOS多任务环境监测站</h1>
+
+<h2>📋 项目概述</h2>
+<p>本项目使用 STM32F103C8T6 搭配 FreeRTOS 实时操作系统，构建一个多任务环境监测站。4个任务并发运行：DHT11温湿度采集、OLED显示刷新、串口命令解析、报警判断与蜂鸣器控制。通过队列(Queue)传递数据、互斥量(Mutex)保护I2C总线、信号量(Semaphore)同步任务，全面掌握 FreeRTOS 核心机制。</p>
+
+<h2>🔧 硬件清单</h2>
+<table>
+<tr><th>元件</th><th>数量</th><th>说明</th></tr>
+<tr><td>STM32F103C8T6 最小系统板</td><td>1</td><td>主控，72MHz Cortex-M3</td></tr>
+<tr><td>DHT11 温湿度传感器</td><td>1</td><td>测温范围0-50°C，湿度20-90%</td></tr>
+<tr><td>0.96寸 OLED 显示屏(SSD1306)</td><td>1</td><td>I2C接口，128×64分辨率</td></tr>
+<tr><td>有源蜂鸣器模块</td><td>1</td><td>低电平触发</td></tr>
+<tr><td>USB转TTL模块(CH340/CP2102)</td><td>1</td><td>串口调试</td></tr>
+<tr><td>杜邦线</td><td>若干</td><td>母对母/公对母</td></tr>
+</table>
+
+<h2>🔌 接线图</h2>
+<h3>接线总表</h3>
+<table>
+<tr><th>STM32引脚</th><th>外设</th><th>说明</th></tr>
+<tr><td>PA0</td><td>DHT11 DATA</td><td>单总线数据引脚，需4.7K上拉</td></tr>
+<tr><td>PB6</td><td>OLED SCL</td><td>I2C时钟线</td></tr>
+<tr><td>PB7</td><td>OLED SDA</td><td>I2C数据线</td></tr>
+<tr><td>PA8</td><td>蜂鸣器 IN</td><td>低电平触发鸣响</td></tr>
+<tr><td>PA9</td><td>USB-TTL RX</td><td>USART1_TX 发送</td></tr>
+<tr><td>PA10</td><td>USB-TTL TX</td><td>USART1_RX 接收</td></tr>
+<tr><td>3.3V</td><td>DHT11 VCC / OLED VCC</td><td>供电</td></tr>
+<tr><td>GND</td><td>所有模块GND</td><td>共地</td></tr>
+</table>
+
+<div class="note">
+<strong>📝 接线文字描述：</strong><br>
+STM32最小系统板放在面包板中央。DHT11传感器插在面包板左侧，DATA脚通过杜邦线连到PA0，VCC接3.3V，GND接公共地线，DATA脚与VCC之间跨接4.7K上拉电阻。OLED显示屏用4根杜邦线连接：VCC→3.3V，GND→GND，SCL→PB6，SDA→PB7。蜂鸣器模块放在右侧，IN脚连PA8，VCC接5V（有源蜂鸣器功耗较大），GND接公共地。USB转TTL模块的TX连PA10，RX连PA9，GND连公共地。所有模块的GND必须连在一起形成共地。
+</div>
+
+<h2>📚 FreeRTOS核心概念</h2>
+
+<h3>任务(Task)</h3>
+<p>FreeRTOS的基本执行单元，每个任务拥有独立的栈空间。任务状态：运行→就绪→阻塞→挂起。</p>
+
+<h3>队列(Queue)</h3>
+<p>任务间通信的核心机制，FIFO方式传递数据。发送端 <code>xQueueSend()</code>，接收端 <code>xQueueReceive()</code>，支持阻塞等待。</p>
+
+<h3>互斥量(Mutex)</h3>
+<p>保护共享资源，同一时刻只有一个任务可以访问。自带优先级继承机制，防止优先级反转。</p>
+
+<h3>信号量(Semaphore)</h3>
+<p>用于任务同步，二值信号量像"标志位"，计数信号量管理多个相同资源。</p>
+
+<h3>任务优先级设计</h3>
+<table>
+<tr><th>任务</th><th>优先级</th><th>说明</th></tr>
+<tr><td>报警判断任务</td><td>4 (最高)</td><td>安全相关，必须及时响应</td></tr>
+<tr><td>DHT11采集任务</td><td>3</td><td>数据源，需及时采集</td></tr>
+<tr><td>串口命令任务</td><td>2</td><td>人机交互，允许轻微延迟</td></tr>
+<tr><td>OLED刷新任务</td><td>1 (最低)</td><td>显示刷新不需要高实时性</td></tr>
+</table>
+
+<h2>🛠️ 分步骤操作指引</h2>
+
+<div class="step">
+<strong>步骤1：CubeMX工程创建</strong><br>
+1. 新建工程，选择STM32F103C8T6<br>
+2. SYS → Debug: Serial Wire<br>
+3. RCC → HSE: Crystal/Ceramic Resonator<br>
+4. Clock Configuration: HSE→PLL→72MHz<br>
+5. USART1 → Mode: Asynchronous, Baud: 115200<br>
+6. I2C1 → Mode: I2C, Speed: Standard 100KHz<br>
+7. PA0 → GPIO_Output (DHT11用GPIO模拟时序)<br>
+8. PA8 → GPIO_Output (蜂鸣器)<br>
+9. Middleware → FREERTOS → Interface: CMSIS_V2<br>
+10. Config tasks → 暂时保留默认任务，后续在代码中创建<br>
+11. FREERTOS → USE_MUTEXES: Enabled, USE_COUNTING_SEMAPHORES: Enabled<br>
+12. Project Manager → Toolchain: MDK-ARM / STM32CubeIDE
+</div>
+
+<div class="step">
+<strong>步骤2：添加FreeRTOS源码和驱动</strong><br>
+1. 在工程中创建 <code>Drivers/</code> 文件夹，放入 DHT11驱动 和 SSD1306 OLED驱动<br>
+2. 确保FreeRTOS已由CubeMX自动生成（CMSIS_V2接口）<br>
+3. 在 <code>main.c</code> 中引入头文件：<code>#include "cmsis_os2.h"</code>
+</div>
+
+<div class="step">
+<strong>步骤3：编写DHT11驱动</strong><br>
+DHT11使用单总线协议，需要精确的微秒级延时。通过GPIO输出/输入模式切换实现通信。<br>
+通信流程：主机拉低18ms→释放→DHT11响应80μs低电平→80μs高电平→40bit数据→校验
+</div>
+
+<div class="step">
+<strong>步骤4：创建队列和互斥量</strong><br>
+在main.c全局区域创建：<br>
+- <code>QueueHandle_t xTempHumQueue</code> — 温湿度数据队列<br>
+- <code>SemaphoreHandle_t xI2CMutex</code> — I2C互斥量<br>
+- <code>SemaphoreHandle_t xAlarmSemaphore</code> — 报警信号量
+</div>
+
+<div class="step">
+<strong>步骤5：创建4个任务</strong><br>
+1. <code>vDHT11Task</code> — 周期2秒采集温湿度，数据通过队列发送<br>
+2. <code>vOLEDTask</code> — 从队列接收数据并刷新OLED显示<br>
+3. <code>vUartCmdTask</code> — 解析串口命令(设置阈值/查询状态)<br>
+4. <code>vAlarmTask</code> — 判断是否超阈值，控制蜂鸣器报警
+</div>
+
+<div class="step">
+<strong>步骤6：编译下载调试</strong><br>
+1. 编译工程，确保无错误<br>
+2. 连接ST-Link，下载固件<br>
+3. 打开串口助手(115200)，观察输出<br>
+4. 用手指捂住DHT11，观察温度上升和报警触发
+</div>
+
+<h2>💻 完整代码</h2>
+
+<h3>main.c — 主程序与任务定义</h3>
+<pre><code>/* Includes */
+#include "main.h"
+#include "cmsis_os2.h"
+#include "usart.h"
+#include "i2c.h"
+#include "gpio.h"
+#include &lt;stdio.h&gt;
+#include &lt;string.h&gt;
+
+/* DHT11驱动 */
+#define DHT11_PORT GPIOA
+#define DHT11_PIN  GPIO_PIN_0
+
+/* 蜂鸣器 */
+#define BUZZER_PORT GPIOA
+#define BUZZER_PIN  GPIO_PIN_8
+
+/* 数据结构 */
+typedef struct {
+    float temperature;
+    float humidity;
+    uint32_t timestamp;
+} SensorData_t;
+
+/* 全局句柄 */
+QueueHandle_t xTempHumQueue;      // 温湿度数据队列
+SemaphoreHandle_t xI2CMutex;      // I2C互斥量
+SemaphoreHandle_t xAlarmSemaphore;// 报警信号量
+
+/* 报警阈值（可通过串口修改）*/
+float tempThreshold = 30.0f;
+float humThreshold  = 80.0f;
+
+/* printf重定向 */
+#ifdef __GNUC__
+int __io_putchar(int ch)
+#else
+int fputc(int ch, FILE *f)
+#endif
+{
+    HAL_UART_Transmit(&amp;huart1, (uint8_t *)&amp;ch, 1, HAL_MAX_DELAY);
+    return ch;
+}
+
+/* ============== DHT11驱动 ============== */
+void DHT11_SetPin_Output(void)
+{
+    GPIO_InitTypeDef GPIO_InitStruct = {0};
+    GPIO_InitStruct.Pin = DHT11_PIN;
+    GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
+    HAL_GPIO_Init(DHT11_PORT, &amp;GPIO_InitStruct);
+}
+
+void DHT11_SetPin_Input(void)
+{
+    GPIO_InitTypeDef GPIO_InitStruct = {0};
+    GPIO_InitStruct.Pin = DHT11_PIN;
+    GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+    GPIO_InitStruct.Pull = GPIO_PULLUP;
+    HAL_GPIO_Init(DHT11_PORT, &amp;GPIO_InitStruct);
+}
+
+void DHT11_Start(void)
+{
+    DHT11_SetPin_Output();
+    HAL_GPIO_WritePin(DHT11_PORT, DHT11_PIN, GPIO_PIN_RESET);
+    HAL_Delay(18);  // 拉低至少18ms
+    HAL_GPIO_WritePin(DHT11_PORT, DHT11_PIN, GPIO_PIN_SET);
+    Delay_us(30);   // 拉高20-40us
+    DHT11_SetPin_Input();
+}
+
+uint8_t DHT11_Check_Response(void)
+{
+    uint8_t resp = 0;
+    Delay_us(40);
+    if (HAL_GPIO_ReadPin(DHT11_PORT, DHT11_PIN) == GPIO_PIN_RESET) {
+        Delay_us(80);
+        if (HAL_GPIO_ReadPin(DHT11_PORT, DHT11_PIN) == GPIO_PIN_SET) {
+            resp = 1;
+        }
+    }
+    while (HAL_GPIO_ReadPin(DHT11_PORT, DHT11_PIN) == GPIO_PIN_SET); // 等待变低
+    return resp;
+}
+
+uint8_t DHT11_Read_Byte(void)
+{
+    uint8_t i, byte = 0;
+    for (i = 0; i &lt; 8; i++) {
+        while (HAL_GPIO_ReadPin(DHT11_PORT, DHT11_PIN) == GPIO_PIN_RESET); // 等待50us低电平
+        Delay_us(40); // 40us后判断
+        if (HAL_GPIO_ReadPin(DHT11_PORT, DHT11_PIN) == GPIO_PIN_SET) {
+            byte |= (1 &lt;&lt; (7 - i)); // 1
+            while (HAL_GPIO_ReadPin(DHT11_PORT, DHT11_PIN) == GPIO_PIN_SET);
+        }
+    }
+    return byte;
+}
+
+uint8_t DHT11_Read(SensorData_t *data)
+{
+    uint8_t rh_int, rh_dec, temp_int, temp_dec, checksum;
+    DHT11_Start();
+    if (DHT11_Check_Response()) {
+        rh_int   = DHT11_Read_Byte();
+        rh_dec   = DHT11_Read_Byte();
+        temp_int = DHT11_Read_Byte();
+        temp_dec = DHT11_Read_Byte();
+        checksum = DHT11_Read_Byte();
+        if (checksum == (rh_int + rh_dec + temp_int + temp_dec)) {
+            data-&gt;humidity    = rh_int + rh_dec * 0.1f;
+            data-&gt;temperature = temp_int + temp_dec * 0.1f;
+            data-&gt;timestamp   = HAL_GetTick();
+            return 1; // 成功
+        }
+    }
+    return 0; // 失败
+}
+
+/* ============== 微秒延时 ============== */
+void Delay_us(uint32_t us)
+{
+    uint32_t ticks = us * (SystemCoreClock / 1000000) / 5;
+    while (ticks--);
+}
+
+/* ============== OLED驱动(简化) ============== */
+extern I2C_HandleTypeDef hi2c1;
+#define OLED_ADDR 0x78
+
+void OLED_WriteCmd(uint8_t cmd)
+{
+    if (xSemaphoreTake(xI2CMutex, portMAX_DELAY) == pdTRUE) {
+        uint8_t buf[2] = {0x00, cmd};
+        HAL_I2C_Master_Transmit(&amp;hi2c1, OLED_ADDR, buf, 2, HAL_MAX_DELAY);
+        xSemaphoreGive(xI2CMutex);
+    }
+}
+
+void OLED_WriteData(uint8_t data)
+{
+    if (xSemaphoreTake(xI2CMutex, portMAX_DELAY) == pdTRUE) {
+        uint8_t buf[2] = {0x40, data};
+        HAL_I2C_Master_Transmit(&amp;hi2c1, OLED_ADDR, buf, 2, HAL_MAX_DELAY);
+        xSemaphoreGive(xI2CMutex);
+    }
+}
+
+void OLED_Init(void)
+{
+    OLED_WriteCmd(0xAE); // Display Off
+    OLED_WriteCmd(0xD5); OLED_WriteCmd(0x80);
+    OLED_WriteCmd(0xA8); OLED_WriteCmd(0x3F);
+    OLED_WriteCmd(0xD3); OLED_WriteCmd(0x00);
+    OLED_WriteCmd(0x40);
+    OLED_WriteCmd(0x8D); OLED_WriteCmd(0x14);
+    OLED_WriteCmd(0x20); OLED_WriteCmd(0x02);
+    OLED_WriteCmd(0xA1);
+    OLED_WriteCmd(0xC8);
+    OLED_WriteCmd(0xDA); OLED_WriteCmd(0x12);
+    OLED_WriteCmd(0x81); OLED_WriteCmd(0xCF);
+    OLED_WriteCmd(0xD9); OLED_WriteCmd(0xF1);
+    OLED_WriteCmd(0xDB); OLED_WriteCmd(0x40);
+    OLED_WriteCmd(0xA4);
+    OLED_WriteCmd(0xA6);
+    OLED_WriteCmd(0xAF); // Display On
+}
+
+void OLED_SetPos(uint8_t x, uint8_t y)
+{
+    OLED_WriteCmd(0xB0 + y);
+    OLED_WriteCmd(((x &amp; 0xF0) &gt;&gt; 4) | 0x10);
+    OLED_WriteCmd(x &amp; 0x0F);
+}
+
+void OLED_Clear(void)
+{
+    for (uint8_t y = 0; y &lt; 8; y++) {
+        OLED_SetPos(0, y);
+        for (uint8_t x = 0; x &lt; 128; x++) {
+            OLED_WriteData(0x00);
+        }
+    }
+}
+
+/* 简易6x8字库显示(实际项目建议使用完整字库) */
+extern const uint8_t asc2_0608[][6]; // 字库数组(需自行添加)
+
+void OLED_ShowChar(uint8_t x, uint8_t y, char ch)
+{
+    OLED_SetPos(x, y);
+    for (uint8_t i = 0; i &lt; 6; i++) {
+        OLED_WriteData(asc2_0608[ch - ' '][i]);
+    }
+}
+
+void OLED_ShowString(uint8_t x, uint8_t y, const char *str)
+{
+    while (*str) {
+        OLED_ShowChar(x, y, *str++);
+        x += 6;
+        if (x &gt; 122) { x = 0; y++; }
+    }
+}
+
+/* ============== 任务1: DHT11采集 ============== */
+void vDHT11Task(void *pvParameters)
+{
+    SensorData_t sensorData;
+
+    for (;;) {
+        if (DHT11_Read(&amp;sensorData)) {
+            // 发送到队列，等待100ms
+            xQueueSend(xTempHumQueue, &amp;sensorData, pdMS_TO_TICKS(100));
+            printf("DHT11: T=%.1f H=%.1f\r\n",
+                   sensorData.temperature, sensorData.humidity);
+        } else {
+            printf("DHT11 read failed!\r\n");
+        }
+
+        // DHT11采集周期至少2秒
+        vTaskDelay(pdMS_TO_TICKS(2000));
+    }
+}
+
+/* ============== 任务2: OLED刷新 ============== */
+void vOLEDTask(void *pvParameters)
+{
+    SensorData_t sensorData;
+    char buf[32];
+
+    for (;;) {
+        // 从队列接收数据，阻塞等待最多1秒
+        if (xQueueReceive(xTempHumQueue, &amp;sensorData, pdMS_TO_TICKS(1000)) == pdTRUE) {
+            // 使用互斥量保护I2C
+            if (xSemaphoreTake(xI2CMutex, portMAX_DELAY) == pdTRUE) {
+                OLED_Clear();
+                snprintf(buf, sizeof(buf), "Temp: %.1f C", sensorData.temperature);
+                OLED_ShowString(0, 0, buf);
+                snprintf(buf, sizeof(buf), "Humi: %.1f %%", sensorData.humidity);
+                OLED_ShowString(0, 2, buf);
+                snprintf(buf, sizeof(buf), "AlarmT: %.1f C", tempThreshold);
+                OLED_ShowString(0, 4, buf);
+                snprintf(buf, sizeof(buf), "AlarmH: %.1f %%", humThreshold);
+                OLED_ShowString(0, 6, buf);
+                xSemaphoreGive(xI2CMutex);
+            }
+        }
+
+        vTaskDelay(pdMS_TO_TICKS(500));
+    }
+}
+
+/* ============== 任务3: 串口命令 ============== */
+void vUartCmdTask(void *pvParameters)
+{
+    uint8_t rxByte;
+    char cmdBuf[64];
+    uint8_t idx = 0;
+
+    for (;;) {
+        // 简易串口接收(中断方式更优，此处简化)
+        if (HAL_UART_Receive(&amp;huart1, &amp;rxByte, 1, pdMS_TO_TICKS(100)) == HAL_OK) {
+            if (rxByte == '\r' || rxByte == '\n') {
+                if (idx &gt; 0) {
+                    cmdBuf[idx] = '\0';
+                    // 解析命令: SETT 30.0 或 SETH 80.0
+                    float val;
+                    if (sscanf(cmdBuf, "SETT %f", &amp;val) == 1) {
+                        taskENTER_CRITICAL();
+                        tempThreshold = val;
+                        taskEXIT_CRITICAL();
+                        printf("Temp threshold set to %.1f\r\n", val);
+                    } else if (sscanf(cmdBuf, "SETH %f", &amp;val) == 1) {
+                        taskENTER_CRITICAL();
+                        humThreshold = val;
+                        taskEXIT_CRITICAL();
+                        printf("Humi threshold set to %.1f\r\n", val);
+                    } else if (strcmp(cmdBuf, "STATUS") == 0) {
+                        printf("Thresholds: T=%.1f H=%.1f\r\n",
+                               tempThreshold, humThreshold);
+                    } else {
+                        printf("Unknown cmd: %s\r\n", cmdBuf);
+                        printf("Usage: SETT &lt;val&gt; | SETH &lt;val&gt; | STATUS\r\n");
+                    }
+                    idx = 0;
+                }
+            } else {
+                if (idx &lt; sizeof(cmdBuf) - 1) {
+                    cmdBuf[idx++] = rxByte;
+                }
+            }
+        }
+
+        vTaskDelay(pdMS_TO_TICKS(10));
+    }
+}
+
+/* ============== 任务4: 报警判断 ============== */
+void vAlarmTask(void *pvParameters)
+{
+    SensorData_t sensorData;
+    uint8_t alarmActive = 0;
+
+    for (;;) {
+        // 从队列接收(非阻塞窥视或用单独队列)
+        // 这里用另一个队列接收（数据会被消耗）
+        // 实际做法：DHT11任务同时发给两个队列
+        if (xQueueReceive(xTempHumQueue, &amp;sensorData, pdMS_TO_TICKS(3000)) == pdTRUE) {
+            if (sensorData.temperature &gt; tempThreshold ||
+                sensorData.humidity &gt; humThreshold) {
+                if (!alarmActive) {
+                    alarmActive = 1;
+                    HAL_GPIO_WritePin(BUZZER_PORT, BUZZER_PIN, GPIO_PIN_RESET); // 响
+                    printf("!!! ALARM: T=%.1f H=%.1f !!!\r\n",
+                           sensorData.temperature, sensorData.humidity);
+                }
+            } else {
+                if (alarmActive) {
+                    alarmActive = 0;
+                    HAL_GPIO_WritePin(BUZZER_PORT, BUZZER_PIN, GPIO_PIN_SET); // 停
+                    printf("Alarm cleared.\r\n");
+                }
+            }
+        }
+
+        vTaskDelay(pdMS_TO_TICKS(500));
+    }
+}
+
+/* ============== 主函数 ============== */
+int main(void)
+{
+    HAL_Init();
+    SystemClock_Config();
+    MX_GPIO_Init();
+    MX_USART1_UART_Init();
+    MX_I2C1_Init();
+
+    printf("FreeRTOS Environment Monitor Station\r\n");
+    printf("====================================\r\n");
+
+    /* 初始化OLED */
+    OLED_Init();
+    OLED_Clear();
+    OLED_ShowString(0, 0, "System Init...");
+    HAL_Delay(500);
+
+    /* 创建队列: 深度5, 每项sizeof(SensorData_t) */
+    xTempHumQueue = xQueueCreate(5, sizeof(SensorData_t));
+
+    /* 创建互斥量 */
+    xI2CMutex = xSemaphoreCreateMutex();
+
+    /* 创建信号量 */
+    xAlarmSemaphore = xSemaphoreCreateBinary();
+
+    /* 创建任务 */
+    osThreadNew(vDHT11Task,  NULL, &amp;(osThreadAttr_t){
+        .name = "DHT11Task", .stack_size = 256, .priority = osPriorityAboveNormal
+    });
+    osThreadNew(vOLEDTask,   NULL, &amp;(osThreadAttr_t){
+        .name = "OLEDTask",  .stack_size = 512, .priority = osPriorityNormal
+    });
+    osThreadNew(vUartCmdTask,NULL, &amp;(osThreadAttr_t){
+        .name = "UartTask",  .stack_size = 256, .priority = osPriorityBelowNormal
+    });
+    osThreadNew(vAlarmTask,  NULL, &amp;(osThreadAttr_t){
+        .name = "AlarmTask", .stack_size = 256, .priority = osPriorityHigh
+    });
+
+    /* 启动调度器 */
+    osKernelStart();
+
+    while (1) {}
+}
+</code></pre>
+
+<h3>FreeRTOSConfig.h 关键配置</h3>
+<pre><code>#define configUSE_PREEMPTION                    1
+#define configUSE_MUTEXES                       1
+#define configUSE_COUNTING_SEMAPHORES           1
+#define configUSE_QUEUE_SETS                    1
+#define configMAX_PRIORITIES                    7
+#define configMINIMAL_STACK_SIZE                64
+#define configTOTAL_HEAP_SIZE                   (10 * 1024)  // 10KB堆
+#define configCHECK_FOR_STACK_OVERFLOW          2
+#define configUSE_MALLOC_FAILED_HOOK            1
+#define configUSE_TIMERS                        1
+</code></pre>
+
+<h3>栈溢出检测钩子函数</h3>
+<pre><code>void vApplicationStackOverflowHook(TaskHandle_t xTask, char *pcTaskName)
+{
+    printf("STACK OVERFLOW in task: %s\r\n", pcTaskName);
+    while (1); // 死循环方便调试
+}
+
+void vApplicationMallocFailedHook(void)
+{
+    printf("Malloc FAILED! Heap exhausted.\r\n");
+    while (1);
+}
+</code></pre>
+
+<h3>查看任务栈使用情况</h3>
+<pre><code>void vPrintTaskStats(void)
+{
+    TaskHandle_t tasks[] = {xDHT11Handle, xOLEDHandle, xUartHandle, xAlarmHandle};
+    const char *names[] = {"DHT11", "OLED", "UartCmd", "Alarm"};
+
+    for (int i = 0; i &lt; 4; i++) {
+        UBaseType_t watermark = uxTaskGetStackHighWaterMark(tasks[i]);
+        printf("%s stack free: %u words\r\n", names[i], watermark);
+    }
+}
+</code></pre>
+
+<h2>🧩 FreeRTOS核心机制详解</h2>
+
+<h3>队列(Queue)数据流</h3>
+<pre><code>/* 发送端(DHT11任务) */
+SensorData_t data = {25.5, 60.2, HAL_GetTick()};
+xQueueSend(xTempHumQueue, &amp;data, pdMS_TO_TICKS(100));
+
+/* 接收端(OLED任务) */
+SensorData_t received;
+if (xQueueReceive(xTempHumQueue, &amp;received, pdMS_TO_TICKS(1000)) == pdTRUE) {
+    // 处理数据
+}
+
+/* 查看队列中等待的数据数量 */
+UBaseType_t count = uxQueueMessagesWaiting(xTempHumQueue);
+</code></pre>
+
+<h3>互斥量保护I2C</h3>
+<pre><code>/* 多任务共享I2C时，必须用互斥量保护 */
+void OLED_SafeWrite(uint8_t *data, uint16_t len)
+{
+    if (xSemaphoreTake(xI2CMutex, pdMS_TO_TICKS(500)) == pdTRUE) {
+        HAL_I2C_Master_Transmit(&amp;hi2c1, OLED_ADDR, data, len, HAL_MAX_DELAY);
+        xSemaphoreGive(xI2CMutex);
+    } else {
+        printf("I2C Mutex timeout!\r\n");
+    }
+}
+</code></pre>
+
+<h3>临界区保护共享变量</h3>
+<pre><code>/* 修改阈值时进入临界区，防止被中断打断 */
+taskENTER_CRITICAL();
+tempThreshold = newThreshold;
+taskEXIT_CRITICAL();
+
+/* 中断中应使用 */
+UBaseType_t uxSaved = taskENTER_CRITICAL_FROM_ISR();
+// 修改共享变量
+taskEXIT_CRITICAL_FROM_ISR(uxSaved);
+</code></pre>
+
+<h3>独立看门狗</h3>
+<pre><code>/* FreeRTOS空闲钩子中喂狗 */
+void vApplicationIdleHook(void)
+{
+    HAL_IWDG_Refresh(&amp;hiwdg);
+}
+
+/* 如果某个任务死锁，空闲任务无法运行，看门狗超时复位 */
+</code></pre>
+
+<h2>❓ 常见问题排查</h2>
+
+<div class="warn">
+<strong>⚠️ 问题1：任务栈溢出</strong><br>
+<strong>现象：</strong>程序跑飞、HardFault、变量值异常<br>
+<strong>原因：</strong>任务栈太小，局部变量或函数调用层次过深<br>
+<strong>解决：</strong><br>
+1. 使用 <code>uxTaskGetStackHighWaterMark()</code> 查看剩余栈空间<br>
+2. 如果high water mark &lt; 20 words，增大stack_size<br>
+3. 开启 <code>configCHECK_FOR_STACK_OVERFLOW = 2</code>，溢出时进入钩子函数<br>
+4. printf非常消耗栈空间（约200+ bytes），含printf的任务至少分配512字节栈
+</div>
+
+<div class="warn">
+<strong>⚠️ 问题2：优先级反转</strong><br>
+<strong>现象：</strong>高优先级任务被低优先级任务长时间阻塞<br>
+<strong>原因：</strong>低优先级任务持有互斥量，中等优先级任务抢占低优先级，导致高优先级等待<br>
+<strong>解决：</strong><br>
+1. FreeRTOS互斥量自带优先级继承，确保使用 <code>xSemaphoreCreateMutex()</code> 而非 <code>xSemaphoreCreateBinary()</code><br>
+2. 尽量缩短持锁时间<br>
+3. 避免在持锁期间调用可能阻塞的API
+</div>
+
+<div class="warn">
+<strong>⚠️ 问题3：I2C总线冲突</strong><br>
+<strong>现象：</strong>OLED显示乱码、I2C总线挂死<br>
+<strong>原因：</strong>多个任务同时操作I2C，时序被破坏<br>
+<strong>解决：</strong><br>
+1. 所有I2C操作前获取互斥量：<code>xSemaphoreTake(xI2CMutex, ...)</code><br>
+2. 操作完成后立即释放：<code>xSemaphoreGive(xI2CMutex)</code><br>
+3. 给互斥量设置超时，避免死锁
+</div>
+
+<div class="warn">
+<strong>⚠️ 问题4：任务饿死</strong><br>
+<strong>现象：</strong>低优先级任务长时间无法运行<br>
+<strong>原因：</strong>高优先级任务持续就绪，低优先级得不到CPU时间<br>
+<strong>解决：</strong><br>
+1. 高优先级任务必须有阻塞点（vTaskDelay/等待队列/等待信号量）<br>
+2. 使用 <code>vTaskDelay(pdMS_TO_TICKS(x))</code> 而非空循环延时<br>
+3. 监控每个任务的运行时间：<code>vTaskGetRunTimeStats()</code>
+</div>
+
+<div class="warn">
+<strong>⚠️ 问题5：DHT11读取失败</strong><br>
+<strong>现象：</strong>一直读到0或校验和错误<br>
+<strong>原因：</strong>时序不对、上拉电阻缺失、采集频率过高<br>
+<strong>解决：</strong><br>
+1. 确认DATA引脚有4.7K上拉电阻到VCC<br>
+2. 采集间隔必须 ≥ 2秒<br>
+3. 微秒延时函数需要校准<br>
+4. DHT11不要放在发热芯片旁边
+</div>
+
+<div class="note">
+<strong>💡 调试技巧：</strong><br>
+1. 使用 <code>vTaskList()</code> 打印所有任务状态<br>
+2. 开启 <code>configGENERATE_RUN_TIME_STATS</code> 统计各任务CPU占用率<br>
+3. 使用SEGGER SystemView可视化FreeRTOS运行状态<br>
+4. 每个任务入口打印一条信息，确认任务已启动
+</div>
+
+
+<hr><h2>❓ 常见问题 FAQ</h2>
+
+<div style="margin:12px 0;padding:12px 16px;background:var(--bg2);border-left:3px solid var(--a);border-radius:0 8px 8px 0">
+  <p style="font-weight:600;color:var(--c1);margin-bottom:4px">Q: 任务间数据怎么传？</p>
+  <p style="color:var(--t)">A: 1)队列(xQueueSend/Receive)最安全 2)全局变量+互斥量 3)事件组(EventGroup)适合同步 4)流缓冲区(StreamBuffer)适合DMA数据</p>
+</div>
+
+<div style="margin:12px 0;padding:12px 16px;background:var(--bg2);border-left:3px solid var(--a);border-radius:0 8px 8px 0">
+  <p style="font-weight:600;color:var(--c1);margin-bottom:4px">Q: 系统跑飞？</p>
+  <p style="color:var(--t)">A: 1)栈溢出（增大任务栈） 2)优先级设置不合理 3)中断中调用了非ISR安全API 4)看门狗超时</p>
+</div>
+
+<hr><h2>🔗 相关教程</h2>
+<div style="display:flex;flex-wrap:wrap;gap:8px;margin:12px 0">
+<a href="#" onclick="parent.loadPage && parent.loadPage('freertos')" style="display:inline-block;padding:6px 14px;background:var(--bg3);border:1px solid var(--br);border-radius:6px;color:var(--a);text-decoration:none;font-size:.85em">FreeRTOS →</a>
+<a href="#" onclick="parent.loadPage && parent.loadPage('proj-dht11-monitor')" style="display:inline-block;padding:6px 14px;background:var(--bg3);border:1px solid var(--br);border-radius:6px;color:var(--a);text-decoration:none;font-size:.85em">温湿度 →</a>
+<a href="#" onclick="parent.loadPage && parent.loadPage('proj-oled-display')" style="display:inline-block;padding:6px 14px;background:var(--bg3);border:1px solid var(--br);border-radius:6px;color:var(--a);text-decoration:none;font-size:.85em">OLED显示 →</a>
+<a href="#" onclick="parent.loadPage && parent.loadPage('proj-sd-logger')" style="display:inline-block;padding:6px 14px;background:var(--bg3);border:1px solid var(--br);border-radius:6px;color:var(--a);text-decoration:none;font-size:.85em">SD卡记录 →</a>
+</div>
+
+</body></html>

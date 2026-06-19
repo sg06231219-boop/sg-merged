@@ -1,0 +1,778 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ESP32 开发实战 细致教程</title>
+<style>
+:root{--bg:#0d1117;--bg2:#161b22;--bg3:#21262d;--br:#30363d;--t:#c9d1d9;--t2:#8b949e;--a:#58a6ff;--g:#3fb950;--o:#d2991d;--r:#f85149;--p:#a371f7;--c1:#39c5cf}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--t);line-height:1.9;max-width:880px;margin:0 auto;padding:18px}
+h1{font-size:1.6em;text-align:center;padding:18px 0;background:linear-gradient(135deg,var(--g),var(--c1));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:16px}
+h2{font-size:1.25em;color:var(--a);margin:32px 0 12px;padding-bottom:6px;border-bottom:1px solid var(--br)}
+h3{font-size:1.1em;color:var(--c1);margin:22px 0 8px}
+h4{font-size:1em;color:var(--o);margin:16px 0 6px}
+p{margin:8px 0}
+pre{background:var(--bg2);border:1px solid var(--br);border-radius:8px;padding:14px;margin:10px 0;overflow-x:auto;font-size:.88em;line-height:1.6}
+code{font-family:'Cascadia Code','Fira Code',Consolas,monospace;font-size:.9em}
+:not(pre)>code{background:var(--bg3);padding:2px 6px;border-radius:4px;color:var(--c1)}
+table{width:100%;border-collapse:collapse;margin:12px 0;font-size:.9em}
+th{background:var(--bg3);color:var(--a);padding:8px 12px;text-align:left;border:1px solid var(--br)}
+td{padding:8px 12px;border:1px solid var(--br)}
+tr:nth-child(even){background:var(--bg2)}
+.note{background:rgba(88,166,255,.08);border-left:3px solid var(--a);padding:12px 16px;margin:12px 0;border-radius:0 8px 8px 0}
+.warn{background:rgba(248,81,73,.08);border-left:3px solid var(--r);padding:12px 16px;margin:12px 0;border-radius:0 8px 8px 0}
+.tip{background:rgba(63,185,80,.08);border-left:3px solid var(--g);padding:12px 16px;margin:12px 0;border-radius:0 8px 8px 0}
+.analogy{background:rgba(163,113,247,.08);border-left:3px solid var(--p);padding:12px 16px;margin:12px 0;border-radius:0 8px 8px 0}
+.step{background:var(--bg2);border:1px solid var(--br);border-radius:8px;padding:10px 14px;margin:8px 0}
+.card{background:var(--bg2);border:1px solid var(--br);border-radius:10px;margin:14px 0;overflow:hidden}
+.card .h{background:var(--bg3);padding:10px 14px;display:flex;align-items:center;gap:8px}
+.card .name{font-weight:600;flex:1}
+.card .b{padding:12px 14px}
+.tag{display:inline-block;padding:2px 8px;border-radius:12px;font-size:.75em;font-weight:600}
+.tag.g{background:rgba(63,185,80,.15);color:var(--g)}.tag.b{background:rgba(88,166,255,.15);color:var(--a)}
+.tag.o{background:rgba(210,153,29,.15);color:var(--o)}.tag.r{background:rgba(248,81,73,.15);color:var(--r)}.tag.p{background:rgba(163,113,247,.15);color:var(--p)}
+.nav-top{position:fixed;top:0;left:50%;transform:translateX(-50%);background:var(--bg2);border:1px solid var(--br);border-top:none;border-radius:0 0 10px 10px;padding:6px 16px;z-index:999;font-size:.85em;display:flex;gap:12px;flex-wrap:wrap;justify-content:center}
+.nav-top a{color:var(--t2);text-decoration:none;padding:2px 8px;border-radius:4px;transition:all .2s}
+.nav-top a:hover{color:var(--a);background:var(--bg3)}
+.breadcrumb{color:var(--t2);font-size:.85em;margin-bottom:16px}
+.breadcrumb a{color:var(--a);text-decoration:none}
+.breadcrumb a:hover{text-decoration:underline}
+</style>
+</head>
+<body>
+
+<div class="nav-top">
+<a href="#compare">ESP32 vs STM32</a><a href="#arduino">Arduino上手</a><a href="#espidf">ESP-IDF</a><a href="#wifi">WiFi</a><a href="#ble">BLE</a><a href="#freertos">FreeRTOS</a><a href="#periph">外设</a><a href="#ota">OTA</a><a href="#sleep">低功耗</a><a href="#esptool">esptool</a><a href="#troubleshoot">排错</a>
+</div>
+
+<div class="breadcrumb">📐 <a href="index.html">工具教程合集</a> / <strong>ESP32 开发实战</strong></div>
+
+<h1>🟢 ESP32 开发实战 细致教程</h1>
+
+<p>ESP32是乐鑫的<strong>双核WiFi+BLE芯片</strong>，比STM32多了无线通信能力，是IoT项目的首选。本教程覆盖Arduino和ESP-IDF两种开发框架。</p>
+
+<!-- ==================== ESP32 vs STM32 ==================== -->
+<h2 id="compare">🤔 ESP32 vs STM32 对比</h2>
+
+<table>
+<tr><th>特性</th><th>ESP32</th><th>STM32F103</th></tr>
+<tr><td>核心</td><td>Xtensa LX6 双核 240MHz</td><td>Cortex-M3 单核 72MHz</td></tr>
+<tr><td>Flash</td><td>4MB（内置，不可改）</td><td>64KB~2MB（外挂）</td></tr>
+<tr><td>RAM</td><td>520KB</td><td>20KB~1MB</td></tr>
+<tr><td>WiFi</td><td>✅ 802.11 b/g/n</td><td>❌ 需外接模块</td></tr>
+<tr><td>蓝牙</td><td>✅ BLE 4.2+BR/EDR</td><td>❌ 需外接模块</td></tr>
+<tr><td>ADC</td><td>18通道 12位</td><td>16通道 12位</td></tr>
+<tr><td>价格</td><td>¥15~25（模块）</td><td>¥5~10（芯片）</td></tr>
+<tr><td>开发门槛</td><td>低（Arduino）</td><td>中高（HAL/寄存器）</td></tr>
+<tr><td>实时性</td><td>一般（WiFi占用CPU）</td><td>强（裸机/RTOS）</td></tr>
+<tr><td>生态</td><td>Arduino社区庞大</td><td>工业标准/ST支持</td></tr>
+</table>
+
+<div class="analogy">💡 <b>类比：</b>STM32像一辆精准的赛车——纯机械操控，响应快，适合控制；ESP32像一辆智能SUV——自带导航和通信，适合IoT，但操控感稍弱。</div>
+
+<h3>选型建议</h3>
+<table>
+<tr><th>场景</th><th>推荐</th><th>原因</th></tr>
+<tr><td>电机控制/电源/工业</td><td>STM32</td><td>实时性强，定时器/PWM精确</td></tr>
+<tr><td>智能家居/IoT/远程监控</td><td>ESP32</td><td>自带WiFi/BLE，省外设</td></tr>
+<tr><td>可穿戴/电池供电</td><td>ESP32-S2/S3（低功耗版）</td><td>深度睡眠功耗10μA</td></tr>
+<tr><td>学习嵌入式基础</td><td>STM32</td><td>寄存器级控制，理解底层</td></tr>
+<tr><td>快速原型/创客</td><td>ESP32</td><td>Arduino生态，5分钟跑起来</td></tr>
+</table>
+
+<!-- ==================== Arduino上手 ==================== -->
+<h2 id="arduino">🚀 Arduino 框架快速上手</h2>
+
+<p>Arduino是最简单的ESP32开发方式，适合新手和快速原型。</p>
+
+<h3>通过PlatformIO创建项目（推荐）</h3>
+
+<div class="step"><b>步骤1：</b>VS Code安装PlatformIO插件</div>
+<div class="step"><b>步骤2：</b>PIO Home → New Project → Board选"Espressif ESP32 Dev Module" → Framework选"Arduino"</div>
+<div class="step"><b>步骤3：</b>自动生成项目结构</div>
+
+<pre><code># PlatformIO项目结构
+project/
+├── platformio.ini        # 项目配置
+├── src/
+│   └── main.cpp          # 你的代码（不是.ino！）
+├── lib/                  # 第三方库
+└── .vscode/              # VS Code配置</code></pre>
+
+<div class="step"><b>步骤4：</b>配置 platformio.ini</div>
+<pre><code>; platformio.ini
+[env:esp32dev]
+platform = espressif32
+board = esp32dev
+framework = arduino
+monitor_speed = 115200        ; 串口监视器波特率
+upload_speed = 921600         ; 烧录速度
+board_build.flash_mode = dio  ; Flash模式（重要！）
+lib_deps =
+    bblanchon/ArduinoJson@^7.0  ; 示例：JSON库</code></pre>
+
+<h3>Blink — 点灯程序</h3>
+<pre><code>// src/main.cpp
+#include &lt;Arduino.h&gt;
+
+#define LED_PIN 2  // ESP32开发板自带LED通常在GPIO2
+
+void setup() {
+    Serial.begin(115200);
+    pinMode(LED_PIN, OUTPUT);
+    Serial.println("Hello ESP32!");
+}
+
+void loop() {
+    digitalWrite(LED_PIN, HIGH);
+    delay(500);
+    digitalWrite(LED_PIN, LOW);
+    delay(500);
+}</code></pre>
+
+<div class="note">⚠️ <b>Arduino框架的setup()/loop()：</b>setup()只执行一次（初始化），loop()不断循环。这和STM32的main() while(1)本质一样，只是写法不同。</div>
+
+<h3>WiFi扫描</h3>
+<pre><code>// src/main.cpp
+#include &lt;Arduino.h&gt;
+#include &lt;WiFi.h&gt;
+
+void setup() {
+    Serial.begin(115200);
+    delay(1000);
+    Serial.println("WiFi Scan Start");
+}
+
+void loop() {
+    Serial.println("扫描中...");
+    int n = WiFi.scanNetworks();
+    if (n == 0) {
+        Serial.println("没找到WiFi网络");
+    } else {
+        Serial.printf("找到 %d 个网络:\n", n);
+        for (int i = 0; i < n; i++) {
+            Serial.printf("  %d: %s (%d dBm) %s\n",
+                i + 1,
+                WiFi.SSID(i).c_str(),
+                WiFi.RSSI(i),
+                WiFi.encryptionType(i) == WIFI_AUTH_OPEN ? "开放" : "加密"
+            );
+        }
+    }
+    delay(10000);  // 每10秒扫描一次
+}</code></pre>
+
+<h3>WiFi连接AP</h3>
+<pre><code>#include &lt;Arduino.h&gt;
+#include &lt;WiFi.h&gt;
+
+const char* ssid = "你的WiFi名";
+const char* password = "你的WiFi密码";
+
+void setup() {
+    Serial.begin(115200);
+    WiFi.begin(ssid, password);
+    Serial.print("连接中");
+    while (WiFi.status() != WL_CONNECTED) {
+        delay(500);
+        Serial.print(".");
+    }
+    Serial.printf("\n已连接！IP: %s\n", WiFi.localIP().toString().c_str());
+}
+
+void loop() {
+    // 已连接，可以做HTTP/MQTT等操作
+}</code></pre>
+
+<!-- ==================== ESP-IDF ==================== -->
+<h2 id="espidf">🏗️ ESP-IDF 安装与使用</h2>
+
+<p>ESP-IDF是乐鑫官方开发框架，功能最全，但门槛比Arduino高。</p>
+
+<h3>安装（Windows离线安装器，最简单）</h3>
+<div class="step"><b>步骤1：</b>下载离线安装器 <code>dl.espressif.com/dl/esp-idf/</code></div>
+<div class="step"><b>步骤2：</b>运行安装器，选"Download"然后"Install"</div>
+<div class="step"><b>步骤3：</b>选择ESP-IDF版本（推荐v5.4 LTS）</div>
+<div class="step"><b>步骤4：</b>安装路径建议 <code>D:\esp-idf</code>（不要有空格/中文）</div>
+<div class="step"><b>步骤5：</b>安装完成后桌面上有"ESP-IDF 5.4 CMD"快捷方式</div>
+
+<h3>Hello World</h3>
+<pre><code># 在ESP-IDF命令行中
+cd %IDF_PATH%
+python tools\idf_tools.py install-python-env
+
+# 创建项目（从模板）
+idf.py create-project hello_world
+cd hello_world
+
+# 设置目标芯片
+idf.py set-target esp32
+
+# 编译
+idf.py build
+
+# 烧录+监控（一条命令搞定）
+idf.py -p COM3 flash monitor
+# Ctrl+] 退出监控</code></pre>
+
+<h3>ESP-IDF项目结构</h3>
+<pre><code>hello_world/
+├── CMakeLists.txt          # 项目CMake配置
+├── main/
+│   ├── CMakeLists.txt      # main组件的CMake
+│   ├── hello_world_main.c  # 入口文件
+│   └── component.mk        # 兼容旧版构建
+├── components/             # 自定义组件
+├── sdkconfig               # menuconfig生成的配置
+└── build/                  # 构建输出</code></pre>
+
+<h3>最小ESP-IDF程序</h3>
+<pre><code>// main/hello_world_main.c
+#include &lt;stdio.h&gt;
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
+#include "esp_log.h"
+
+static const char *TAG = "MAIN";
+
+void app_main(void) {
+    ESP_LOGI(TAG, "Hello ESP32!");
+
+    while (1) {
+        ESP_LOGI(TAG, "心跳: %d", xTaskGetTickCount() / configTICK_RATE_HZ);
+        vTaskDelay(pdMS_TO_TICKS(1000));
+    }
+}</code></pre>
+
+<div class="tip">💡 <b>ESP-IDF vs Arduino：</b>ESP-IDF功能最全（完整WiFi/BLE/OTA API），但学习曲线陡。Arduino简单，大部分库都有。建议：初学用Arduino，项目复杂了切ESP-IDF。Arduino底层其实就是ESP-IDF的封装。</div>
+
+<!-- ==================== WiFi编程 ==================== -->
+<h2 id="wifi">📶 WiFi 编程</h2>
+
+<h3>STA模式（连路由器）</h3>
+<pre><code>// ESP-IDF版
+#include "esp_wifi.h"
+#include "esp_event.h"
+#include "nvs_flash.h"
+
+#define WIFI_SSID "YourWiFi"
+#define WIFI_PASS "YourPassword"
+
+static void wifi_event_handler(void* arg, esp_event_base_t event_base,
+                                int32_t event_id, void* event_data) {
+    if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_START) {
+        esp_wifi_connect();
+    } else if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_DISCONNECTED) {
+        ESP_LOGI("WiFi", "断开，重连...");
+        esp_wifi_connect();
+    } else if (event_base == IP_EVENT && event_id == IP_EVENT_STA_GOT_IP) {
+        ip_event_got_ip_t* event = (ip_event_got_ip_t*) event_data;
+        ESP_LOGI("WiFi", "获取IP:" IPSTR, IP2STR(&event->ip_info.ip));
+    }
+}
+
+void wifi_init_sta(void) {
+    nvs_flash_init();
+    esp_netif_init();
+    esp_event_loop_create_default();
+    esp_netif_create_default_wifi_sta();
+
+    wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
+    esp_wifi_init(&cfg);
+
+    esp_event_handler_register(WIFI_EVENT, ESP_EVENT_ANY_ID, &wifi_event_handler, NULL);
+    esp_event_handler_register(IP_EVENT, IP_EVENT_STA_GOT_IP, &wifi_event_handler, NULL);
+
+    wifi_config_t wifi_config = {
+        .sta = {
+            .ssid = WIFI_SSID,
+            .password = WIFI_PASS,
+        },
+    };
+    esp_wifi_set_mode(WIFI_MODE_STA);
+    esp_wifi_set_config(WIFI_IF_STA, &wifi_config);
+    esp_wifi_start();
+}</code></pre>
+
+<h3>AP模式（ESP32做热点）</h3>
+<pre><code>// Arduino版
+#include &lt;WiFi.h&gt;
+#include &lt;WebServer.h&gt;
+
+WebServer server(80);
+
+void handleRoot() {
+    server.send(200, "text/html",
+        "&lt;h1&gt;ESP32热点&lt;/h1&gt;"
+        "&lt;p&gt;你已连接到ESP32！&lt;/p&gt;"
+        "&lt;p&gt;ADC值: " + String(analogRead(34)) + "&lt;/p&gt;"
+    );
+}
+
+void setup() {
+    Serial.begin(115200);
+    WiFi.softAP("ESP32_AP", "12345678");  // SSID + 密码
+    Serial.printf("AP IP: %s\n", WiFi.softAPIP().toString().c_str());
+
+    server.on("/", handleRoot);
+    server.begin();
+}
+
+void loop() {
+    server.handleClient();
+}</code></pre>
+
+<!-- ==================== BLE ==================== -->
+<h2 id="ble">📡 BLE 蓝牙低功耗</h2>
+
+<h3>BLE架构</h3>
+<div class="card">
+<div class="b">
+<table>
+<tr><th>概念</th><th>类比</th><th>说明</th></tr>
+<tr><td>Server</td><td>服务员</td><td>提供数据的一方（通常是ESP32）</td></tr>
+<tr><td>Client</td><td>顾客</td><td>读取数据的一方（通常是手机App）</td></tr>
+<tr><td>Service</td><td>菜单类别</td><td>一组相关特征的集合</td></tr>
+<tr><td>Characteristic</td><td>具体菜品</td><td>可读/可写/可通知的数据项</td></tr>
+<tr><td>UUID</td><td>菜品编号</td><td>唯一标识Service/Characteristic</td></tr>
+</table>
+</div></div>
+
+<h3>BLE广播+读写示例（Arduino）</h3>
+<pre><code>#include &lt;BLEDevice.h&gt;
+#include &lt;BLEServer.h&gt;
+#include &lt;BLEUtils.h&gt;
+
+#define SERVICE_UUID        "4fafc201-1fb5-459e-8fcc-c5c9c331914b"
+#define CHARACTERISTIC_UUID "beb5483e-36e1-4688-b7f5-ea07361b26a8"
+
+BLEServer* pServer = NULL;
+BLECharacteristic* pCharacteristic = NULL;
+bool deviceConnected = false;
+
+class MyServerCallbacks: public BLEServerCallbacks {
+    void onConnect(BLEServer* pServer) { deviceConnected = true; }
+    void onDisconnect(BLEServer* pServer) { deviceConnected = false; }
+};
+
+void setup() {
+    Serial.begin(115200);
+
+    BLEDevice::init("ESP32-BLE");
+    pServer = BLEDevice::createServer();
+    pServer->setCallbacks(new MyServerCallbacks());
+
+    BLEService* pService = pServer->createService(SERVICE_UUID);
+    pCharacteristic = pService->createCharacteristic(
+        CHARACTERISTIC_UUID,
+        BLECharacteristic::PROPERTY_READ |
+        BLECharacteristic::PROPERTY_WRITE |
+        BLECharacteristic::PROPERTY_NOTIFY
+    );
+
+    pCharacteristic->setValue("Hello BLE");
+    pService->start();
+
+    BLEAdvertising* pAdvertising = BLEDevice::getAdvertising();
+    pAdvertising->addServiceUUID(SERVICE_UUID);
+    BLEDevice::startAdvertising();
+
+    Serial.println("BLE已启动，用nRF Connect连接");
+}
+
+void loop() {
+    if (deviceConnected) {
+        // 通知客户端（推送数据）
+        char buf[32];
+        snprintf(buf, sizeof(buf), "ADC=%d", analogRead(34));
+        pCharacteristic->setValue(buf);
+        pCharacteristic->notify();
+        delay(1000);
+    }
+    // 断开后重新广播
+    if (!deviceConnected) {
+        delay(500);
+        BLEDevice::startAdvertising();
+    }
+}</code></pre>
+
+<div class="tip">💡 <b>手机调试BLE：</b>安装 <strong>nRF Connect</strong>（Nordic官方免费App），可以扫描/连接/读写BLE设备，是调试BLE必备工具。</div>
+
+<!-- ==================== FreeRTOS ==================== -->
+<h2 id="freertos">🔄 FreeRTOS on ESP32</h2>
+
+<p>ESP32自带FreeRTOS，而且<strong>是双核版</strong>，可以指定任务跑在哪个核上。</p>
+
+<h3>双核任务分配</h3>
+<pre><code>// Arduino框架下的FreeRTOS
+TaskHandle_t Task1 = NULL;
+TaskHandle_t Task2 = NULL;
+
+void task1_func(void* param) {
+    while (1) {
+        Serial.printf("核心%d: 任务1\n", xPortGetCoreID());
+        vTaskDelay(pdMS_TO_TICKS(1000));
+    }
+}
+
+void task2_func(void* param) {
+    while (1) {
+        Serial.printf("核心%d: 任务2\n", xPortGetCoreID());
+        vTaskDelay(pdMS_TO_TICKS(1500));
+    }
+}
+
+void setup() {
+    Serial.begin(115200);
+
+    // xTaskCreatePinnedToCore：最后一个参数指定核心（0或1）
+    xTaskCreatePinnedToCore(task1_func, "Task1", 4096, NULL, 1, &Task1, 0);  // 核心0
+    xTaskCreatePinnedToCore(task2_func, "Task2", 4096, NULL, 1, &Task2, 1);  // 核心1
+}
+
+void loop() {
+    // loop()默认运行在核心1，优先级1
+    vTaskDelay(pdMS_TO_TICKS(5000));
+}</code></pre>
+
+<div class="warn">⚠️ <b>双核注意事项：</b>WiFi任务运行在核心0，不要在核心0放高实时性任务。核心1留给你的应用逻辑。共享变量必须用互斥量保护。</div>
+
+<!-- ==================== 外设 ==================== -->
+<h2 id="periph">🔌 ESP32 外设操作</h2>
+
+<h3>GPIO</h3>
+<pre><code>// Arduino
+#define BTN_PIN 0   // BOOT按钮（低有效）
+#define LED_PIN 2
+
+void setup() {
+    pinMode(LED_PIN, OUTPUT);
+    pinMode(BTN_PIN, INPUT_PULLUP);
+}
+
+void loop() {
+    if (digitalRead(BTN_PIN) == LOW) {
+        digitalWrite(LED_PIN, !digitalRead(LED_PIN));
+        delay(200);  // 简单消抖
+    }
+}</code></pre>
+
+<div class="warn">⚠️ <b>ESP32 GPIO限制：</b>GPIO 6~11连Flash（禁用！），GPIO 34~39只能输入（无上拉），GPIO 0是BOOT按钮，GPIO 2上电必须为低。可用GPIO：1,3,4,5,12~19,21~23,25~27,32~39。</div>
+
+<h3>ADC读取</h3>
+<pre><code>// Arduino
+void setup() {
+    Serial.begin(115200);
+    analogReadResolution(12);  // 12位（0~4095）
+    analogSetAttenuation(ADC_11db);  // 量程0~3.3V
+}
+
+void loop() {
+    int val = analogRead(34);  // GPIO34
+    float voltage = val * 3.3 / 4095;
+    Serial.printf("ADC=%d, 电压=%.2fV\n", val, voltage);
+    delay(500);
+}</code></pre>
+
+<h3>PWM（LEDC）</h3>
+<pre><code>// Arduino - LED呼吸灯
+#define LED_PIN 2
+#define PWM_FREQ 5000     // 5kHz
+#define PWM_RES 8         // 8位分辨率（0~255）
+#define PWM_CH 0          // 通道0
+
+void setup() {
+    ledcSetup(PWM_CH, PWM_FREQ, PWM_RES);
+    ledcAttachPin(LED_PIN, PWM_CH);
+}
+
+void loop() {
+    // 呼吸灯
+    for (int duty = 0; duty <= 255; duty++) {
+        ledcWrite(PWM_CH, duty);
+        delay(5);
+    }
+    for (int duty = 255; duty >= 0; duty--) {
+        ledcWrite(PWM_CH, duty);
+        delay(5);
+    }
+}</code></pre>
+
+<h3>I2C（OLED屏示例）</h3>
+<pre><code>#include &lt;Wire.h&gt;
+#include &lt;Adafruit_SSD1306.h&gt;
+
+#define OLED_ADDR 0x3C
+#define SDA_PIN 21
+#define SCL_PIN 22
+Adafruit_SSD1306 display(128, 64, &Wire, -1);
+
+void setup() {
+    Wire.begin(SDA_PIN, SCL_PIN);
+    display.begin(SSD1306_SWITCHCAPVCC, OLED_ADDR);
+    display.clearDisplay();
+    display.setTextSize(1);
+    display.setTextColor(SSD1306_WHITE);
+    display.setCursor(0, 0);
+    display.println("Hello ESP32!");
+    display.display();
+}</code></pre>
+
+<!-- ==================== OTA ==================== -->
+<h2 id="ota">📤 OTA 空中升级</h2>
+
+<p>OTA = Over-The-Air，通过WiFi远程更新固件，不用插线。</p>
+
+<h3>Arduino OTA（最简单）</h3>
+<pre><code>#include &lt;Arduino.h&gt;
+#include &lt;WiFi.h&gt;
+#include &lt;ArduinoOTA.h&gt;
+
+const char* ssid = "YourWiFi";
+const char* password = "YourPassword";
+
+void setup() {
+    Serial.begin(115200);
+    WiFi.begin(ssid, password);
+    while (WiFi.status() != WL_CONNECTED) delay(500);
+
+    ArduinoOTA.setHostname("esp32-mydevice");
+    ArduinoOTA.setPassword("admin123");  // OTA密码
+    ArduinoOTA.begin();
+
+    Serial.printf("OTA就绪！IP: %s\n", WiFi.localIP().toString().c_str());
+}
+
+void loop() {
+    ArduinoOTA.handle();  // 必须在loop中调用！
+    // 你的其他代码...
+}</code></pre>
+
+<div class="step"><b>OTA使用方式：</b></div>
+<div class="step"><b>方式1：</b>Arduino IDE → 工具 → 端口 → 找到"esp32-mydevice at IP" → 点上传</div>
+<div class="step"><b>方式2：</b>PlatformIO → pio run -t upload --upload-port IP地址</div>
+<div class="step"><b>方式3：</b>curl发送.bin文件（HTTP OTA）</div>
+
+<h3>ESP-IDF OTA（更专业）</h3>
+<pre><code>// ESP-IDF OTA核心流程
+#include "esp_ota_ops.h"
+
+void ota_update(void) {
+    const esp_partition_t *update_partition = esp_ota_get_next_update_partition(NULL);
+    esp_ota_handle_t update_handle = 0;
+
+    esp_ota_begin(update_partition, OTA_SIZE_UNKNOWN, &update_handle);
+
+    // 从HTTP下载固件（伪代码）
+    while (/* 还有数据 */) {
+        esp_ota_write(update_handle, data_buf, data_len);
+    }
+
+    esp_ota_end(update_handle);
+    esp_ota_set_boot_partition(update_partition);  // 设置下次启动分区
+    esp_restart();  // 重启进新固件
+}</code></pre>
+
+<div class="note">⚠️ <b>OTA回滚：</b>如果新固件启动后自检失败，可以自动回滚到旧版本。ESP-IDF的 <code>esp_ota_mark_app_valid_cancel_rollback()</code> 标记当前固件为有效。</div>
+
+<!-- ==================== 低功耗 ==================== -->
+<h2 id="sleep">🔋 深度睡眠与低功耗</h2>
+
+<pre><code>#include &lt;Arduino.h&gt;
+#include &lt;esp_sleep.h&gt;
+
+#define WAKEUP_PIN GPIO_NUM_0  // BOOT按钮唤醒
+
+void setup() {
+    Serial.begin(115200);
+
+    // 检查唤醒原因
+    esp_sleep_wakeup_cause_t reason = esp_sleep_get_wakeup_cause();
+    if (reason == ESP_SLEEP_WAKEUP_EXT0) {
+        Serial.println("按钮唤醒！");
+    } else if (reason == ESP_SLEEP_WAKEUP_TIMER) {
+        Serial.println("定时器唤醒！");
+    } else {
+        Serial.println("正常上电");
+    }
+
+    // 做完工作后进入深度睡眠
+    Serial.println("3秒后进入深度睡眠...");
+    delay(3000);
+
+    // 配置唤醒源（二选一或同时）
+    // 方式1：定时器唤醒（每60秒）
+    esp_sleep_enable_timer_wakeup(60 * 1000000);  // 微秒
+
+    // 方式2：GPIO唤醒（按钮）
+    esp_sleep_enable_ext0_wakeup(WAKEUP_PIN, 0);  // 低电平唤醒
+
+    esp_deep_sleep_start();  // 进入深度睡眠（到这儿就停了）
+    // 下面的代码不会执行！
+}
+
+void loop() {
+    // 深度睡眠不用loop
+}</code></pre>
+
+<h3>功耗对比</h3>
+<table>
+<tr><th>模式</th><th>功耗</th><th>唤醒时间</th><th>保持状态</th></tr>
+<tr><td>活跃</td><td>~160mA</td><td>—</td><td>全部</td></tr>
+<tr><td>Light Sleep</td><td>~0.8mA</td><td>&lt;1ms</td><td>RAM保持</td></tr>
+<tr><td>Deep Sleep</td><td>~10μA</td><td>~10ms</td><td>仅RTC内存</td></tr>
+<tr><td>Hibernation</td><td>~5μA</td><td>~100ms</td><td>无</td></tr>
+</table>
+
+<div class="tip">💡 <b>RTC内存：</b>深度睡眠时普通RAM断电，但RTC内存保持。用 <code>RTC_DATA_ATTR</code> 声明的变量在深睡后还在：<br><code>RTC_DATA_ATTR int bootCount = 0;</code></div>
+
+<!-- ==================== esptool ==================== -->
+<h2 id="esptool">🔧 esptool 使用</h2>
+
+<p>esptool是ESP32的官方烧录工具，已通过pip安装。</p>
+
+<pre><code># 查看ESP32信息（芯片型号/Flash大小/MAC地址）
+esptool.py --port COM3 chip_id
+
+# 烧录固件
+esptool.py --port COM3 --baud 921600 write_flash 0x0 app.bin
+
+# 擦除Flash（恢复出厂）
+esptool.py --port COM3 erase_flash
+
+# 读取Flash内容（256KB）
+esptool.py --port COM3 read_flash 0x0 0x40000 flash_dump.bin
+
+# 合并多个bin（bootloader+partition+app）
+esptool.py --chip esp32 merge_bin \
+    -o merged.bin \
+    0x0 bootloader.bin \
+    0x8000 partitions.bin \
+    0x10000 app.bin
+
+# 设置Flash模式和大小
+esptool.py --port COM3 --baud 921600 write_flash \
+    --flash_mode dio --flash_size 4MB 0x0 app.bin</code></pre>
+
+<h3>ESP32启动模式</h3>
+<table>
+<tr><th>GPIO0</th><th>GPIO2</th><th>模式</th><th>说明</th></tr>
+<tr><td>1（高）</td><td>任意</td><td>Flash启动</td><td>正常运行</td></tr>
+<tr><td>0（低）</td><td>0（低）</td><td>下载模式</td><td>烧录固件</td></tr>
+</table>
+
+<div class="note">⚠️ <b>自动进入下载模式：</b>现代ESP32开发板有自动复位电路（EN+GPIO0），esptool会自动控制，不用手动按按钮。老板子需要手动按住BOOT再按EN。</div>
+
+<!-- ==================== 排错 ==================== -->
+<h2 id="troubleshoot">🔍 常见问题</h2>
+
+<h3>问题1：不断重启（看Guru Meditation Error）</h3>
+<pre><code># ESP32崩溃时会打印backtrace
+# Guru Meditation Error: Core  0 panic'ed (LoadProhibited)
+# Backtrace: 0x400D12A7:0x3FFB1D70 0x400D12D1:0x3FFB1D90 ...
+
+# 解码（需要addr2line或idf.py monitor自动解码）
+# Arduino：Tools → Core Debug Level → Verbose
+# ESP-IDF：idf.py monitor（自动解码）
+
+# 常见原因：
+# 1. 空指针（最常见）
+# 2. 栈溢出（任务栈太小，加大4096→8192）
+# 3. 看门狗超时（长时间关中断或死循环）
+# 4. Flash读取失败（GPIO6~11被占用）</code></pre>
+
+<h3>问题2：WiFi连不上</h3>
+<pre><code># 检查清单：
+# 1. SSID/密码是否正确
+# 2. 路由器是否2.4GHz（ESP32不支持5GHz！）
+# 3. 路由器是否开了MAC过滤
+# 4. WiFi事件回调是否注册
+# 5. nvs_flash是否初始化</code></pre>
+
+<h3>问题3：烧录失败</h3>
+<pre><code># A fatal error occurred: Failed to connect to ESP32: Timed out
+# 解决：
+# 1. 按住BOOT按钮 → 点烧录 → 等Connecting时松开
+# 2. 检查COM口是否正确（设备管理器→端口）
+# 3. 换USB线（有些线只能充电不能传数据）
+# 4. 降低波特率：--baud 115200</code></pre>
+
+<h3>问题4：内存不足</h3>
+<pre><code># 查看堆内存
+ESP_LOGI("MEM", "空闲堆: %d", esp_get_free_heap_size());
+ESP_LOGI("MEM", "最小空闲: %d", esp_get_minimum_free_heap_size());
+
+# Arduino
+Serial.printf("空闲堆: %d\n", ESP.getFreeHeap());
+
+# 解决：
+# 1. 减少全局数组大小
+# 2. 用ps_malloc()利用外部PSRAM（ESP32-S3等）
+# 3. 及时free()动态内存
+# 4. 减小WiFi/BLE缓冲区</code></pre>
+
+<!-- ==================== 速查表 ==================== -->
+<h2 id="cheatsheet">📋 ESP32 速查表</h2>
+
+<table>
+<tr><th>操作</th><th>Arduino</th><th>ESP-IDF</th></tr>
+<tr><td>创建项目</td><td>PIO New Project</td><td><code>idf.py create-project xxx</code></td></tr>
+<tr><td>编译</td><td>PIO Build</td><td><code>idf.py build</code></td></tr>
+<tr><td>烧录</td><td>PIO Upload</td><td><code>idf.py -p COM3 flash</code></td></tr>
+<tr><td>串口监控</td><td>PIO Monitor</td><td><code>idf.py -p COM3 monitor</code></td></tr>
+<tr><td>烧录+监控</td><td>两步</td><td><code>idf.py -p COM3 flash monitor</code></td></tr>
+<tr><td>擦除Flash</td><td><code>esptool.py erase_flash</code></td><td><code>idf.py erase-flash</code></td></tr>
+<tr><td>打印日志</td><td><code>Serial.println()</code></td><td><code>ESP_LOGI(TAG, "...")</code></td></tr>
+<tr><td>延时</td><td><code>delay(ms)</code></td><td><code>vTaskDelay(pdMS_TO_TICKS(ms))</code></td></tr>
+<tr><td>读GPIO</td><td><code>digitalRead(pin)</code></td><td><code>gpio_get_level(pin)</code></td></tr>
+<tr><td>写GPIO</td><td><code>digitalWrite(pin, val)</code></td><td><code>gpio_set_level(pin, val)</code></td></tr>
+<tr><td>读ADC</td><td><code>analogRead(pin)</code></td><td>需配置ADC单元</td></tr>
+<tr><td>PWM</td><td><code>ledcWrite(ch, duty)</code></td><td>需配置LEDC通道</td></tr>
+<tr><td>深睡</td><td><code>esp_deep_sleep_start()</code></td><td>同左</td></tr>
+<tr><td>获取IP</td><td><code>WiFi.localIP()</code></td><td>事件回调中获取</td></tr>
+<tr><td>OTA</td><td><code>ArduinoOTA</code>库</td><td><code>esp_ota_ops.h</code></td></tr>
+</table>
+
+<table>
+<tr><th>可用GPIO</th><th>说明</th></tr>
+<tr><td>1, 3</td><td>默认串口TX/RX，可用但调试时被占</td></tr>
+<tr><td>4, 5, 12~19, 21~23</td><td>通用GPIO，推荐使用</td></tr>
+<tr><td>25, 26, 27</td><td>DAC输出（模拟电压）</td></tr>
+<tr><td>32~39</td><td>仅输入（34~39无上拉电阻）</td></tr>
+<tr><td>6~11</td><td>❌ 连接Flash，禁用</td></tr>
+<tr><td>0</td><td>BOOT按钮，上电必须为高</td></tr>
+<tr><td>2</td><td>上电必须为低，内置LED</td></tr>
+<tr><td>15</td><td>上电需为低（否则静默启动）</td></tr>
+</table>
+
+<div class="tip">💡 <b>下一步：</b>学完ESP32基础后，可以结合<a href="tool-freertos.html">FreeRTOS</a>做多任务、<a href="tool-protocols.html">通信协议</a>连接传感器、<a href="tool-serial.html">串口</a>调试。</div>
+
+<div class="breadcrumb">📐 <a href="index.html">返回工具教程合集</a></div>
+
+
+<hr><h2>❓ 常见问题 FAQ</h2>
+
+<div style="margin:12px 0;padding:12px 16px;background:var(--bg2);border-left:3px solid var(--a);border-radius:0 8px 8px 0">
+  <p style="font-weight:600;color:var(--c1);margin-bottom:4px">Q: ESP32用Arduino还是ESP-IDF？</p>
+  <p style="color:var(--t)">A: 快速原型用Arduino，产品开发用ESP-IDF。ESP-IDF有更好的FreeRTOS集成和功耗管理。</p>
+</div>
+
+<div style="margin:12px 0;padding:12px 16px;background:var(--bg2);border-left:3px solid var(--a);border-radius:0 8px 8px 0">
+  <p style="font-weight:600;color:var(--c1);margin-bottom:4px">Q: ESP32和STM32哪个好？</p>
+  <p style="color:var(--t)">A: 不同定位：ESP32适合WiFi/BLE/IoT场景，STM32适合实时控制/低功耗。做IoT选ESP32，做电机控制选STM32。</p>
+</div>
+
+<div style="margin:12px 0;padding:12px 16px;background:var(--bg2);border-left:3px solid var(--a);border-radius:0 8px 8px 0">
+  <p style="font-weight:600;color:var(--c1);margin-bottom:4px">Q: ESP32功耗怎么优化？</p>
+  <p style="color:var(--t)">A: Deep Sleep模式下10μA，定时唤醒或GPIO唤醒。Light Sleep约0.8mA。WiFi发射时约200mA。</p>
+</div>
+
+<hr><h2>🔗 相关教程</h2>
+<div style="display:flex;flex-wrap:wrap;gap:8px;margin:12px 0">
+<a href="#" onclick="parent.loadPage && parent.loadPage('stm32')" style="display:inline-block;padding:6px 14px;background:var(--bg3);border:1px solid var(--br);border-radius:6px;color:var(--a);text-decoration:none;font-size:.85em">STM32开发 →</a>
+<a href="#" onclick="parent.loadPage && parent.loadPage('proj-esp32-iot')" style="display:inline-block;padding:6px 14px;background:var(--bg3);border:1px solid var(--br);border-radius:6px;color:var(--a);text-decoration:none;font-size:.85em">ESP32 IoT →</a>
+<a href="#" onclick="parent.loadPage && parent.loadPage('freertos')" style="display:inline-block;padding:6px 14px;background:var(--bg3);border:1px solid var(--br);border-radius:6px;color:var(--a);text-decoration:none;font-size:.85em">FreeRTOS →</a>
+</div>
+
+</body></html>

@@ -1,0 +1,1370 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>嵌入式开发教程</title>
+<style>
+:root{--bg:#0d1117;--bg2:#161b22;--bg3:#21262d;--br:#30363d;--t:#c9d1d9;--t2:#8b949e;--a:#58a6ff;--g:#3fb950;--o:#d2991d;--r:#f85149;--p:#a371f7;--c1:#39c5cf;--sidebar-w:280px}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{font-family:system-ui,-apple-system,'Segoe UI',sans-serif;background:var(--bg);color:var(--t);display:flex;min-height:100vh}
+
+/* === 侧边栏 === */
+.sidebar{position:fixed;left:0;top:0;bottom:0;width:var(--sidebar-w);background:var(--bg2);border-right:1px solid var(--br);overflow-y:auto;z-index:100;transition:transform .3s;display:flex;flex-direction:column}
+.sidebar-header{padding:16px;border-bottom:1px solid var(--br);flex-shrink:0}
+.sidebar-header h1{font-size:1.1em;background:linear-gradient(135deg,var(--a),var(--p));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:2px}
+.sidebar-header p{font-size:.72em;color:var(--t2)}
+.sidebar-nav{flex:1;overflow-y:auto;padding:8px 0}
+.nav-group{margin-bottom:4px}
+.nav-group-title{padding:8px 16px;font-size:.72em;font-weight:700;color:var(--t2);text-transform:uppercase;letter-spacing:.05em}
+.nav-group.collapsible .nav-group-title{cursor:pointer;user-select:none}
+.nav-group.collapsible .toggle-icon{float:right;transition:transform .2s}
+.nav-group.collapsible.open .toggle-icon{transform:rotate(90deg)}
+.nav-group.collapsible .nav-item{display:none}
+.nav-group.collapsible.open .nav-item{display:block}
+.nav-item{display:block;padding:6px 16px 6px 24px;font-size:.85em;color:var(--t2);text-decoration:none;cursor:pointer;transition:all .15s;border-left:3px solid transparent}
+.nav-item:hover{color:var(--t);background:var(--bg3);border-left-color:var(--a)}
+.nav-item.active{color:var(--a);background:rgba(88,166,255,.08);border-left-color:var(--a);font-weight:600}
+.nav-item .badge{display:inline-block;font-size:.65em;padding:1px 6px;border-radius:8px;margin-left:6px;vertical-align:middle}
+.badge-new{background:rgba(63,185,80,.15);color:var(--g)}
+.badge-hot{background:rgba(248,81,73,.15);color:var(--r)}
+.sidebar-footer{padding:12px 16px;border-top:1px solid var(--br);font-size:.7em;color:var(--t2);flex-shrink:0}
+
+/* === 主内容区 === */
+.main{margin-left:var(--sidebar-w);flex:1;min-width:0}
+.topbar{position:sticky;top:0;z-index:50;background:var(--bg2);border-bottom:1px solid var(--br);padding:10px 20px;display:flex;align-items:center;gap:12px}
+.topbar .menu-btn{display:none;background:none;border:1px solid var(--br);color:var(--t);padding:6px 10px;border-radius:6px;cursor:pointer;font-size:1.1em}
+.topbar .breadcrumb{font-size:.85em;color:var(--t2)}
+.topbar .breadcrumb a{color:var(--a);text-decoration:none}
+.topbar .search-box{margin-left:auto;position:relative}
+.topbar .search-box input{background:var(--bg3);border:1px solid var(--br);color:var(--t);padding:6px 12px 6px 32px;border-radius:6px;font-size:.85em;width:200px;outline:none;transition:border-color .2s}
+.topbar .search-box input:focus{border-color:var(--a)}
+.topbar .search-box .icon{position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--t2);font-size:.85em}
+
+/* === 内容 === */
+.content{max-width:900px;margin:0 auto;padding:24px 28px 60px}
+.content h1{font-size:1.6em;text-align:center;padding:20px 0;background:linear-gradient(135deg,var(--a),var(--p));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:16px}
+.content h2{font-size:1.25em;color:var(--a);margin:32px 0 12px;padding-bottom:6px;border-bottom:2px solid var(--br)}
+.content h3{font-size:1.08em;color:var(--c1);margin:22px 0 8px}
+.content h4{font-size:.98em;color:var(--o);margin:16px 0 6px}
+.content p{margin:8px 0;line-height:1.9}
+.content pre{background:#1c2128;border:1px solid var(--br);border-radius:8px;padding:14px;overflow-x:auto;margin:10px 0;font-size:.84em;line-height:1.6;position:relative}
+.content pre code{color:#e6edf3;font-family:'SF Mono','Fira Code','Cascadia Code',Consolas,monospace}
+.content code{font-family:'SF Mono','Fira Code',monospace;font-size:.9em}
+.content :not(pre)>code{background:var(--bg3);padding:2px 6px;border-radius:4px;color:var(--c1)}
+.content table{width:100%;border-collapse:collapse;margin:12px 0;font-size:.88em}
+.content th{background:var(--bg3);color:var(--a);padding:8px 12px;text-align:left;border:1px solid var(--br)}
+.content td{padding:8px 12px;border:1px solid var(--br)}
+.content tr:nth-child(even){background:var(--bg2)}
+.content .note,.content .tip,.content .warn,.content .analogy{border-radius:8px;padding:12px 16px;margin:12px 0;font-size:.88em}
+.content .note{background:rgba(88,166,255,.08);border-left:3px solid var(--a)}
+.content .warn{background:rgba(248,81,73,.08);border-left:3px solid var(--r)}
+.content .tip{background:rgba(63,185,80,.08);border-left:3px solid var(--g)}
+.content .analogy{background:rgba(163,113,247,.08);border-left:3px solid var(--p)}
+.content .step{background:var(--bg2);border:1px solid var(--br);border-radius:8px;padding:10px 14px;margin:8px 0}
+.content .card{background:var(--bg2);border:1px solid var(--br);border-radius:10px;margin:14px 0;overflow:hidden}
+.content .card .h{background:var(--bg3);padding:10px 14px;display:flex;align-items:center;gap:8px}
+.content .card .name{font-weight:600;flex:1}
+.content .card .b{padding:12px 14px}
+.content .tag{display:inline-block;padding:2px 8px;border-radius:12px;font-size:.72em;font-weight:600}
+.content .tag.g{background:rgba(63,185,80,.15);color:var(--g)}.content .tag.b{background:rgba(88,166,255,.15);color:var(--a)}
+.content .tag.o{background:rgba(210,153,29,.15);color:var(--o)}.content .tag.r{background:rgba(248,81,73,.15);color:var(--r)}.content .tag.p{background:rgba(163,113,247,.15);color:var(--p)}
+.content a{color:var(--a);text-decoration:none}
+.content a:hover{text-decoration:underline}
+.content img{max-width:100%;border-radius:8px;cursor:pointer;margin:8px 0;transition:transform .2s}
+.content img:hover{transform:scale(1.02)}
+
+/* === 首页 === */
+.home-hero{text-align:center;padding:40px 20px 30px}
+.home-hero h1{font-size:2em;margin-bottom:8px}
+.home-hero p{color:var(--t2);font-size:1.05em;max-width:600px;margin:0 auto}
+.home-section-title{font-size:1.15em;color:var(--a);margin:28px 0 10px;padding-left:4px;border-left:3px solid var(--a);padding-bottom:2px}
+.page-nav{display:flex;justify-content:space-between;margin:32px 0 16px;padding:14px 0;border-top:1px solid var(--br);gap:12px}
+.page-nav a{color:var(--a);cursor:pointer;font-size:.9em;padding:8px 14px;border-radius:8px;background:var(--bg2);text-decoration:none;transition:background .2s}
+.page-nav a:hover{background:var(--bg3)}
+.page-nav-prev{margin-right:auto}
+.page-nav-next{margin-left:auto}
+.home-stats{display:flex;gap:16px;justify-content:center;margin:24px 0;flex-wrap:wrap}
+.home-stat{background:var(--bg2);border:1px solid var(--br);border-radius:10px;padding:16px 24px;text-align:center;min-width:120px}
+.home-stat .num{font-size:1.8em;font-weight:700;background:linear-gradient(135deg,var(--a),var(--g));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.home-stat .label{font-size:.75em;color:var(--t2);margin-top:2px}
+.home-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px;margin:20px 0}
+.home-card{background:var(--bg2);border:1px solid var(--br);border-radius:12px;padding:18px;cursor:pointer;transition:all .25s;text-decoration:none;display:block;color:var(--t)}
+.home-card:hover{border-color:var(--a);transform:translateY(-2px);box-shadow:0 4px 20px rgba(88,166,255,.1)}
+.home-card .icon{font-size:1.8em;margin-bottom:8px}
+.home-card .title{font-size:1.05em;font-weight:700;color:var(--a);margin-bottom:4px}
+.home-card .desc{font-size:.82em;color:var(--t2);line-height:1.6}
+.home-card .tags{margin-top:8px;display:flex;gap:5px;flex-wrap:wrap}
+.home-card .size{font-size:.7em;color:var(--t2);margin-top:6px}
+
+/* === 目录TOC === */
+.toc-float{position:fixed;right:20px;top:60px;width:200px;max-height:70vh;overflow-y:auto;font-size:.78em;border-left:2px solid var(--br);padding-left:12px;z-index:40}
+.toc-float a{display:block;color:var(--t2);text-decoration:none;padding:3px 0;line-height:1.5;transition:color .15s}
+.toc-float a:hover,.toc-float a.active{color:var(--a)}
+
+/* === 复制按钮 === */
+.copy-btn{position:absolute;top:6px;right:6px;background:var(--bg3);border:1px solid var(--br);color:var(--t2);padding:3px 8px;border-radius:4px;font-size:.72em;cursor:pointer;opacity:0;transition:opacity .2s}
+pre:hover .copy-btn{opacity:1}
+.copy-btn.copied{color:var(--g);border-color:var(--g)}
+
+/* === 移动端 === */
+@media(max-width:900px){
+  .sidebar{transform:translateX(-100%)}
+  .sidebar.open{transform:translateX(0)}
+  .main{margin-left:0}
+  .topbar .menu-btn{display:block}
+  .toc-float{display:none}
+  .content{padding:16px 14px 40px}
+}
+@media(max-width:600px){
+  .home-grid{grid-template-columns:1fr}
+  .topbar .search-box{display:none}
+}
+
+/* === 加载动画 === */
+.loading{display:flex;justify-content:center;padding:40px}
+.loading .spinner{width:32px;height:32px;border:3px solid var(--br);border-top-color:var(--a);border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* === 回到顶部 === */
+.back-top{position:fixed;bottom:24px;right:24px;width:40px;height:40px;background:var(--bg2);border:1px solid var(--br);border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--t2);font-size:1.1em;z-index:90;opacity:0;transition:all .3s;pointer-events:none}
+.back-top.show{opacity:1;pointer-events:auto}
+.back-top:hover{color:var(--a);border-color:var(--a)}
+
+/* 进度条 */
+.progress-bar{position:fixed;top:0;left:0;height:2px;background:var(--a);z-index:200;transition:width .15s;width:0}
+
+/* === v1.5.0 新增样式 === */
+/* 学习路线图 */
+.roadmap{background:var(--bg2);border:1px solid var(--br);border-radius:14px;padding:20px 24px;margin:20px 0}
+.roadmap h3{color:var(--a);margin-bottom:14px;font-size:1.1em}
+.roadmap-steps{display:flex;align-items:center;flex-wrap:wrap;gap:8px}
+.roadmap-step{background:var(--bg3);border:1px solid var(--br);border-radius:8px;padding:8px 14px;font-size:.82em;cursor:pointer;transition:all .2s;text-decoration:none;color:var(--t);display:flex;align-items:center;gap:6px}
+.roadmap-step:hover{border-color:var(--a);transform:translateY(-1px)}
+.roadmap-step .step-num{width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.75em;flex-shrink:0}
+.roadmap-step.s1 .step-num{background:rgba(63,185,80,.2);color:var(--g)}
+.roadmap-step.s2 .step-num{background:rgba(88,166,255,.2);color:var(--a)}
+.roadmap-step.s3 .step-num{background:rgba(210,153,29,.2);color:var(--o)}
+.roadmap-step.s4 .step-num{background:rgba(248,81,73,.2);color:var(--r)}
+.roadmap-arrow{color:var(--t2);font-size:1.2em}
+
+/* 难度指示器 */
+.difficulty{display:flex;gap:3px;align-items:center;margin-top:6px}
+.difficulty .dot{width:8px;height:8px;border-radius:50%;background:var(--br)}
+.difficulty .dot.on{background:var(--g)}
+.difficulty.d2 .dot.on{background:var(--a)}
+.difficulty.d3 .dot.on{background:var(--o)}
+.difficulty.d4 .dot.on{background:var(--r)}
+
+/* 首页hero动画 */
+.home-hero h1{animation:heroFadeIn .8s ease-out}
+@keyframes heroFadeIn{from{opacity:0;transform:translateY(-10px)}to{opacity:1;transform:translateY(0)}}
+.quick-start{animation:pulse 2.5s ease-in-out infinite}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(35,134,54,.4)}50%{box-shadow:0 0 0 10px rgba(35,134,54,0)}}
+
+/* 深色模式切换（预留） */
+.theme-toggle{background:none;border:1px solid var(--br);color:var(--t2);padding:4px 8px;border-radius:6px;cursor:pointer;font-size:.85em;transition:all .2s}
+.theme-toggle:hover{color:var(--a);border-color:var(--a)}
+
+/* 教程内TOC */
+.toc-inline{background:var(--bg2);border:1px solid var(--br);border-radius:10px;padding:14px 18px;margin:16px 0}
+.toc-inline summary{cursor:pointer;color:var(--a);font-weight:600;font-size:.92em;user-select:none}
+.toc-inline ol{padding-left:20px;margin-top:8px}
+.toc-inline li{margin:4px 0;font-size:.85em}
+.toc-inline li a{color:var(--t2);text-decoration:none;transition:color .15s}
+.toc-inline li a:hover{color:var(--a)}
+
+/* 键盘快捷键提示 */
+.kbd{background:var(--bg3);border:1px solid var(--br);border-radius:4px;padding:1px 6px;font-size:.75em;font-family:monospace;color:var(--t2)}
+
+/* 返回首页按钮 */
+.home-fab{position:fixed;bottom:24px;left:calc(var(--sidebar-w) + 16px);width:40px;height:40px;background:var(--bg2);border:1px solid var(--br);border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--t2);font-size:1em;z-index:90;opacity:0;transition:all .3s;pointer-events:none}
+.home-fab.show{opacity:1;pointer-events:auto}
+.home-fab:hover{color:var(--a);border-color:var(--a)}
+@media(max-width:900px){.home-fab{left:16px}}
+
+/* 统计卡片动画 */
+.home-stat{transition:transform .2s}
+.home-stat:hover{transform:translateY(-2px)}
+
+/* 搜索增强 */
+.search-results-count{color:var(--t2);font-size:.85em;margin-bottom:12px}
+.search-highlight{background:rgba(88,166,255,.25);padding:1px 3px;border-radius:3px}
+
+/* ══ v1.5.1 新增: 收藏夹 & 进度 ══ */
+.bookmark-btn{background:none;border:none;font-size:1.2em;cursor:pointer;padding:2px 6px;border-radius:4px;transition:all .15s;opacity:.4;vertical-align:middle}
+.bookmark-btn:hover{opacity:1;transform:scale(1.2)}
+.bookmark-btn.active{opacity:1}
+.bookmarks-section{margin-top:8px;border-top:1px solid var(--br);padding-top:8px}
+.bookmarks-title{font-size:.72em;color:var(--t2);padding:6px 16px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;display:flex;align-items:center;gap:6px}
+.bookmarks-count{font-size:.75em;background:var(--bg3);padding:1px 6px;border-radius:8px}
+.bm-item{display:block;padding:5px 16px 5px 24px;font-size:.8em;color:var(--t2);text-decoration:none;cursor:pointer;transition:all .15s;border-left:3px solid transparent;position:relative}
+.bm-item:hover{color:var(--t);background:var(--bg3);border-left-color:var(--g)}
+.bm-item .bm-remove{position:absolute;right:8px;top:50%;transform:translateY(-50%);font-size:.7em;opacity:0;transition:opacity .15s;cursor:pointer;color:var(--r)}
+.bm-item:hover .bm-remove{opacity:1}
+.read-time{font-size:.75em;color:var(--t2);margin-left:4px}
+.progress-indicator{display:inline-flex;align-items:center;gap:4px;font-size:.7em;color:var(--t2)}
+.progress-indicator .pi-bar{width:40px;height:4px;background:var(--bg3);border-radius:2px;overflow:hidden}
+.progress-indicator .pi-fill{height:100%;background:var(--g);border-radius:2px;transition:width .3s}
+.sort-bar{display:flex;gap:6px;margin:14px 0 8px;flex-wrap:wrap;align-items:center}
+.sort-bar span.label{font-size:.8em;color:var(--t2)}
+.sort-btn{padding:4px 10px;border:1px solid var(--br);border-radius:6px;font-size:.78em;cursor:pointer;background:var(--bg2);color:var(--t2);transition:all .15s}
+.sort-btn:hover,.sort-btn.active{border-color:var(--a);color:var(--a);background:var(--bg3)}
+
+/* ══ 骨架屏 ══ */
+.skeleton-wrap{padding:24px 28px}
+.skeleton-line{height:14px;background:var(--bg2);border-radius:6px;margin:10px 0;position:relative;overflow:hidden}
+.skeleton-line.title{height:28px;width:55%;margin:20px 0 16px}
+.skeleton-line.h2{height:22px;width:40%;margin:24px 0 10px}
+.skeleton-line.p{width:90%}
+.skeleton-line.p2{width:75%}
+.skeleton-line.p3{width:82%}
+.skeleton-line.short{width:50%}
+.skeleton-card{background:var(--bg2);border:1px solid var(--br);border-radius:12px;padding:18px;margin:14px 0;overflow:hidden;position:relative}
+.skeleton-card .sk-icon{width:36px;height:36px;border-radius:8px;background:var(--bg3)}
+.skeleton-card .sk-title{height:16px;width:60%;margin:10px 0 6px;background:var(--bg3);border-radius:4px}
+.skeleton-card .sk-text{height:12px;width:85%;background:var(--bg3);border-radius:4px;margin:6px 0}
+.skeleton-card .sk-text2{height:12px;width:65%;background:var(--bg3);border-radius:4px;margin:6px 0}
+.skeleton-line::after,.skeleton-card::after{content:'';position:absolute;top:0;left:-150px;width:150px;height:100%;background:linear-gradient(90deg,transparent,rgba(88,166,255,.06),transparent);animation:shimmer 1.6s infinite}
+@keyframes shimmer{to{left:100%}}
+@media(prefers-reduced-motion:reduce){.skeleton-line::after,.skeleton-card::after{animation:none}}
+
+/* ══ 亮色模式 ══ */
+body.light-mode{--bg:#f5f7fa;--bg2:#eef1f6;--bg3:#e4e8ef;--br:#d1d5db;--t:#1a202c;--t2:#4a5568;--a:#3b82f6;--g:#16a34a;--o:#d97706;--r:#dc2626;--p:#7c3aed;--c1:#0891b2}
+body.light-mode .sidebar{background:#fff;border-right-color:#e5e7eb}
+body.light-mode .topbar{background:#fff;border-bottom-color:#e5e7eb}
+body.light-mode pre{background:#f1f5f9;border-color:#e2e8f0}
+body.light-mode .home-card{background:#fff;border-color:#e5e7eb}
+body.light-mode .home-card:hover{border-color:var(--a);box-shadow:0 4px 20px rgba(59,130,246,.08)}
+body.light-mode .home-stat{background:#fff;border-color:#e5e7eb}
+body.light-mode .skeleton-line,body.light-mode .skeleton-card{background:#e8ebf0}
+body.light-mode .skeleton-card .sk-icon,body.light-mode .skeleton-card .sk-title,body.light-mode .skeleton-card .sk-text,body.light-mode .skeleton-card .sk-text2{background:#dde1e8}
+
+/* ══ v1.7.0: 专注阅读模式 ══ */
+body.focus-mode .sidebar{transform:translateX(-100%)}
+body.focus-mode .main{margin-left:0!important}
+body.focus-mode .content{max-width:820px!important;margin:0 auto!important;padding:20px 32px 80px!important}
+body.focus-mode .topbar .focus-indicator{display:inline-block;font-size:.75em;color:var(--p);padding:2px 8px;border:1px solid var(--p);border-radius:4px;margin-left:8px}
+
+/* v1.8.0: Floating TOC sidebar */
+:root{--toc-w:220px}
+#tocSidebar{position:fixed;right:0;top:60px;width:var(--toc-w);max-height:calc(100vh - 80px);overflow-y:auto;background:var(--bg2);border-left:1px solid var(--br);padding:16px 12px;z-index:50;font-size:.78em;display:none;scrollbar-width:thin}
+#tocSidebar .toc-title{font-weight:700;color:var(--a);margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid var(--br);font-size:.92em}
+#tocSidebar a{display:block;padding:3px 8px;color:var(--t2);text-decoration:none;border-left:2px solid transparent;border-radius:3px;transition:all .15s;line-height:1.45;margin:1px 0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#tocSidebar a:hover{color:var(--a);background:var(--bg3)}
+#tocSidebar a.active{color:var(--a);border-left-color:var(--a);background:rgba(88,166,255,.08);font-weight:600}
+#tocSidebar .toc-h3{padding-left:18px;font-size:.95em}
+#tocSidebar .toc-toggle{position:absolute;right:6px;top:14px;cursor:pointer;font-size:1.1em;color:var(--t2);border:none;background:none;padding:2px 6px;border-radius:4px}
+#tocSidebar .toc-toggle:hover{color:var(--a)}
+.main.has-toc{padding-right:calc(var(--toc-w) + 16px)}
+@media(max-width:1100px){#tocSidebar{display:none!important}.main.has-toc{padding-right:0}}
+#tocSidebar.visible{display:block}
+
+.focus-btn{padding:4px 10px;border:1px solid var(--br);border-radius:6px;font-size:.78em;cursor:pointer;background:var(--bg2);color:var(--t2);transition:all .15s}
+.focus-btn:hover{border-color:var(--p);color:var(--p)}
+.focus-btn.active{border-color:var(--p);color:var(--p);background:rgba(163,113,247,.1)}
+
+/* ══ v1.7.0: 打印样式 ══ */
+@media print{
+  .sidebar,.topbar,.progress-bar,.page-nav,.chnav,.copy-btn{display:none!important}
+  .main{margin-left:0!important}
+  body{background:#fff!important;color:#000!important;font-size:11pt}
+  .content{max-width:100%!important;padding:0!important}
+  .content h1{color:#000!important;-webkit-text-fill-color:#000!important;background:none!important}
+  .content h2{color:#333!important;border-bottom:1px solid #ccc!important}
+  .content h3{color:#555!important}
+  pre{background:#f5f5f5!important;border:1px solid #ddd!important;color:#333!important;page-break-inside:avoid}
+  pre code{color:#333!important}
+  .home-card,.home-stat{border:1px solid #ddd!important;page-break-inside:avoid}
+  a{color:#000!important;text-decoration:underline}
+  .note,.warn,.tip,.analogy,.trouble{border:1px solid #ddd!important;page-break-inside:avoid}
+}
+
+
+
+/* ══ v1.7.0: 语法高亮 ══ */
+.syn-kw{color:#ff7b72}        /* 关键字 */
+.syn-pp{color:#ff7b72}        /* 预处理 */
+.syn-type{color:#ffa657}      /* 类型 */
+.syn-str{color:#a5d6ff}       /* 字符串 */
+.syn-com{color:#8b949e;font-style:italic} /* 注释 */
+.syn-num{color:#79c0ff}       /* 数字 */
+.syn-fn{color:#d2a8ff}        /* 函数 */
+.syn-op{color:#ff7b72}        /* 运算符 */
+/* ══ v1.7.0: 面包屑 ══ */
+.breadcrumb{display:flex;align-items:center;gap:6px;font-size:.78em;color:var(--t2);margin:0 0 16px;padding:6px 0;flex-wrap:wrap}
+.breadcrumb a{color:var(--a)}
+.breadcrumb .sep{color:var(--br)}
+/* ══ v1.7.0: 复制提示 ══ */
+.copy-toast{position:fixed;top:20px;left:50%;transform:translateX(-50%);background:var(--g);color:#fff;padding:8px 20px;border-radius:8px;font-size:.85em;z-index:400;pointer-events:none;opacity:0;transition:opacity .3s,transform .3s}
+.copy-toast.show{opacity:1;transform:translateX(-50%) translateY(4px)}
+/* ══ v1.7.0: 相关教程 ══ */
+.related-tutorials{margin:24px 0;padding:16px 0;border-top:1px solid var(--br)}
+.related-tutorials h3{font-size:.95em;color:var(--a);margin-bottom:10px}
+.related-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:8px}
+.related-card{background:var(--bg2);border:1px solid var(--br);border-radius:8px;padding:10px 14px;cursor:pointer;transition:border-color .2s;font-size:.82em}
+.related-card:hover{border-color:var(--a)}
+.related-card .rt-tag{display:inline-block;font-size:.65em;padding:1px 6px;border-radius:4px;margin-right:4px;background:var(--bg3);color:var(--t2)}
+@media(max-width:600px){.related-grid{grid-template-columns:1fr}}
+
+/* ══ v1.7.0: 快捷键面板 ══ */
+.shortcuts-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.6);z-index:300;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .2s}
+.shortcuts-overlay.show{opacity:1;pointer-events:all}
+.shortcuts-panel{background:var(--bg2);border:1px solid var(--br);border-radius:12px;padding:24px 28px;max-width:440px;width:90%;box-shadow:0 12px 40px rgba(0,0,0,.5)}
+.shortcuts-panel h3{font-size:1.1em;margin:0 0 16px;color:var(--a);display:flex;justify-content:space-between}
+.shortcuts-panel .close-btn{background:none;border:none;color:var(--t2);cursor:pointer;font-size:1.2em}
+.shortcuts-panel .kbd-row{display:flex;justify-content:space-between;padding:6px 0;font-size:.85em;border-bottom:1px solid var(--bg3)}
+.shortcuts-panel .kbd-key{display:inline-block;background:var(--bg3);border:1px solid var(--br);border-radius:4px;padding:2px 8px;font-family:monospace;font-size:.85em;color:var(--a);min-width:24px;text-align:center;margin:0 2px}
+.shortcuts-panel .kbd-desc{color:var(--t2)}
+.shortcut-hint{position:fixed;bottom:20px;right:20px;background:var(--bg2);border:1px solid var(--br);border-radius:8px;padding:6px 14px;font-size:.75em;color:var(--t2);z-index:50;opacity:.85;transition:opacity .5s;pointer-events:none}
+@media(max-width:600px){.shortcut-hint{display:none}}
+
+/* ══ v1.7.0: 章节进度指示器 ══ */
+.guide-progress{display:flex;align-items:center;gap:2px;margin:8px 0;flex-wrap:wrap;justify-content:center}
+.guide-progress .gdot{width:10px;height:10px;border-radius:50%;background:var(--bg3);transition:all .3s;cursor:pointer}
+.guide-progress .gdot:hover{background:var(--a);transform:scale(1.4)}
+.guide-progress .gdot.current{background:var(--a);box-shadow:0 0 6px var(--a)}
+.guide-progress .gdot.done{background:var(--g)}
+.guide-progress .glabel{font-size:.7em;color:var(--t2);margin:0 4px}
+
+/* ══ v1.7.0: 阅读时间 + 相关推荐 ══ */
+.read-time{display:inline-block;font-size:.45em;font-weight:400;background:var(--bg3);color:var(--t2);padding:2px 8px;border-radius:10px;vertical-align:middle;margin-left:8px;white-space:nowrap}
+.related-links{margin-top:40px;padding-top:20px;border-top:1px solid var(--br)}
+.related-links h3{font-size:.9em;color:var(--t2);margin-bottom:12px}
+.related-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px}
+.related-card{display:flex;align-items:center;gap:8px;padding:10px 14px;background:var(--bg2);border:1px solid var(--br);border-radius:8px;text-decoration:none;cursor:pointer;transition:all .2s}
+.related-card:hover{border-color:var(--a);background:var(--bg3);transform:translateY(-1px)}
+.related-icon{font-size:1.2em;flex-shrink:0}
+.related-title{font-size:.85em;color:var(--a);font-weight:600}
+.related-desc{font-size:.7em;color:var(--t2);margin-left:auto}
+
+/* === 图片灯箱 === */
+.lightbox-overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.85);z-index:9999;display:flex;align-items:center;justify-content:center;cursor:pointer}
+.lightbox-overlay.hidden{display:none}
+.lightbox-img{max-width:90vw;max-height:90vh;object-fit:contain;box-shadow:0 0 40px rgba(0,0,0,.5)}
+.lightbox-close{position:fixed;top:20px;right:20px;font-size:32px;color:#fff;cursor:pointer;z-index:10000;width:40px;height:40px;line-height:40px;text-align:center;border-radius:50%;background:rgba(255,255,255,.1)}
+.lightbox-close:hover{background:rgba(255,255,255,.2)}
+</style>
+
+<link rel="manifest" href="/static/manifest.json">
+</head>
+<body>
+
+<div class="progress-bar" id="progressBar"></div>
+
+<div class="lightbox-overlay hidden" id="lightboxOverlay" onclick="closeLightbox()"><img class="lightbox-img" onclick="event.stopPropagation()"><div class="lightbox-close" onclick="closeLightbox()">×</div></div>
+
+<!-- 侧边栏 -->
+<nav class="sidebar" id="sidebar">
+  <div class="sidebar-header">
+    <h1>📐 嵌入式开发教程</h1>
+    <p>从零到实战 · 33篇深度教程</p>
+  </div>
+  <div class="sidebar-nav" id="sidebarNav">
+    <div class="nav-group">
+      <div class="nav-group-title">🏠 首页</div>
+      <a class="nav-item active" data-page="home" onclick="loadPage('home')">教程首页</a>
+      <a class="nav-item" data-page="overview" onclick="loadPage('overview')">📊 教程总览 <span class="badge badge-new">新</span></a>
+    </div>
+    <div class="nav-group collapsible">
+      <div class="nav-group-title" onclick="toggleNavGroup(this)">📖 小白完全指南 <span class="toggle-icon">▸</span> <span class="badge badge-hot">14章</span></div>
+      <a class="nav-item" data-page="guide" onclick="loadPage('guide')">📑 章节目录</a>
+      <a class="nav-item" data-page="guide-ch00" onclick="loadPage('guide-ch00')">0. 环境搭建</a>
+      <a class="nav-item" data-page="guide-ch01" onclick="loadPage('guide-ch01')">1. ARM GCC</a>
+      <a class="nav-item" data-page="guide-ch02" onclick="loadPage('guide-ch02')">2. CMake</a>
+      <a class="nav-item" data-page="guide-ch03" onclick="loadPage('guide-ch03')">3. Makefile</a>
+      <a class="nav-item" data-page="guide-ch04" onclick="loadPage('guide-ch04')">4. 串口通信</a>
+      <a class="nav-item" data-page="guide-ch05" onclick="loadPage('guide-ch05')">5. 烧录调试</a>
+      <a class="nav-item" data-page="guide-ch06" onclick="loadPage('guide-ch06')">6. STM32</a>
+      <a class="nav-item" data-page="guide-ch07" onclick="loadPage('guide-ch07')">7. ESP32</a>
+      <a class="nav-item" data-page="guide-ch08" onclick="loadPage('guide-ch08')">8. FreeRTOS</a>
+      <a class="nav-item" data-page="guide-ch09" onclick="loadPage('guide-ch09')">9. 通信协议</a>
+      <a class="nav-item" data-page="guide-ch10" onclick="loadPage('guide-ch10')">10. PCB硬件</a>
+      <a class="nav-item" data-page="guide-ch11" onclick="loadPage('guide-ch11')">11. 调试技巧</a>
+      <a class="nav-item" data-page="guide-ch12" onclick="loadPage('guide-ch12')">12. 项目实战</a>
+      <a class="nav-item" data-page="guide-ch13" onclick="loadPage('guide-ch13')">13. 代码速查</a>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-title">🔨 编译构建</div>
+      <a class="nav-item" data-page="arm-gcc" onclick="loadPage('arm-gcc')">ARM GCC 工具链</a>
+      <a class="nav-item" data-page="cmake" onclick="loadPage('cmake')">CMake 构建系统</a>
+      <a class="nav-item" data-page="makefile" onclick="loadPage('makefile')">Makefile 实战</a>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-title">🔌 烧录调试</div>
+      <a class="nav-item" data-page="flash-debug" onclick="loadPage('flash-debug')">烧录与调试</a>
+      <a class="nav-item" data-page="serial" onclick="loadPage('serial')">串口通信</a>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-title">🎯 芯片框架</div>
+      <a class="nav-item" data-page="stm32" onclick="loadPage('stm32')">STM32 开发</a>
+      <a class="nav-item" data-page="esp32" onclick="loadPage('esp32')">ESP32 开发</a>
+      <a class="nav-item" data-page="freertos" onclick="loadPage('freertos')">FreeRTOS 入门</a>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-title">📡 通信协议</div>
+      <a class="nav-item" data-page="protocols" onclick="loadPage('protocols')">I2C/SPI/UART/CAN</a>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-title">🚀 实战与前沿</div>
+      <a class="nav-item" data-page="practice-projects" onclick="loadPage('practice-projects')">练手方向 <span class="badge badge-new">新</span></a>
+      <a class="nav-item" data-page="bci-2026" onclick="loadPage('bci-2026')">脑机接口2026 <span class="badge badge-hot">热点</span></a>
+      <a class="nav-item" data-page="glossary" onclick="loadPage('glossary')">📖 术语词典 <span class="badge badge-new">新</span></a>
+    </div>
+    <div class="nav-group collapsible">
+      <div class="nav-group-title" onclick="toggleNavGroup(this)">🟢 入门项目 <span class="toggle-icon">▸</span></div>
+      <a class="nav-item" data-page="proj-led-button" onclick="loadPage('proj-led-button')">LED+按键</a>
+      <a class="nav-item" data-page="proj-uart-hello" onclick="loadPage('proj-uart-hello')">串口Hello</a>
+      <a class="nav-item" data-page="proj-oled-display" onclick="loadPage('proj-oled-display')">OLED显示</a>
+      <a class="nav-item" data-page="proj-dht11-monitor" onclick="loadPage('proj-dht11-monitor')">温湿度监测</a>
+    </div>
+    <div class="nav-group collapsible">
+      <div class="nav-group-title" onclick="toggleNavGroup(this)">🟡 进阶项目 <span class="toggle-icon">▸</span></div>
+      <a class="nav-item" data-page="proj-pwm-motor" onclick="loadPage('proj-pwm-motor')">PWM电机</a>
+      <a class="nav-item" data-page="proj-servo-control" onclick="loadPage('proj-servo-control')">舵机控制</a>
+      <a class="nav-item" data-page="proj-ir-remote" onclick="loadPage('proj-ir-remote')">红外遥控</a>
+      <a class="nav-item" data-page="proj-ultrasonic" onclick="loadPage('proj-ultrasonic')">超声波测距</a>
+      <a class="nav-item" data-page="proj-stepper-motor" onclick="loadPage('proj-stepper-motor')">步进电机</a>
+    </div>
+    <div class="nav-group collapsible">
+      <div class="nav-group-title" onclick="toggleNavGroup(this)">🟠 实战项目 <span class="toggle-icon">▸</span></div>
+      <a class="nav-item" data-page="proj-freertos-station" onclick="loadPage('proj-freertos-station')">FreeRTOS站</a>
+      <a class="nav-item" data-page="proj-smart-car" onclick="loadPage('proj-smart-car')">智能小车</a>
+      <a class="nav-item" data-page="proj-can-bus" onclick="loadPage('proj-can-bus')">CAN总线</a>
+      <a class="nav-item" data-page="proj-sd-logger" onclick="loadPage('proj-sd-logger')">SD卡记录仪</a>
+      <a class="nav-item" data-page="proj-esp32-iot" onclick="loadPage('proj-esp32-iot')">ESP32物联网</a>
+    </div>
+    <div class="nav-group collapsible">
+      <div class="nav-group-title" onclick="toggleNavGroup(this)">🔴 高级项目 <span class="toggle-icon">▸</span></div>
+      <a class="nav-item" data-page="proj-low-power" onclick="loadPage('proj-low-power')">低功耗</a>
+      <a class="nav-item" data-page="proj-bootloader-iap" onclick="loadPage('proj-bootloader-iap')">IAP升级</a>
+      <a class="nav-item" data-page="proj-dma-adc" onclick="loadPage('proj-dma-adc')">DMA+ADC</a>
+      <a class="nav-item" data-page="proj-usb-hid" onclick="loadPage('proj-usb-hid')">USB HID</a>
+      <a class="nav-item" data-page="proj-s32k144-auto" onclick="loadPage('proj-s32k144-auto')">汽车电子</a>
+      <a class="nav-item" data-page="proj-oscilloscope-debug" onclick="loadPage('proj-oscilloscope-debug')">示波器调试</a>
+    </div>
+  </div>
+  <div class="bookmarks-section" id="bookmarksSection" style="display:none">
+    <div class="bookmarks-title">⭐ 收藏夹 <span class="bookmarks-count" id="bmCount">0</span></div>
+    <div id="bookmarkList"></div>
+  </div>
+  <div class="sidebar-footer">
+    v1.9.0 · 2026-06-19 · <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="切换亮色/暗色">🌙</button> · ⌨️ <span class="kbd">/</span> 搜索
+  </div>
+</nav>
+
+<!-- 主区域 -->
+<div class="main">
+  <div class="topbar">
+    <button class="menu-btn" onclick="toggleSidebar()">☰</button>
+    <div class="breadcrumb" id="breadcrumb">📐 嵌入式开发教程</div>
+    <div class="search-box">
+      <span class="icon">🔍</span>
+      <input type="text" id="searchInput" placeholder="搜索教程内容..." oninput="handleSearch(this.value)">
+    </div>
+    
+    <button class="focus-btn" id="focusBtn" onclick="toggleFocus()" title="专注阅读模式 (Ctrl+F)">📖 专注</button>
+    <button class="bookmark-btn" id="bmToggle" onclick="toggleBookmark(currentPage)" title="收藏当前教程" style="display:none">☆</button>
+  </div>
+  <div class="content" id="contentArea">
+    <!-- 动态加载内容 -->
+  </div>
+</div>
+
+<!-- 回到顶部 -->
+<nav class="toc-sidebar" id="tocSidebar"><div class="toc-title">📑 本页目录</div><div id="tocLinks"></div></nav>
+<div class="back-top" id="backTop" onclick="window.scrollTo({top:0,behavior:'smooth'})">↑</div>
+<!-- 返回首页 -->
+<div class="home-fab" id="homeFab" onclick="loadPage('home')" title="返回首页">🏠</div>
+
+<script>
+if('serviceWorker' in navigator){navigator.serviceWorker.register('/static/service-worker.js').catch(function(){});}
+
+// === 页面配置 ===
+const PAGES = {
+  home: { title: '教程首页', breadcrumb: '📐 首页', type: 'home' }
+  overview: { title: '教程总览', breadcrumb: '📐 首页 / 📊 教程总览', type: 'tutorial', file: 'tutorials/overview.html' },
+,
+  guide: { title: '小白完全指南 - 目录', breadcrumb: '📐 首页 / 📖 小白完全指南', type: 'tutorial', file: 'tutorials/guide/index.html' },
+  'guide-ch00': { title: '第0章：环境搭建', breadcrumb: '📐 首页 / 📖 小白指南 / 第0章', type: 'tutorial', file: 'tutorials/guide/guide-ch00.html' },
+  'guide-ch01': { title: '第1章：ARM GCC', breadcrumb: '📐 首页 / 📖 小白指南 / 第1章', type: 'tutorial', file: 'tutorials/guide/guide-ch01.html' },
+  'guide-ch02': { title: '第2章：CMake', breadcrumb: '📐 首页 / 📖 小白指南 / 第2章', type: 'tutorial', file: 'tutorials/guide/guide-ch02.html' },
+  'guide-ch03': { title: '第3章：Makefile', breadcrumb: '📐 首页 / 📖 小白指南 / 第3章', type: 'tutorial', file: 'tutorials/guide/guide-ch03.html' },
+  'guide-ch04': { title: '第4章：串口通信', breadcrumb: '📐 首页 / 📖 小白指南 / 第4章', type: 'tutorial', file: 'tutorials/guide/guide-ch04.html' },
+  'guide-ch05': { title: '第5章：烧录调试', breadcrumb: '📐 首页 / 📖 小白指南 / 第5章', type: 'tutorial', file: 'tutorials/guide/guide-ch05.html' },
+  'guide-ch06': { title: '第6章：STM32', breadcrumb: '📐 首页 / 📖 小白指南 / 第6章', type: 'tutorial', file: 'tutorials/guide/guide-ch06.html' },
+  'guide-ch07': { title: '第7章：ESP32', breadcrumb: '📐 首页 / 📖 小白指南 / 第7章', type: 'tutorial', file: 'tutorials/guide/guide-ch07.html' },
+  'guide-ch08': { title: '第8章：FreeRTOS', breadcrumb: '📐 首页 / 📖 小白指南 / 第8章', type: 'tutorial', file: 'tutorials/guide/guide-ch08.html' },
+  'guide-ch09': { title: '第9章：通信协议', breadcrumb: '📐 首页 / 📖 小白指南 / 第9章', type: 'tutorial', file: 'tutorials/guide/guide-ch09.html' },
+  'guide-ch10': { title: '第10章：PCB硬件', breadcrumb: '📐 首页 / 📖 小白指南 / 第10章', type: 'tutorial', file: 'tutorials/guide/guide-ch10.html' },
+  'guide-ch11': { title: '第11章：调试技巧', breadcrumb: '📐 首页 / 📖 小白指南 / 第11章', type: 'tutorial', file: 'tutorials/guide/guide-ch11.html' },
+  'guide-ch12': { title: '第12章：项目实战', breadcrumb: '📐 首页 / 📖 小白指南 / 第12章', type: 'tutorial', file: 'tutorials/guide/guide-ch12.html' },
+  'guide-ch13': { title: '第13章：代码速查', breadcrumb: '📐 首页 / 📖 小白指南 / 第13章', type: 'tutorial', file: 'tutorials/guide/guide-ch13.html' },
+  main: { title: '嵌入式小白完全指南', breadcrumb: '📐 首页 / 📖 小白完全指南', type: 'tutorial', file: 'tutorials/main.html' },
+  'arm-gcc': { title: 'ARM GCC 编译工具链', breadcrumb: '📐 首页 / 🔨 ARM GCC', type: 'tutorial', file: 'tutorials/arm-gcc.html' },
+  cmake: { title: 'CMake 构建系统', breadcrumb: '📐 首页 / 📦 CMake', type: 'tutorial', file: 'tutorials/cmake.html' },
+  makefile: { title: 'Makefile 实战', breadcrumb: '📐 首页 / 📜 Makefile', type: 'tutorial', file: 'tutorials/makefile.html' },
+  'flash-debug': { title: '烧录与调试', breadcrumb: '📐 首页 / ⚡ 烧录与调试', type: 'tutorial', file: 'tutorials/flash-debug.html' },
+  serial: { title: '串口通信', breadcrumb: '📐 首页 / 📡 串口通信', type: 'tutorial', file: 'tutorials/serial.html' },
+  stm32: { title: 'STM32 开发', breadcrumb: '📐 首页 / 🔵 STM32', type: 'tutorial', file: 'tutorials/stm32.html' },
+  esp32: { title: 'ESP32 开发', breadcrumb: '📐 首页 / 🟢 ESP32', type: 'tutorial', file: 'tutorials/esp32.html' },
+  freertos: { title: 'FreeRTOS 入门', breadcrumb: '📐 首页 / 🔄 FreeRTOS', type: 'tutorial', file: 'tutorials/freertos.html' },
+  protocols: { title: '通信协议', breadcrumb: '📐 首页 / 🔌 通信协议', type: 'tutorial', file: 'tutorials/protocols.html' },
+  'practice-projects': { title: '练手方向大全', breadcrumb: '📐 首页 / 🔬 练手方向', type: 'tutorial', file: 'tutorials/practice-projects.html' },
+  'bci-2026': { title: '脑机接口2026全球进展', breadcrumb: '📐 首页 / 🧠 脑机接口2026', type: 'tutorial', file: 'tutorials/bci-2026.html' },
+  glossary: { title: '嵌入式术语词典', breadcrumb: '📐 首页 / 📖 术语词典', type: 'tutorial', file: 'tutorials/glossary.html' },
+  'proj-led-button': { title: 'LED跑马灯+按键控制', breadcrumb: '📐 首页 / 🟢 LED+按键', type: 'tutorial', file: 'tutorials/proj-led-button.html' },
+  'proj-uart-hello': { title: '串口Hello World', breadcrumb: '📐 首页 / 🟢 串口Hello', type: 'tutorial', file: 'tutorials/proj-uart-hello.html' },
+  'proj-oled-display': { title: 'OLED显示', breadcrumb: '📐 首页 / 🟢 OLED显示', type: 'tutorial', file: 'tutorials/proj-oled-display.html' },
+  'proj-dht11-monitor': { title: '温湿度监测', breadcrumb: '📐 首页 / 🟢 温湿度', type: 'tutorial', file: 'tutorials/proj-dht11-monitor.html' },
+  'proj-pwm-motor': { title: 'PWM电机控制', breadcrumb: '📐 首页 / 🟡 PWM电机', type: 'tutorial', file: 'tutorials/proj-pwm-motor.html' },
+  'proj-servo-control': { title: '舵机控制', breadcrumb: '📐 首页 / 🟡 舵机控制', type: 'tutorial', file: 'tutorials/proj-servo-control.html' },
+  'proj-ir-remote': { title: '红外遥控解码', breadcrumb: '📐 首页 / 🟡 红外遥控', type: 'tutorial', file: 'tutorials/proj-ir-remote.html' },
+  'proj-ultrasonic': { title: '超声波测距', breadcrumb: '📐 首页 / 🟡 超声波测距', type: 'tutorial', file: 'tutorials/proj-ultrasonic.html' },
+  'proj-stepper-motor': { title: '步进电机控制', breadcrumb: '📐 首页 / 🟡 步进电机', type: 'tutorial', file: 'tutorials/proj-stepper-motor.html' },
+  'proj-freertos-station': { title: 'FreeRTOS环境监测站', breadcrumb: '📐 首页 / 🟠 FreeRTOS站', type: 'tutorial', file: 'tutorials/proj-freertos-station.html' },
+  'proj-smart-car': { title: '智能小车', breadcrumb: '📐 首页 / 🟠 智能小车', type: 'tutorial', file: 'tutorials/proj-smart-car.html' },
+  'proj-can-bus': { title: 'CAN总线通信', breadcrumb: '📐 首页 / 🟠 CAN总线', type: 'tutorial', file: 'tutorials/proj-can-bus.html' },
+  'proj-sd-logger': { title: 'SD卡数据记录仪', breadcrumb: '📐 首页 / 🟠 SD卡记录仪', type: 'tutorial', file: 'tutorials/proj-sd-logger.html' },
+  'proj-esp32-iot': { title: 'ESP32 WiFi物联网', breadcrumb: '📐 首页 / 🟠 ESP32物联网', type: 'tutorial', file: 'tutorials/proj-esp32-iot.html' },
+  'proj-low-power': { title: '低功耗电池设备', breadcrumb: '📐 首页 / 🔴 低功耗', type: 'tutorial', file: 'tutorials/proj-low-power.html' },
+  'proj-bootloader-iap': { title: 'Bootloader IAP升级', breadcrumb: '📐 首页 / 🔴 IAP升级', type: 'tutorial', file: 'tutorials/proj-bootloader-iap.html' },
+  'proj-dma-adc': { title: 'DMA双缓冲ADC', breadcrumb: '📐 首页 / 🔴 DMA+ADC', type: 'tutorial', file: 'tutorials/proj-dma-adc.html' },
+  'proj-usb-hid': { title: 'USB HID键盘鼠标', breadcrumb: '📐 首页 / 🔴 USB HID', type: 'tutorial', file: 'tutorials/proj-usb-hid.html' },
+  'proj-s32k144-auto': { title: 'S32K144汽车电子', breadcrumb: '📐 首页 / 🔴 汽车电子', type: 'tutorial', file: 'tutorials/proj-s32k144-auto.html' },
+  'proj-oscilloscope-debug': { title: '示波器调试实战', breadcrumb: '📐 首页 / 🔴 示波器调试', type: 'tutorial', file: 'tutorials/proj-oscilloscope-debug.html' }
+};
+
+let currentPage = 'home';
+let searchMode = false;
+
+// === 加载首页 ===
+function renderHome() {
+// === 全局教程卡片数据 ===
+const cardsData = [
+    { page:'guide', icon:'📖', title:'小白完全指南', desc:'14章分篇阅读：环境搭建→ARM GCC→CMake→Makefile→串口→烧录→STM32→ESP32→FreeRTOS→协议→硬件→调试→实战→速查', tags:['必读','14章'], time:'~2小时', size:'共200KB', hot:true, diff:1 },
+    { page:'arm-gcc', icon:'🔧', title:'ARM GCC 工具链', desc:'gcc/as/ld/objcopy/objdump全命令详解，编译参数速查，链接脚本原理', tags:['核心','编译'], time:'~20分钟', size:'35KB', time:'25分钟', diff:1 },
+    { page:'cmake', icon:'📦', title:'CMake 构建系统', desc:'CMakeLists.txt全语法，工具链文件，CubeMX集成，VS Code配置', tags:['自动化','构建'], time:'~20分钟', size:'32KB', time:'20分钟', diff:2 },
+    { page:'makefile', icon:'📜', title:'Makefile 实战', desc:'语法规则，变量，模式规则，完整STM32项目Makefile，增量编译', tags:['进阶','构建'], time:'~25分钟', size:'76KB', time:'40分钟', diff:2 },
+    { page:'flash-debug', icon:'⚡', title:'烧录与调试', desc:'ST-Link/J-Link/串口ISP，OpenOCD，GDB，VS Code Cortex-Debug', tags:['必学','调试'], time:'~30分钟', size:'96KB', time:'50分钟', diff:2 },
+    { page:'serial', icon:'📡', title:'串口通信', desc:'UART协议，CH340驱动，PuTTY，pyserial编程，STM32 HAL串口', tags:['必学','通信'], time:'~20分钟', size:'48KB', time:'30分钟', diff:1 },
+    { page:'stm32', icon:'🔵', title:'STM32 开发', desc:'HAL/LL/寄存器，CubeMX，GPIO/UART/TIM/ADC/NVIC，时钟树', tags:['必学','MCU'], time:'~35分钟', size:'65KB', time:'35分钟', hot:true, diff:2 },
+    { page:'esp32', icon:'🟢', title:'ESP32 开发', desc:'Arduino/ESP-IDF双框架，WiFi/BLE，OTA，深度睡眠，esptool', tags:['进阶','WiFi'], time:'~20分钟', size:'31KB', time:'20分钟', diff:3 },
+    { page:'freertos', icon:'🔄', title:'FreeRTOS 入门', desc:'任务/队列/信号量/互斥量，中断安全，与HAL共存，内存管理', tags:['进阶','RTOS'], time:'~40分钟', size:'116KB', time:'55分钟', diff:3 },
+    { page:'protocols', icon:'🔌', title:'通信协议', desc:'I2C/SPI/UART/CAN协议原理，硬件接线，HAL代码，逻辑分析仪', tags:['进阶','通信'], time:'~20分钟', size:'29KB', time:'20分钟', diff:2 },
+    { page:'practice-projects', icon:'🔬', title:'练手方向大全', desc:'20个分级项目：LED跑马灯→FreeRTOS多任务→智能小车→Bootloader→USB开发', tags:['实战','必看'], time:'~10分钟', size:'28KB', time:'15分钟', hot:true, diff:0 },
+    { page:'bci-2026', icon:'🧠', title:'脑机接口2026全球进展', desc:'Neuralink/Synchron/博睿康最新突破，三星4nm芯片，大模型+BCI融合架构', tags:['前沿','热点'], time:'~15分钟', size:'46KB', time:'25分钟', hot:true, diff:0 },
+    { page:'glossary', icon:'📖', title:'嵌入式术语词典', desc:'ADC/DMA/FreeRTOS/SPI等60+核心术语详解，拼音检索+分类浏览，新手必备参考', tags:['工具','参考'], time:'~15分钟', size:'16KB', diff:1 },
+    { page:'proj-led-button', icon:'💡', title:'LED跑马灯+按键控制', desc:'GPIO输出流水灯，按键输入，外部中断，软件/硬件消抖，第一个完整项目', tags:['入门','GPIO'], time:'~15分钟', size:'25KB', diff:1 },
+    { page:'proj-uart-hello', icon:'🖥️', title:'串口Hello World', desc:'UART配置，printf重定向，中断接收，命令解析控制LED，DMA接收', tags:['入门','UART'], time:'~15分钟', size:'28KB', diff:1 },
+    { page:'proj-oled-display', icon:'📱', title:'OLED显示屏驱动', desc:'I2C通信，SSD1306驱动，字符/数字/图形显示，字库取模，滚动效果', tags:['入门','I2C'], time:'~15分钟', size:'30KB', diff:1 },
+    { page:'proj-dht11-monitor', icon:'🌡️', title:'DHT11温湿度监测', desc:'单总线时序，GPIO模式切换，微秒延时，数据校验，OLED+串口显示', tags:['入门','传感器'], time:'~12分钟', size:'22KB', diff:1 },
+    { page:'proj-pwm-motor', icon:'⚙️', title:'直流电机PWM控制', desc:'定时器PWM原理，L298N驱动，占空比调速，正反转，按键/串口控速', tags:['进阶','PWM'], time:'~18分钟', size:'15KB', diff:2 },
+    { page:'proj-servo-control', icon:'🦾', title:'舵机控制', desc:'50Hz PWM信号，角度计算公式，多路舵机，机械臂协同控制', tags:['进阶','PWM'], time:'~18分钟', size:'17KB', diff:2 },
+    { page:'proj-ir-remote', icon:'📺', title:'红外遥控解码', desc:'NEC协议，外部中断+定时器测脉宽，状态机解码，键值映射控制', tags:['进阶','中断'], time:'~15分钟', size:'21KB', diff:2 },
+    { page:'proj-ultrasonic', icon:'📡', title:'超声波测距', desc:'HC-SR04 Trig/Echo，输入捕获测脉宽，距离计算，报警阈值', tags:['进阶','定时器'], time:'~15分钟', size:'18KB', diff:2 },
+    { page:'proj-stepper-motor', icon:'🔄', title:'步进电机控制', desc:'四相八拍相序，28BYJ-48减速比计算，梯形加减速曲线，精确位置', tags:['进阶','电机'], time:'~18分钟', size:'20KB', diff:2 },
+    { page:'proj-freertos-station', icon:'📊', title:'FreeRTOS环境监测站', desc:'4任务协同，队列传数据，信号量同步，互斥量保护I2C，报警判断', tags:['实战','RTOS'], time:'~20分钟', size:'25KB', hot:true, diff:3 },
+    { page:'proj-smart-car', icon:'🚗', title:'智能小车', desc:'电机驱动+超声波避障+红外遥控+蓝牙APP+PID速度闭环+状态机', tags:['实战','综合'], time:'~25分钟', size:'26KB', hot:true, diff:3 },
+    { page:'proj-can-bus', icon:'🔌', title:'CAN总线通信', desc:'CAN协议帧格式，HAL_CAN收发，过滤器配置，双节点通信，终端电阻', tags:['实战','CAN'], time:'~20分钟', size:'22KB', diff:3 },
+    { page:'proj-sd-logger', icon:'💾', title:'SD卡数据记录仪', desc:'SPI+FatFS，文件创建/写入/读取，CSV格式，串口导出，时间戳', tags:['实战','文件系统'], time:'~20分钟', size:'20KB', diff:3 },
+    { page:'proj-esp32-iot', icon:'🌐', title:'ESP32 WiFi物联网', desc:'Arduino框架，WiFi连接，HTTP请求，MQTT发布订阅，ThingSpeak，OTA', tags:['实战','IoT'], time:'~20分钟', size:'22KB', diff:3 },
+    { page:'proj-low-power', icon:'🔋', title:'低功耗电池设备', desc:'Sleep/Stop/Standby模式，RTC定时唤醒，外部中断唤醒，μA级优化', tags:['高级','低功耗'], time:'~18分钟', size:'22KB', diff:4 },
+    { page:'proj-bootloader-iap', icon:'⬆️', title:'Bootloader IAP升级', desc:'Flash分区，向量表重定位，串口接收bin，CRC校验，版本管理', tags:['高级','Bootloader'], time:'~20分钟', size:'26KB', diff:4 },
+    { page:'proj-dma-adc', icon:'📈', title:'DMA双缓冲ADC采集', desc:'ADC连续采样+DMA传输，双缓冲切换，不丢点采集，波形显示', tags:['高级','DMA'], time:'~18分钟', size:'22KB', diff:4 },
+    { page:'proj-usb-hid', icon:'⌨️', title:'USB HID键盘鼠标', desc:'USB协议栈，HID描述符，报表描述符，模拟键盘/鼠标，按键触发', tags:['高级','USB'], time:'~20分钟', size:'20KB', diff:4 },
+    { page:'proj-s32k144-auto', icon:'🚙', title:'S32K144汽车电子', desc:'S32DS环境，FLEXCAN，LPIT定时器，AUTOSAR概念，功能安全意识', tags:['高级','汽车'], time:'~20分钟', size:'18KB', diff:4 },
+    { page:'proj-oscilloscope-debug', icon:'🔭', title:'示波器调试实战', desc:'GPIO翻转测量，I2C/SPI/UART时序分析，PWM测量，中断延迟，偶发BUG捕捉', tags:['高级','调试'], time:'~15分钟', size:'20KB', diff:4 }
+  ];
+  let html = `<div class="home-hero">
+    <h1>📐 嵌入式开发教程</h1>
+    <p>从零到实战的完整学习路线，33篇深度教程覆盖编译、调试、MCU、RTOS、通信协议、20个练手项目、前沿技术</p>
+    <div class="quick-start" onclick="loadPage('guide')" style="margin-top:18px;padding:14px 28px;background:linear-gradient(135deg,#238636,#1f6feb);border-radius:12px;cursor:pointer;text-align:center;font-size:1.05em;font-weight:700;color:#fff;display:inline-block">🚀 我是新手，从哪里开始？→ 小白完全指南（14章分篇阅读）</div>
+  </div>
+
+  <!-- 学习路线图 -->
+  <div class="roadmap">
+    <h3>🗺️ 推荐学习路线</h3>
+    <div class="roadmap-steps">
+      <a class="roadmap-step s1" onclick="loadPage('main')"><span class="step-num">1</span>小白指南</a><span class="roadmap-arrow">→</span>
+      <a class="roadmap-step s1" onclick="loadPage('arm-gcc')"><span class="step-num">2</span>ARM GCC</a><span class="roadmap-arrow">→</span>
+      <a class="roadmap-step s2" onclick="loadPage('stm32')"><span class="step-num">3</span>STM32</a><span class="roadmap-arrow">→</span>
+      <a class="roadmap-step s2" onclick="loadPage('serial')"><span class="step-num">4</span>串口</a><span class="roadmap-arrow">→</span>
+      <a class="roadmap-step s3" onclick="loadPage('proj-led-button')"><span class="step-num">5</span>第1个项目</a><span class="roadmap-arrow">→</span>
+      <a class="roadmap-step s3" onclick="loadPage('freertos')"><span class="step-num">6</span>FreeRTOS</a><span class="roadmap-arrow">→</span>
+      <a class="roadmap-step s4" onclick="loadPage('proj-smart-car')"><span class="step-num">7</span>实战项目</a>
+    </div>
+  </div>
+
+  <div class="home-stats">
+    <div class="home-stat"><div class="num">47</div><div class="label">篇教程</div></div>
+    <div class="home-stat"><div class="num">1.2MB</div><div class="label">总内容</div></div>
+    <div class="home-stat"><div class="num">400+</div><div class="label">代码示例</div></div>
+    <div class="home-stat"><div class="num">100+</div><div class="label">常见问题</div></div>
+  </div>`;
+
+  // 分组：基础教程 + 项目教程
+  const baseCards = cardsData.filter(c => !c.page.startsWith('proj-'));
+  const projCards = cardsData.filter(c => c.page.startsWith('proj-'));
+  const projGroups = [
+    {title:'🟢 入门项目（0~3个月，硬件¥25起）', filter:c => c.tags.includes('入门')},
+    {title:'🟡 进阶项目（3~6个月）', filter:c => c.tags.includes('进阶') && c.page.startsWith('proj-')},
+    {title:'🟠 实战项目（6~12个月）', filter:c => c.tags.includes('实战')},
+    {title:'🔴 高级项目（1年+）', filter:c => c.tags.includes('高级')}
+  ];
+
+  let sortMode = 'default';
+function renderSortBar() {
+  return `<div class="sort-bar"><span class="label">排序：</span>
+    <button class="sort-btn active" onclick="sortCards('default',this)">默认</button>
+    <button class="sort-btn" onclick="sortCards('time-asc',this)">⏱ 短→长</button>
+    <button class="sort-btn" onclick="sortCards('time-desc',this)">⏱ 长→短</button>
+    <button class="sort-btn" onclick="sortCards('diff-asc',this)">📊 简单→难</button>
+    <button class="sort-btn" onclick="sortCards('name',this)">🔤 名称</button>
+  </div>`;
+}
+function sortCards(mode, btn) {
+  document.querySelectorAll('.sort-btn').forEach(b=>b.classList.remove('active'));
+  if(btn) btn.classList.add('active');
+  sortMode = mode;
+  loadPage('home');
+  renderBookmarksList();
+  updateHomeStats();
+}
+function getSorted(items) {
+  if (sortMode === 'time-asc') return [...items].sort((a,b)=>parseInt(a.time||'99')-parseInt(b.time||'99'));
+  if (sortMode === 'time-desc') return [...items].sort((a,b)=>parseInt(b.time||'99')-parseInt(a.time||'99'));
+  if (sortMode === 'diff-asc') return [...items].sort((a,b)=>(a.diff||0)-(b.diff||0));
+  if (sortMode === 'name') return [...items].sort((a,b)=>a.title.localeCompare(b.title,'zh'));
+  return items;
+}
+function renderCardGroup(title, items) {
+  items = getSorted(items);
+    let h = `<div class="home-section-title">${title}</div><div class="home-grid">`;
+    items.forEach(c => {
+      const tagHtml = c.tags.map((t,i) => `<span class="tag ${i===0?'g':'b'}">${t}</span>`).join('');
+      const diffHtml = c.diff ? `<div class="difficulty d${c.diff}">${'<span class="dot on"></span>'.repeat(c.diff)+'<span class="dot"></span>'.repeat(4-c.diff)}<span style="font-size:.7em;margin-left:4px;color:var(--t2)">${['','入门','基础','进阶','高级'][c.diff]}</span></div>` : '';
+      h += `<a class="home-card" onclick="loadPage('${c.page}')">
+        <div class="icon">${c.icon}</div>
+        <div class="title">${c.title}${c.hot?' 🔥':''}</div>
+        <div class="desc">${c.desc}</div>
+        ${diffHtml}
+        <div class="tags">${tagHtml}</div>
+        <div class="size">${c.size} <span class="read-time">⏱ ${c.time||''}</span></div>
+      </a>`;
+    });
+    h += '</div>';
+    return h;
+  }
+
+  html += renderCardGroup('📚 基础教程', baseCards);
+  projGroups.forEach(g => {
+    const filtered = projCards.filter(g.filter);
+    if (filtered.length > 0) html += renderCardGroup(g.title, filtered);
+  });
+
+  return html;
+}
+
+// === 骨架屏 ===
+function skeletonContent() {
+  return `<div class="skeleton-wrap">
+    <div class="skeleton-line title"></div>
+    <div class="skeleton-line h2"></div>
+    <div class="skeleton-line p"></div>
+    <div class="skeleton-line p2"></div>
+    <div class="skeleton-line p3"></div>
+    <div class="skeleton-card"><div class="sk-icon"></div><div class="sk-title"></div><div class="sk-text"></div><div class="sk-text2"></div></div>
+    <div class="skeleton-line h2"></div>
+    <div class="skeleton-line p"></div>
+    <div class="skeleton-line short"></div>
+    <div class="skeleton-card"><div class="sk-icon"></div><div class="sk-title"></div><div class="sk-text"></div><div class="sk-text2"></div></div>
+    <div class="skeleton-line h2"></div>
+    <div class="skeleton-line p"></div>
+    <div class="skeleton-line p2"></div>
+  </div>`;
+}
+
+// === 亮暗模式切换 ===
+function updateThemeIcon() {
+  const btn = document.getElementById('themeToggle');
+  const isLight = document.body.classList.contains('light-mode');
+  if (btn) btn.textContent = isLight ? '☀️' : '🌙';
+}
+function toggleTheme() {
+  document.body.classList.toggle('light-mode');
+  const isLight = document.body.classList.contains('light-mode');
+  localStorage.setItem('theme', isLight ? 'light' : 'dark');
+  updateThemeIcon();
+}
+(function() {
+  const saved = localStorage.getItem('theme');
+  if (saved === 'light') document.body.classList.add('light-mode');
+  updateThemeIcon();
+})();
+
+// === 加载教程内容 ===
+async function loadPage(pageId) {
+  currentPage = pageId;
+  searchMode = false;
+  document.getElementById('searchInput').value = '';
+
+  // 更新导航高亮
+  document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+  const navItem = document.querySelector(`.nav-item[data-page="${pageId}"]`);
+  if (navItem) {
+    navItem.classList.add('active');
+    // 如果是项目教程，自动展开对应的导航组
+    const navGroup = navItem.closest('.nav-group.collapsible');
+    if (navGroup && !navGroup.classList.contains('open')) navGroup.classList.add('open');
+  }
+
+  // 更新面包屑
+  const pageConfig = PAGES[pageId];
+  document.getElementById('breadcrumb').innerHTML = pageConfig.breadcrumb;
+
+  // 关闭移动端侧边栏
+  document.getElementById('sidebar').classList.remove('open');
+
+  // 更新收藏按钮
+  const bmToggle = document.getElementById('bmToggle');
+  if (bmToggle) {
+    if (pageId === 'home') { bmToggle.style.display = 'none'; }
+    else { bmToggle.style.display = ''; updateBookmarkUI(); }
+  }
+
+  // 标记已读
+  if (pageId !== 'home') markViewed(pageId);
+
+  const content = document.getElementById('contentArea');
+  window.scrollTo({top:0});
+
+  if (pageId === 'home') {
+    content.innerHTML = renderHome();
+    clearTocSidebar();
+    document.title = '嵌入式开发教程';
+    history.pushState({page:pageId}, '', `#/${pageId}`);
+    updateHomeStats();
+    setTimeout(() => updateHomeStats(), 200);
+    return;
+  }
+
+  // 加载教程HTML - 骨架屏
+  content.innerHTML = skeletonContent();
+  try {
+    const resp = await fetch(pageConfig.file);
+    if (!resp.ok) throw new Error('加载失败');
+    const html = await resp.text();
+    // 提取body内容
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(html, 'text/html');
+    // 移除原有的nav-top和breadcrumb
+    doc.querySelectorAll('.nav-top, .breadcrumb, .nav-top + style').forEach(el => el.remove());
+    const bodyContent = doc.body.innerHTML;
+    content.innerHTML = bodyContent;
+    // v1.8.0: floating TOC sidebar
+    setTimeout(function() { buildTocSidebar(); }, 200);
+    content.querySelectorAll('img').forEach(function(img){img.style.cursor='zoom-in';img.addEventListener('click',function(){openLightbox(this.src);});});
+
+    // 阅读时间估算
+    const textOnly = bodyContent.replace(/<[^>]+>/g, '').replace(/\s+/g, '');
+    const readMin = Math.max(1, Math.round(textOnly.length / 400));
+    const h1El = content.querySelector('h1');
+    if (h1El && readMin > 0) {
+      const rtBadge = document.createElement('span');
+      rtBadge.className = 'read-time';
+      rtBadge.textContent = '⏱ ' + readMin + ' 分钟';
+      rtBadge.title = '约 ' + textOnly.length.toLocaleString() + ' 字';
+      h1El.appendChild(document.createTextNode(' '));
+      h1El.appendChild(rtBadge);
+    }
+
+    // 章节进度指示器（指南章节页面）
+    if (pageId.startsWith('guide-ch')) {
+      const progressBar = renderGuideProgress(pageId);
+      if (progressBar) {
+        const h1 = content.querySelector('h1');
+        if (h1) {
+          const div = document.createElement('div');
+          div.innerHTML = progressBar;
+          h1.parentNode.insertBefore(div.firstElementChild, h1.nextSibling);
+        }
+      }
+    }
+
+    // ══ v1.7.0: 代码高亮+复制按钮+面包屑+相关推荐 ══
+    setupCopyButtons(content);
+    highlightCodeBlocks(content);
+    // 面包屑
+    const bc = renderBreadcrumb(pageId);
+    if (bc && !content.querySelector('.breadcrumb')) { const bct = document.createElement('div'); bct.innerHTML = bc; content.insertBefore(bct.firstElementChild, content.firstElementChild); }
+    // 相关教程推荐
+    const rel = renderRelated(pageId);
+    if (rel) { const relt = document.createElement('div'); relt.innerHTML = rel; content.appendChild(relt.firstElementChild); }
+
+    document.title = pageConfig.title + ' - 嵌入式开发教程';
+    history.pushState({page:pageId}, '', `#/${pageId}`);
+
+    // 添加教程内目录(TOC)
+    setTimeout(() => {
+      const headings = content.querySelectorAll('h2');
+      if (headings.length >= 3) {
+        const tocDiv = document.createElement('details');
+        tocDiv.className = 'toc-inline';
+        tocDiv.open = false;
+        let tocHtml = '<summary>📑 本教程目录（' + headings.length + ' 个章节）</summary><ol>';
+        headings.forEach((h, i) => {
+          if (!h.id) h.id = 'toc-h2-' + i;
+          tocHtml += `<li><a onclick="document.getElementById('${h.id}').scrollIntoView({behavior:'smooth',block:'start'})">${h.textContent}</a></li>`;
+        });
+        tocHtml += '</ol>';
+        tocDiv.innerHTML = tocHtml;
+        const firstH2 = content.querySelector('h2');
+        if (firstH2) firstH2.parentNode.insertBefore(tocDiv, firstH2);
+      }
+    }, 100);
+
+    // 添加上/下篇导航（按学习路线排序）
+    const pageOrder = ['overview','guide','guide-ch00','guide-ch01','guide-ch02','guide-ch03','guide-ch04','guide-ch05','guide-ch06','guide-ch07','guide-ch08','guide-ch09','guide-ch10','guide-ch11','guide-ch12','guide-ch13','arm-gcc','cmake','makefile','serial','flash-debug','stm32','esp32','freertos','protocols','practice-projects','proj-led-button','proj-uart-hello','proj-oled-display','proj-dht11-monitor','proj-pwm-motor','proj-servo-control','proj-ir-remote','proj-ultrasonic','proj-stepper-motor','proj-freertos-station','proj-smart-car','proj-can-bus','proj-sd-logger','proj-esp32-iot','proj-low-power','proj-bootloader-iap','proj-dma-adc','proj-usb-hid','proj-s32k144-auto','proj-oscilloscope-debug','bci-2026','glossary'];
+    const idx = pageOrder.indexOf(pageId);
+    if (idx >= 0) {
+      const navHtml = document.createElement('div');
+      navHtml.className = 'page-nav';
+      let links = '';
+      if (idx > 0) {
+        const prev = PAGES[pageOrder[idx-1]];
+        links += `<a class="page-nav-prev" onclick="loadPage('${pageOrder[idx-1]}')">← ${prev.title}</a>`;
+      }
+      if (idx < pageOrder.length - 1) {
+        const next = PAGES[pageOrder[idx+1]];
+        links += `<a class="page-nav-next" onclick="loadPage('${pageOrder[idx+1]}')">${next.title} →</a>`;
+      }
+      navHtml.innerHTML = links;
+      content.appendChild(navHtml);
+    // 显示收藏按钮
+    const bmBtn = document.getElementById('bmToggle');
+    if (bmBtn) { bmBtn.style.display = ''; updateBookmarkUI(); }
+    }
+
+    // 相关推荐（非首页、非章节页）
+    if (pageId !== 'home' && !pageId.startsWith('guide-ch') && pageId !== 'guide') {
+      const related = getRelated(pageId);
+      if (related.length > 0) {
+        const relDiv = document.createElement('div');
+        relDiv.className = 'related-links';
+        var relHtml = '<h3>🔗 相关推荐</h3><div class="related-grid">';
+        related.forEach(function(r) {
+          relHtml += '<a class="related-card" onclick="loadPage(\'' + r.id + '\')" title="' + r.title + '">' +
+            '<span class="related-icon">' + (r.icon || '📄') + '</span>' +
+            '<span class="related-title">' + r.title + '</span>' +
+            '<span class="related-desc">' + (r.desc || '') + '</span></a>';
+        });
+        relHtml += '</div>';
+        relDiv.innerHTML = relHtml;
+        content.appendChild(relDiv);
+      }
+    }
+  } catch(e) {
+    content.innerHTML = `<div class="warn">⚠️ 加载失败: ${e.message}，请刷新重试。</div>`;
+  }
+}
+
+// === 全文搜索缓存 ===
+let searchCache = {};
+
+// ══ v1.7.0: 语法高亮 ══
+
+// v1.8.0: Floating TOC sidebar + scroll-spy
+let tocScrollTimer = null;
+function buildTocSidebar() {
+  var toc = document.getElementById('tocSidebar');
+  var links = document.getElementById('tocLinks');
+  var h2s = document.querySelectorAll('#contentArea h2');
+  if (!toc || !links || h2s.length < 3) { if (toc) toc.classList.remove('visible'); var m = document.querySelector('.main'); if (m) m.classList.remove('has-toc'); return; }
+  var html = '';
+  h2s.forEach(function(h2, i) {
+    if (!h2.id) h2.id = 's' + i + '-' + Math.random().toString(36).slice(2,6);
+    html += '<a href="#' + h2.id + '" onclick="scrollToSection('' + h2.id + '');return false">' + h2.textContent + '</a>';
+    var next = h2.nextElementSibling;
+    while (next && next.tagName !== 'H2') {
+      if (next.tagName === 'H3') {
+        if (!next.id) next.id = 's' + i + 'h-' + Math.random().toString(36).slice(2,6);
+        html += '<a class="toc-h3" href="#' + next.id + '" onclick="scrollToSection('' + next.id + '');return false">' + next.textContent + '</a>';
+      }
+      next = next.nextElementSibling;
+    }
+  });
+  links.innerHTML = html;
+  toc.classList.add('visible');
+  var m = document.querySelector('.main'); if (m) m.classList.add('has-toc');
+  updateTocHighlight();
+}
+function scrollToSection(id) {
+  var el = document.getElementById(id);
+  if (el) el.scrollIntoView({behavior:'smooth',block:'start'});
+}
+function updateTocHighlight() {
+  var alinks = document.querySelectorAll('#tocLinks a');
+  if (!alinks.length) return;
+  var scrollY = window.scrollY + 100;
+  var active = alinks[0];
+  alinks.forEach(function(a) {
+    var target = document.getElementById(a.getAttribute('href').slice(1));
+    if (target && target.getBoundingClientRect().top + window.scrollY <= scrollY) active = a;
+  });
+  alinks.forEach(function(a) { a.classList.remove('active'); });
+  if (active) active.classList.add('active');
+}
+function clearTocSidebar() {
+  var toc = document.getElementById('tocSidebar');
+  if (toc) toc.classList.remove('visible');
+  var m = document.querySelector('.main'); if (m) m.classList.remove('has-toc');
+}
+window.addEventListener('scroll', function() {
+  if (tocScrollTimer) clearTimeout(tocScrollTimer);
+  tocScrollTimer = setTimeout(updateTocHighlight, 80);
+}, {passive: true});
+
+const C_KEYWORDS = new Set(['auto','break','case','char','const','continue','default','do','double','else','enum','extern','float','for','goto','if','inline','int','long','register','return','short','signed','sizeof','static','struct','switch','typedef','union','unsigned','void','volatile','while']);
+const C_TYPES = new Set(['uint8_t','uint16_t','uint32_t','uint64_t','int8_t','int16_t','int32_t','int64_t','size_t','ssize_t','bool','true','false','NULL','HAL_StatusTypeDef','esp_err_t','QueueHandle_t','SemaphoreHandle_t','TimerHandle_t','TaskHandle_t','GPIO_TypeDef','ADC_HandleTypeDef','UART_HandleTypeDef','I2C_HandleTypeDef','SPI_HandleTypeDef','TIM_HandleTypeDef','DMA_HandleTypeDef','RTC_HandleTypeDef','uintptr_t','float32_t']);
+const C_PP = new Set(['#include','#define','#ifdef','#ifndef','#if','#else','#elif','#endif','#pragma','#error','#warning','#undef']);
+const MAKEFILE_KW = new Set(['all','clean','flash','debug','release','.PHONY','ifeq','ifneq','ifdef','ifndef','else','endif','include','export','override','define','endef','eval','call','foreach','wildcard','patsubst','notdir','dir','addprefix','addsuffix','shell','subst','filter','strip','sort','word','words','firstword','lastword','error','warning','info']);
+
+function highlightCodeBlocks(container) {
+  container.querySelectorAll('pre code').forEach(el => {
+    if (el.classList.contains('hl-done')) return;
+    el.classList.add('hl-done');
+    let text = el.innerHTML;
+    if (text.includes('<span class="syn-')) return; // already highlighted
+    
+    const firstLine = text.split('
+')[0] || '';
+    const isMakefile = firstLine.includes('# ') && (text.includes(' = ') || text.includes(':	') || text.includes('$(')) && !text.includes('{');
+    const isCPP = !isMakefile && (text.includes('#include') || text.includes('HAL_') || text.includes('void ') || text.includes('uint8_t') || text.includes('typedef') || text.includes('int main'));
+    
+    if (isMakefile) {
+      text = text.replace(/(^|
+)(\s*)([.\/\\w-]+)\s*:/gm, '$1$2<span class="syn-fn">$3</span>:');
+      text = text.replace(/\$\((\w+)\)/g, '<span class="syn-kw">$$($1)</span>');
+      text = text.replace(/\$[@<^+?*]/g, '<span class="syn-num">$&</span>');
+      text = text.replace(/(^|
+)(\s*)(\w+)	/g, '$1$2$3	');
+      text = text.replace(/^(\s*)(#.*)$/gm, '$1<span class="syn-com">$2</span>');
+    } else if (isCPP) {
+      // Strings
+      text = text.replace(/(["'])(?:(?=(\?)).)*?/g, '<span class="syn-str">$&</span>');
+      // Comments
+      text = text.replace(/(\/\/.*$)/gm, '<span class="syn-com">$1</span>');
+      text = text.replace(/(\/\*[\s\S]*?\*\/)/g, '<span class="syn-com">$1</span>');
+      // Preprocessor
+      text = text.replace(/^(\s*#\s*\w+)/gm, '<span class="syn-pp">$1</span>');
+      // Numbers
+      text = text.replace(/(0x[0-9a-fA-F]+|\d+\.?\d*(?:[eE][+-]?\d+)?[uUlLfF]*)/g, '<span class="syn-num">$1</span>');
+      // Types
+      C_TYPES.forEach(t => { const r = new RegExp('\b'+t+'\b','g'); text = text.replace(r, '<span class="syn-type">'+t+'</span>'); });
+      // Keywords
+      C_KEYWORDS.forEach(k => { const r = new RegExp('\b'+k+'\b','g'); text = text.replace(r, '<span class="syn-kw">'+k+'</span>'); });
+      // Functions (identifier followed by opening paren)
+      text = text.replace(/([a-zA-Z_]\w+)\s*\(/g, (m, name) => {
+        if (['if','for','while','switch','return','sizeof','typeof'].includes(name)) return m;
+        return `<span class="syn-fn">${name}</span>(`;
+      });
+    }
+    el.innerHTML = text;
+  });
+}
+
+let searchIndexReady = false;
+
+async function buildSearchIndex() {
+  if (searchIndexReady) return;
+  const pages = Object.entries(PAGES).filter(([id, cfg]) => id !== 'home' && cfg.file);
+  const promises = pages.map(async ([id, cfg]) => {
+    try {
+      const resp = await fetch(cfg.file);
+      if (!resp.ok) return;
+      const text = await resp.text();
+      const plain = text.replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '').replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '').replace(/<[^>]+>/g, ' ').replace(/&[a-z]+;/gi, ' ').replace(/\s+/g, ' ').toLowerCase();
+      searchCache[id] = plain;
+    } catch(e) {}
+  });
+  await Promise.all(promises);
+  searchIndexReady = true;
+}
+
+setTimeout(buildSearchIndex, 2500);
+setTimeout(buildBreadcrumbMap, 3500);
+// ══ v1.7.0: 面包屑 ══
+const BREADCRUMB_MAP = {};
+function buildBreadcrumbMap() {
+  for (let i=0; i<=13; i++) {
+    const id = `guide-ch${String(i).padStart(2,'0')}`;
+    BREADCRUMB_MAP[id] = { section: '小白完全指南', title: `第${i}章` };
+  }
+  // Also add from cardsData
+  if (typeof cardsData !== 'undefined') cardsData.forEach(c => {
+    if (!BREADCRUMB_MAP[c.id]) BREADCRUMB_MAP[c.id] = { section: c.section || '教程', title: c.title };
+  });
+}
+
+// ══ v1.7.0: 相关教程推荐 ══
+const RELATED_TAGS = {
+  'guide-ch00': ['arm-gcc','cmake','makefile'],
+  'guide-ch01': ['guide-ch02','guide-ch03','cmake','makefile'],
+  'guide-ch02': ['guide-ch01','guide-ch03','makefile'],
+  'guide-ch03': ['guide-ch02','cmake'],
+  'guide-ch04': ['proj-uart-hello','protocols','serial'],
+  'guide-ch05': ['flash-debug','proj-bootloader-iap'],
+  'guide-ch06': ['guide-ch04','guide-ch05','guide-ch08','proj-led-button'],
+  'guide-ch07': ['guide-ch06','proj-esp32-iot','bci-2026'],
+  'guide-ch08': ['guide-ch06','proj-freertos-station','freertos'],
+  'guide-ch09': ['protocols','proj-can-bus','proj-i2c'],
+  'guide-ch10': ['guide-ch11','proj-low-power'],
+  'guide-ch11': ['guide-ch10','proj-low-power'],
+  'guide-ch12': ['proj-dht11-monitor','guide-ch09'],
+  'guide-ch13': ['proj-smart-car','proj-freertos-station','practice-projects'],
+  'proj-led-button': ['guide-ch06','proj-uart-hello'],
+  'proj-uart-hello': ['guide-ch04','proj-led-button'],
+  'proj-freertos-station': ['guide-ch08','freertos'],
+  'proj-smart-car': ['guide-ch13','proj-pwm-motor'],
+  'proj-esp32-iot': ['guide-ch07','bci-2026'],
+  'bci-2026': ['guide-ch07','practice-projects','glossary'],
+};
+function renderRelated(pageId) {
+  const ids = RELATED_TAGS[pageId];
+  if (!ids) return '';
+  const cards = ids.map(id => {
+    const c = (typeof cardsData !== 'undefined' && cardsData.find(x => x.id === id))
+           || (typeof cfgMap !== 'undefined' && cfgMap[id]);
+    const title = c ? (c.title || c.label || id) : id;
+    const tag = (id.startsWith('guide-') ? '指南' : id.startsWith('proj-') ? '实战' : '专题');
+    return `<div class="related-card" onclick="loadPage('${id}')"><span class="rt-tag">${tag}</span>${title}</div>`;
+  }).join('');
+  return `<div class="related-tutorials"><h3>📎 相关教程</h3><div class="related-grid">${cards}</div></div>`;
+}
+
+function renderBreadcrumb(pageId) {
+  if (!BREADCRUMB_MAP[pageId]) return '';
+  const b = BREADCRUMB_MAP[pageId];
+  return `<div class="breadcrumb"><a href="#" onclick="loadPage('home')">🏠 首页</a><span class="sep">›</span><span>${b.section}</span><span class="sep">›</span><span>${b.title}</span></div>`;
+}
+setTimeout(buildBreadcrumbMap, 3000);
+
+
+// === 搜索 ===
+async function handleSearch(query) {
+  if (!query.trim()) {
+    if (searchMode) loadPage(currentPage);
+    return;
+  }
+  searchMode = true;
+  const content = document.getElementById('contentArea');
+  content.innerHTML = skeletonContent();
+
+  if (!searchIndexReady) await buildSearchIndex();
+
+  const q = query.toLowerCase();
+  const results = [];
+  Object.entries(PAGES).forEach(([id, cfg]) => {
+    if (id === 'home') return;
+    const card = cardsData.find(c => c.page === id);
+    const desc = card ? card.desc.toLowerCase() : '';
+    const metaText = cfg.title.toLowerCase() + ' ' + cfg.breadcrumb.toLowerCase() + ' ' + desc;
+    let matchLevel = 0;
+    if (metaText.includes(q)) matchLevel = 1;
+    const fullText = searchCache[id] || '';
+    if (fullText.includes(q)) matchLevel = Math.max(matchLevel, 2);
+    if (matchLevel > 0) {
+      let snippet = '';
+      if (matchLevel >= 2 && fullText) {
+        const idx = fullText.indexOf(q);
+        const start = Math.max(0, idx - 30);
+        const end = Math.min(fullText.length, idx + q.length + 60);
+        snippet = (start > 0 ? '…' : '') + fullText.slice(start, end).trim() + (end < fullText.length ? '…' : '');
+      }
+      results.push({ id, title: cfg.title, desc: card ? card.desc : '', card, matchLevel, snippet });
+    }
+  });
+  results.sort((a,b) => b.matchLevel - a.matchLevel);
+
+  let html = `<h2>🔍 搜索结果: "${query}"</h2><div class="search-results-count">找到 ${results.length} 个匹配教程（全文搜索）</div>`;
+  if (results.length === 0) {
+    html += '<p style="color:var(--t2)">未找到匹配的教程，试试其他关键词。</p><p style="color:var(--t2);font-size:.85em">提示：可搜教程标题、描述或全文内容，如"PWM""HAL_Delay""定时器"</p>';
+  } else {
+    results.forEach(r => {
+      const diffHtml = r.card && r.card.diff ? `<div class="difficulty d${r.card.diff}">${'<span class="dot on"></span>'.repeat(r.card.diff)+'<span class="dot"></span>'.repeat(4-r.card.diff)}</div>` : '';
+      const tags = r.card ? r.card.tags.map((t,i) => `<span class="tag ${i===0?'g':'b'}">${t}</span>`).join('') : '';
+      const matchBadge = r.matchLevel === 2 ? '<span class="tag g" style="margin-left:4px">全文匹配</span>' : '<span class="tag b" style="margin-left:4px">标题匹配</span>';
+      const snippetHtml = r.snippet ? `<div style="font-size:.78em;color:var(--t2);margin-top:4px;padding:6px 10px;background:var(--bg3);border-radius:6px;line-height:1.5;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${r.snippet.replace(q, '<b style="background:rgba(88,166,255,.25);padding:1px 3px;border-radius:3px">'+q+'</b>')}</div>` : '';
+      html += `<div class="card" style="cursor:pointer" onclick="loadPage('${r.id}')"><div class="b"><strong style="color:var(--a)">${r.title}</strong>${matchBadge}${r.desc ? '<br><span style="color:var(--t2);font-size:.85em">'+r.desc+'</span>' : ''}${diffHtml}${snippetHtml}<div style="margin-top:6px">${tags}</div></div></div>`;
+    });
+  }
+  content.innerHTML = html;
+}
+
+// === 侧边栏切换 ===
+function toggleSidebar() {
+  document.getElementById('sidebar').classList.toggle('open');
+}
+
+// === 导航组折叠 ===
+function toggleNavGroup(el) {
+  el.parentElement.classList.toggle('open');
+}
+
+// === 阅读进度条 ===
+window.addEventListener('scroll', () => {
+  const scrollTop = document.documentElement.scrollTop;
+  const scrollHeight = document.documentElement.scrollHeight - document.documentElement.clientHeight;
+  const progress = scrollHeight > 0 ? (scrollTop / scrollHeight) * 100 : 0;
+  document.getElementById('progressBar').style.width = progress + '%';
+
+  // 回到顶部按钮
+  const backTop = document.getElementById('backTop');
+  if (scrollTop > 400) backTop.classList.add('show');
+  else backTop.classList.remove('show');
+
+  const homeFab = document.getElementById('homeFab');
+  if (scrollTop > 400 && currentPage !== 'home') homeFab.classList.add('show');
+  else homeFab.classList.remove('show');
+});
+
+// === 路由 ===
+window.addEventListener('popstate', (e) => {
+  if (e.state && e.state.page) loadPage(e.state.page);
+  else loadPage('home');
+  renderBookmarksList();
+  updateHomeStats();
+});
+
+// === 键盘快捷键 ===
+document.addEventListener('keydown', (e) => {
+  // / 键聚焦搜索
+  if (e.key === '/' && !['INPUT','TEXTAREA'].includes(document.activeElement.tagName)) {
+    e.preventDefault();
+    document.getElementById('searchInput').focus();
+  }
+  // Ctrl+F / Alt+F 专注模式
+  if ((e.ctrlKey || e.altKey) && e.key === 'f' && !['INPUT','TEXTAREA'].includes(document.activeElement.tagName)) {
+    e.preventDefault();
+    toggleFocus();
+    return;
+  }
+  // Escape 清除搜索 / 关闭灯箱
+  if (e.key === 'Escape') {
+    const lb = document.getElementById('lightboxOverlay');
+    if (lb && !lb.classList.contains('hidden')) { closeLightbox(); return; }
+    document.getElementById('searchInput').blur();
+    document.getElementById('searchInput').value = '';
+    if (searchMode) loadPage(currentPage);
+  }
+  // 左右箭头翻页（非输入状态）
+  if (!['INPUT','TEXTAREA'].includes(document.activeElement.tagName) && currentPage !== 'home') {
+    const pageOrder = ['overview','guide','guide-ch00','guide-ch01','guide-ch02','guide-ch03','guide-ch04','guide-ch05','guide-ch06','guide-ch07','guide-ch08','guide-ch09','guide-ch10','guide-ch11','guide-ch12','guide-ch13','arm-gcc','cmake','makefile','serial','flash-debug','stm32','esp32','freertos','protocols','practice-projects','proj-led-button','proj-uart-hello','proj-oled-display','proj-dht11-monitor','proj-pwm-motor','proj-servo-control','proj-ir-remote','proj-ultrasonic','proj-stepper-motor','proj-freertos-station','proj-smart-car','proj-can-bus','proj-sd-logger','proj-esp32-iot','proj-low-power','proj-bootloader-iap','proj-dma-adc','proj-usb-hid','proj-s32k144-auto','proj-oscilloscope-debug','bci-2026'];
+    const idx = pageOrder.indexOf(currentPage);
+    if (e.key === 'ArrowLeft' && idx > 0) loadPage(pageOrder[idx - 1]);
+    if (e.key === 'ArrowRight' && idx < pageOrder.length - 1) loadPage(pageOrder[idx + 1]);
+  }
+});
+
+
+// === 专注阅读模式 ===
+let focusMode = false;
+function toggleFocus() {
+  focusMode = !focusMode;
+  document.body.classList.toggle('focus-mode');
+  const btn = document.getElementById('focusBtn');
+  if (focusMode) { btn.classList.add('active'); btn.textContent = '📖 专注中'; }
+  else { btn.classList.remove('active'); btn.textContent = '📖 专注'; }
+  try { localStorage.setItem('focusMode', focusMode ? '1' : '0'); } catch(e) {}
+}
+// Restore focus mode
+(function() {
+  if (localStorage.getItem('focusMode') === '1') {
+    focusMode = true;
+    document.body.classList.add('focus-mode');
+    const btn = document.getElementById('focusBtn');
+    if (btn) { btn.classList.add('active'); btn.textContent = '📖 专注中'; }
+  }
+})();
+
+// === 章节进度指示器 ===
+function renderGuideProgress(currentChapter) {
+  const chapters = ['guide-ch00','guide-ch01','guide-ch02','guide-ch03','guide-ch04','guide-ch05','guide-ch06','guide-ch07','guide-ch08','guide-ch09','guide-ch10','guide-ch11','guide-ch12','guide-ch13'];
+  const labels = ['0','1','2','3','4','5','6','7','8','9','10','11','12','13'];
+  const viewed = JSON.parse(localStorage.getItem('tutorial_viewed')||'{}');
+  const idx = chapters.indexOf(currentChapter);
+  if (idx < 0) return '';
+  let dots = '';
+  chapters.forEach((ch, i) => {
+    const isDone = !!viewed[ch];
+    const isCurrent = i === idx;
+    let cls = 'gdot';
+    if (isCurrent) cls += ' current';
+    else if (isDone) cls += ' done';
+    dots += `<span class="${cls}" title="第${labels[i]}章${isDone?' (已读)':' (未读)'}" onclick="loadPage('${ch}')"></span>`;
+  });
+  return `<div class="guide-progress"><span class="glabel">0</span>${dots}<span class="glabel">13</span></div>`;
+}
+
+// === 收藏夹 ===
+function getBookmarks() {
+  try { return JSON.parse(localStorage.getItem('tutorial_bookmarks')||'[]'); }
+  catch(e) { return []; }
+}
+function saveBookmarks(list) { localStorage.setItem('tutorial_bookmarks', JSON.stringify(list)); }
+
+// === 相关推荐映射 ===
+function getRelated(pageId) {
+  const map = {
+    'arm-gcc': [{id:'cmake',icon:'📦',title:'CMake',desc:'编译构建搭档'},{id:'makefile',icon:'📜',title:'Makefile',desc:'传统构建工具'},{id:'flash-debug',icon:'🔌',title:'烧录调试',desc:'编译产物烧进去'}],
+    'cmake': [{id:'arm-gcc',icon:'🔧',title:'ARM GCC',desc:'编译器'},{id:'makefile',icon:'📜',title:'Makefile',desc:'底层引擎'},{id:'stm32',icon:'🔵',title:'STM32',desc:'实战项目'}],
+    'makefile': [{id:'arm-gcc',icon:'🔧',title:'ARM GCC',desc:'构建目标'},{id:'cmake',icon:'📦',title:'CMake',desc:'现代方案'}],
+    'serial': [{id:'flash-debug',icon:'🔌',title:'烧录调试',desc:'串口调试器'},{id:'stm32',icon:'🔵',title:'STM32',desc:'串口实战'}],
+    'flash-debug': [{id:'serial',icon:'📡',title:'串口通信',desc:'调试基础'},{id:'arm-gcc',icon:'🔧',title:'ARM GCC',desc:'编译工具链'},{id:'stm32',icon:'🔵',title:'STM32',desc:'烧录实战'}],
+    'stm32': [{id:'flash-debug',icon:'🔌',title:'烧录调试',desc:'必读'},{id:'freertos',icon:'🔄',title:'FreeRTOS',desc:'进阶'},{id:'esp32',icon:'🟢',title:'ESP32',desc:'另一平台'}],
+    'esp32': [{id:'flash-debug',icon:'🔌',title:'烧录调试',desc:'必读'},{id:'freertos',icon:'🔄',title:'FreeRTOS',desc:'IDF基石'},{id:'stm32',icon:'🔵',title:'STM32',desc:'对比学习'}],
+    'freertos': [{id:'stm32',icon:'🔵',title:'STM32',desc:'运行平台'},{id:'esp32',icon:'🟢',title:'ESP32',desc:'IDF中RTOS'}],
+    'protocols': [{id:'serial',icon:'📡',title:'串口通信',desc:'UART详解'},{id:'stm32',icon:'🔵',title:'STM32',desc:'协议实战'}],
+    'practice-projects': [{id:'proj-led-button',icon:'💡',title:'LED+按键',desc:'第一个项目'},{id:'proj-uart-hello',icon:'📟',title:'串口Hello',desc:'入门经典'}],
+    'proj-led-button': [{id:'proj-uart-hello',icon:'📟',title:'串口Hello',desc:'下一步'},{id:'proj-pwm-motor',icon:'⚙️',title:'PWM电机',desc:'更高阶'}],
+    'proj-uart-hello': [{id:'proj-led-button',icon:'💡',title:'LED+按键',desc:'上一步'},{id:'proj-oled-display',icon:'🖥️',title:'OLED显示',desc:'可视输出'}],
+    'proj-oled-display': [{id:'proj-uart-hello',icon:'📟',title:'串口Hello',desc:'I2C基础'},{id:'proj-dht11-monitor',icon:'🌡️',title:'温湿度',desc:'传感器'}],
+    'proj-dht11-monitor': [{id:'proj-oled-display',icon:'🖥️',title:'OLED显示',desc:'数据显示'},{id:'proj-sd-logger',icon:'💾',title:'SD日志',desc:'持久化'}],
+    'proj-pwm-motor': [{id:'proj-servo-control',icon:'🎯',title:'舵机控制',desc:'PWM家族'},{id:'proj-smart-car',icon:'🚗',title:'智能小车',desc:'PWM驱动'}],
+    'proj-servo-control': [{id:'proj-pwm-motor',icon:'⚙️',title:'PWM电机',desc:'同为PWM'},{id:'proj-smart-car',icon:'🚗',title:'智能小车',desc:'多舵机'}],
+    'proj-ir-remote': [{id:'proj-led-button',icon:'💡',title:'LED+按键',desc:'中断'},{id:'proj-smart-car',icon:'🚗',title:'智能小车',desc:'遥控'}],
+    'proj-ultrasonic': [{id:'proj-smart-car',icon:'🚗',title:'智能小车',desc:'避障'},{id:'proj-oled-display',icon:'🖥️',title:'OLED显示',desc:'距离'}],
+    'proj-stepper-motor': [{id:'proj-pwm-motor',icon:'⚙️',title:'PWM电机',desc:'另一种'},{id:'proj-servo-control',icon:'🎯',title:'舵机控制',desc:'精确'}],
+    'proj-freertos-station': [{id:'freertos',icon:'🔄',title:'FreeRTOS',desc:'教程'}],
+    'proj-smart-car': [{id:'proj-pwm-motor',icon:'⚙️',title:'PWM电机',desc:'驱动'},{id:'proj-ultrasonic',icon:'📏',title:'超声波',desc:'避障'},{id:'proj-ir-remote',icon:'📺',title:'红外遥控',desc:'遥控'}],
+    'proj-can-bus': [{id:'protocols',icon:'🔌',title:'通信协议',desc:'CAN'},{id:'stm32',icon:'🔵',title:'STM32',desc:'CAN外设'}],
+    'proj-sd-logger': [{id:'proj-dht11-monitor',icon:'🌡️',title:'温湿度',desc:'来源'},{id:'protocols',icon:'🔌',title:'通信协议',desc:'SPI'}],
+    'proj-esp32-iot': [{id:'esp32',icon:'🟢',title:'ESP32',desc:'平台'},{id:'freertos',icon:'🔄',title:'FreeRTOS',desc:'任务'}],
+    'proj-low-power': [{id:'stm32',icon:'🔵',title:'STM32',desc:'低功耗'}],
+    'proj-bootloader-iap': [{id:'flash-debug',icon:'🔌',title:'烧录调试',desc:'升级版'},{id:'stm32',icon:'🔵',title:'STM32',desc:'IAP'}],
+    'proj-dma-adc': [{id:'stm32',icon:'🔵',title:'STM32',desc:'DMA外设'},{id:'freertos',icon:'🔄',title:'FreeRTOS',desc:'DMA+RTOS'}],
+    'proj-usb-hid': [{id:'protocols',icon:'🔌',title:'通信协议',desc:'USB'},{id:'stm32',icon:'🔵',title:'STM32',desc:'USB外设'}],
+    'proj-s32k144-auto': [{id:'stm32',icon:'🔵',title:'STM32',desc:'汽车级'},{id:'proj-can-bus',icon:'🚌',title:'CAN总线',desc:'车载'}],
+    'proj-oscilloscope-debug': [{id:'flash-debug',icon:'🔌',title:'烧录调试',desc:'工具'},{id:'serial',icon:'📡',title:'串口通信',desc:'输出'}],
+    'bci-2026': [{id:'stm32',icon:'🔵',title:'STM32',desc:'平台'},{id:'freertos',icon:'🔄',title:'FreeRTOS',desc:'实时系统'},{id:'protocols',icon:'🔌',title:'通信协议',desc:'传输'}]
+  };
+  return map[pageId] || [];
+}
+
+function toggleBookmark(pageId) {
+  const bm = getBookmarks();
+  const idx = bm.indexOf(pageId);
+  if (idx >= 0) bm.splice(idx, 1);
+  else bm.push(pageId);
+  saveBookmarks(bm);
+  updateBookmarkUI();
+  renderBookmarksList();
+}
+function isBookmarked(pageId) { return getBookmarks().includes(pageId); }
+function updateBookmarkUI() {
+  const btn = document.getElementById('bmToggle');
+  if (!btn) return;
+  if (isBookmarked(currentPage)) { btn.classList.add('active'); btn.textContent = '⭐'; }
+  else { btn.classList.remove('active'); btn.textContent = '☆'; }
+}
+function renderBookmarksList() {
+  const bm = getBookmarks();
+  const section = document.getElementById('bookmarksSection');
+  const list = document.getElementById('bookmarkList');
+  const countEl = document.getElementById('bmCount');
+  if (bm.length === 0) { section.style.display = 'none'; return; }
+  section.style.display = 'block';
+  countEl.textContent = bm.length;
+  let html = '';
+  bm.forEach(id => {
+    const cfg = PAGES[id];
+    if (cfg) html += `<div class="bm-item" onclick="loadPage('${id}')">${cfg.title}<span class="bm-remove" onclick="event.stopPropagation();removeBookmark('${id}')">✕</span></div>`;
+  });
+  list.innerHTML = html;
+}
+function removeBookmark(pageId) {
+  const bm = getBookmarks().filter(id => id !== pageId);
+  saveBookmarks(bm);
+  renderBookmarksList();
+  updateBookmarkUI();
+}
+
+// === 图片灯箱 ===
+function openLightbox(src) { let ol=document.getElementById('lightboxOverlay'), img=ol.querySelector('.lightbox-img'); img.src=src; ol.classList.remove('hidden'); }
+function closeLightbox() { document.getElementById('lightboxOverlay').classList.add('hidden'); }
+
+// === 学习进度 ===
+function markViewed(pageId) {
+  if (pageId === 'home') return;
+  try {
+    const viewed = JSON.parse(localStorage.getItem('tutorial_viewed')||'{}');
+    viewed[pageId] = new Date().toISOString();
+    localStorage.setItem('tutorial_viewed', JSON.stringify(viewed));
+  } catch(e) {}
+}
+function getViewedCount() {
+  try { return Object.keys(JSON.parse(localStorage.getItem('tutorial_viewed')||'{}')).length; }
+  catch(e) { return 0; }
+}
+function getProgressPercent() {
+  const total = Object.keys(PAGES).length - 1; // exclude home
+  return Math.round((getViewedCount() / total) * 100);
+}
+function progressIndicator() {
+  const pct = getProgressPercent();
+  return pct > 0 ? `<div class="progress-indicator" title="已读 ${pct}%"><div class="pi-bar"><div class="pi-fill" style="width:${pct}%"></div></div>${pct}%</div>` : '';
+}
+function updateHomeStats() {
+  const viewed = getViewedCount();
+  const progressHtml = progressIndicator();
+  // Update stats if on home page
+  const statsDiv = document.querySelector('.home-stats');
+  if (statsDiv) {
+    const existing = statsDiv.querySelector('.home-stat.progress-stat');
+    if (!existing && viewed > 0) {
+      const statEl = document.createElement('div');
+      statEl.className = 'home-stat progress-stat';
+      statEl.innerHTML = `<div class="num">${viewed}</div><div class="label">已学习</div><div class="progress-indicator" style="margin-top:4px"><div class="pi-bar"><div class="pi-fill" style="width:${getProgressPercent()}%"></div></div>${getProgressPercent()}%</div>`;
+      statsDiv.appendChild(statEl);
+    } else if (existing && viewed > 0) {
+      existing.querySelector('.num').textContent = viewed;
+      existing.querySelector('.pi-fill').style.width = getProgressPercent()+'%';
+      existing.querySelector('.progress-indicator').childNodes[2].textContent = getProgressPercent()+'%';
+    }
+  }
+}
+
+
+// === 初始化 ===
+(function init() {
+  const hash = window.location.hash;
+  if (hash && hash.startsWith('#/')) {
+    const page = hash.slice(2);
+    if (PAGES[page]) { loadPage(page); return; }
+  }
+  loadPage('home');
+  renderBookmarksList();
+  updateHomeStats();
+})();
+</script>
+
+<div class="copy-toast" id="copyToast">✅ 代码已复制!</div>
+<div class="shortcut-hint" id="shortcutHint">按 <span class="kbd-key">?</span> 查看快捷键</div>
+<div class="shortcuts-overlay" id="shortcutsOverlay" onclick="this.classList.remove('show')">
+  <div class="shortcuts-panel" onclick="event.stopPropagation()">
+    <h3>⌨️ 快捷键速查 <button class="close-btn" onclick="document.getElementById('shortcutsOverlay').classList.remove('show')">✕</button></h3>
+    <div class="kbd-row"><span><span class="kbd-key">/</span></span><span class="kbd-desc">聚焦搜索框</span></div>
+    <div class="kbd-row"><span><span class="kbd-key">Esc</span></span><span class="kbd-desc">清除搜索 / 退出专注模式</span></div>
+    <div class="kbd-row"><span><span class="kbd-key">?</span></span><span class="kbd-desc">显示/隐藏此面板</span></div>
+    <div class="kbd-row"><span><span class="kbd-key">←</span> <span class="kbd-key">→</span></span><span class="kbd-desc">上下篇翻页（指南/教程）</span></div>
+    <div class="kbd-row"><span><span class="kbd-key">Ctrl</span>+<span class="kbd-key">S</span></span><span class="kbd-desc">收藏/取消当前教程</span></div>
+    <div class="kbd-row"><span><span class="kbd-key">Ctrl</span>+<span class="kbd-key">F</span></span><span class="kbd-desc">专注阅读模式</span></div>
+    <div class="kbd-row"><span><span class="kbd-key">t</span></span><span class="kbd-desc">切换亮色/暗色主题</span></div>
+    <div class="kbd-row"><span><span class="kbd-key">h</span></span><span class="kbd-desc">返回首页</span></div>
+  </div>
+</div>
+
+</body>
+</html>

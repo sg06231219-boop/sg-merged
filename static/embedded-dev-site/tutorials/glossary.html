@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head><meta charset="UTF-8"><title>嵌入式术语词典</title>
+<style>
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;margin:0;padding:0;background:var(--bg,#0d1117);color:var(--t,#e6edf3);line-height:1.7}
+.glossary-page{max-width:960px;margin:0 auto;padding:32px 24px}
+h1{font-size:1.8em;margin-bottom:8px}
+h1 small{font-size:.5em;color:var(--t2,#8b949e);font-weight:400}
+.glossary-intro{color:var(--t2,#8b949e);font-size:.9em;margin-bottom:24px}
+.glossary-search{width:100%;padding:12px 16px;font-size:1em;border:1px solid var(--br,#30363d);border-radius:8px;background:var(--bg2,#161b22);color:var(--t,#e6edf3);margin-bottom:24px;box-sizing:border-box}
+.glossary-search:focus{outline:none;border-color:var(--a,#58a6ff)}
+.glossary-nav{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:20px}
+.glossary-nav a{display:inline-block;padding:4px 10px;border:1px solid var(--br,#30363d);border-radius:6px;font-size:.82em;color:var(--a,#58a6ff);text-decoration:none;cursor:pointer}
+.glossary-nav a:hover{background:var(--bg2,#161b22)}
+.glossary-nav a.active{background:var(--a,#58a6ff);color:#fff;border-color:var(--a,#58a6ff)}
+.term-block{margin-bottom:24px;scroll-margin-top:80px}
+.term-block .term-name{font-size:1.15em;font-weight:700;color:var(--a,#58a6ff)}
+.term-block .term-en{font-size:.82em;color:var(--t2,#8b949e);margin-left:8px;font-style:italic}
+.term-block .term-cat{display:inline-block;font-size:.68em;padding:1px 6px;border-radius:4px;background:var(--bg3,#21262d);color:var(--t2,#8b949e);margin-left:8px}
+.term-block .term-def{margin-top:4px;color:var(--t,#e6edf3);font-size:.95em}
+.term-block .term-see{font-size:.82em;color:var(--t2,#8b949e);margin-top:2px}
+.term-block .term-see a{color:var(--a,#58a6ff)}
+@media(max-width:600px){.glossary-page{padding:16px 12px}}
+</style></head>
+<body>
+<div class="glossary-page">
+<h1>📖 嵌入式术语词典 <small>Embedded Systems Glossary</small></h1>
+<p class="glossary-intro">涵盖嵌入式开发常用的硬件、软件、通信协议、实时操作系统等核心术语。点击字母导航快速跳转，或搜索过滤。</p>
+
+<input type="text" class="glossary-search" id="glossarySearch" placeholder="搜索术语（如: DMA, FreeRTOS, SPI）..." oninput="filterTerms()">
+
+<div class="glossary-nav" id="glossaryNav"></div>
+<div id="glossaryContent"></div>
+</div>
+
+<script>
+const TERMS = [
+  // A
+  {name:'ADC', en:'Analog-to-Digital Converter', cat:'硬件', def:'将模拟信号（如温度传感器的电压）转换为数字值的电路。STM32 的 ADC 通常为 12 位分辨率，采样率可达数 MSPS。常见用法：ADC_ChannelConfig() 配置通道，ADC_GetConversionValue() 读取结果。'},
+  {name:'ARM Cortex-M', en:'ARM Cortex-M series', cat:'架构', def:'ARM 公司设计的 32 位微控制器内核系列。M0/M0+ 为超低功耗入门级，M3 为通用型，M4 带 DSP+FPU，M7 为高性能六级流水线。STM32 系列基于 Cortex-M 内核。'},
+  {name:'APB', en:'Advanced Peripheral Bus', cat:'总线', def:'ARM AMBA 总线规范中的低速外设总线，用于连接 UART、SPI、I2C、定时器等外设。分为 APB1（低速，≤42MHz）和 APB2（高速，≤84MHz）。'},
+
+  // B
+  {name:'BSP', en:'Board Support Package', cat:'软件', def:'板级支持包，提供特定硬件平台的底层驱动和初始化代码。STM32Cube 系列是 ST 官方提供的 BSP，包含 HAL 库、CMSIS 和中间件。'},
+  {name:'Bootloader', en:'Bootloader', cat:'软件', def:'引导加载程序，在芯片上电后首先运行的一小段代码，负责初始化硬件和加载主程序。STM32 的 System Memory 内置串口/USB Bootloader。IAP（In-Application Programming）允许用户自定义 Bootloader 实现固件升级。'},
+
+  // C
+  {name:'CMSIS', en:'Cortex Microcontroller Software Interface Standard', cat:'软件', def:'ARM 制定的 Cortex-M 软件接口标准，包含核心外设访问层、DSP 库和 RTOS API。CMSIS-DAP 是调试适配器固件标准。'},
+  {name:'CRC', en:'Cyclic Redundancy Check', cat:'算法', def:'循环冗余校验，用于检测数据传输或存储中的错误。STM32 内置硬件 CRC 计算单元，使用 CRC-32（以太网多项式）。DMA+CRC 可实现零 CPU 开销的数据完整性校验。'},
+  {name:'Crystal Oscillator', en:'晶振', cat:'硬件', def:'石英晶体振荡器，为微控制器提供精确的时钟信号。外部高速晶振（HSE）通常为 8MHz 或 25MHz，外部低速晶振（LSE）为 32.768kHz（用于 RTC）。STM32 通过 PLL 将 HSE 倍频至系统时钟（如 72MHz/168MHz）。'},
+
+  // D
+  {name:'DAC', en:'Digital-to-Analog Converter', cat:'硬件', def:'数模转换器，将数字值转换为模拟电压输出。常用于音频生成、波形发生器和模拟控制信号。'},
+  {name:'DMA', en:'Direct Memory Access', cat:'总线', def:'直接存储器访问，允许外设直接与内存交换数据而不经过 CPU。大幅降低大数据传输时的 CPU 占用率。STM32 有 2 个 DMA 控制器，每个有 8 个通道。典型应用：ADC 连续采样→DMA→内存环形缓冲区。'},
+  {name:'DTCM / ITCM', en:'Data/Instruction Tightly Coupled Memory', cat:'架构', def:'Cortex-M7 特有的紧耦合内存。ITCM（指令 TCM）存放性能关键代码，零等待；DTCM（数据 TCM）存放关键数据。访问速度远超 AXI SRAM。'},
+
+  // E
+  {name:'EEPROM', en:'Electrically Erasable Programmable ROM', cat:'硬件', def:'电可擦除可编程只读存储器，支持按字节擦写，掉电后数据不丢失。STM32 无片内 EEPROM，通常用 Flash 模拟或外挂 AT24Cxx 芯片。'},
+  {name:'Embedded Linux', en:'Embedded Linux', cat:'软件', def:'运行 Linux 的嵌入式系统，适用于需要网络栈、文件系统、多进程的复杂应用（如路由器、智能家居网关）。使用 Buildroot 或 Yocto 构建。与裸机/RTOS 不同，嵌入式 Linux 启动慢但灵活性高。'},
+  {name:'EXTI', en:'External Interrupt / Event Controller', cat:'硬件', def:'外部中断/事件控制器，使 GPIO 引脚可触发中断。STM32 每个 GPIO 引脚可配置为上升沿、下降沿或双边沿触发，共 23 条中断线（EXTI0~EXTI15 对应端口位，外加 RTC、PVD 等）。'},
+
+  // F
+  {name:'Flash Memory', en:'Flash 闪存', cat:'硬件', def:'非易失性存储器，用于存储程序代码和常量数据。STM32 片内 Flash 典型 64KB~2MB，支持页擦除和字编程。Flash 等待周期决定取指速度，ART Accelerator 可消除等待。'},
+  {name:'FPU', en:'Floating Point Unit', cat:'架构', def:'浮点运算单元，硬件加速浮点加减乘除和乘加运算。Cortex-M4F/M7 集成单精度 FPUv4。启用 FPU 后浮点运算速度提升 10~100 倍。编译需添加 -mfloat-abi=hard。'},
+  {name:'FreeRTOS', en:'Free Real-Time Operating System', cat:'RTOS', def:'开源的轻量级实时操作系统内核，STM32Cube 默认集成。核心组件：任务调度器、队列、信号量、互斥锁、软件定时器、事件组、任务通知。CMSIS-RTOS v2 封装提供统一 API。特点：抢占式+时间片轮转调度，最小 ROM 占用约 6KB。'},
+
+  // G
+  {name:'GPIO', en:'General Purpose Input/Output', cat:'硬件', def:'通用输入输出引脚，微控制器最基本的外设。可配置为输入（浮空/上拉/下拉/模拟）、输出（推挽/开漏）、复用功能或模拟模式。HAL 库用 HAL_GPIO_WritePin()/ReadPin() 操作。'},
+  {name:'GCC', en:'GNU Compiler Collection', cat:'工具链', def:'GNU 编译器套件，嵌入式 ARM 开发最常用的编译器。arm-none-eabi-gcc 编译裸机/RTOS 程序，输出 ELF 格式。关键选项：-mcpu、-mthumb、-O2、-g3。'},
+
+  // H
+  {name:'HAL', en:'Hardware Abstraction Layer', cat:'软件', def:'硬件抽象层，ST 提供的外设驱动库。HAL 封装了寄存器操作，提供统一的 API（如 HAL_UART_Transmit()）。与 LL（Low Layer）库相比，HAL 更易用但开销稍大。'},
+  {name:'HSI / HSE', en:'High-Speed Internal/External clock', cat:'硬件', def:'高速内部/外部时钟。HSI 为片内 16MHz RC 振荡器（精度 ±1%），上电默认使用。HSE 为外部晶振（4~26MHz），精度远高于 HSI。系统时钟 = HSE → PLL 倍频。'},
+
+  // I
+  {name:'I2C', en:'Inter-Integrated Circuit', cat:'协议', def:'双线串行通信总线（SCL 时钟 + SDA 数据），支持多主多从。标准模式 100kHz，快速模式 400kHz，高速模式 3.4MHz。常用于连接传感器（温湿度、加速度计）、EEPROM 和显示屏。7 位地址最多 127 个设备。'},
+  {name:'IAP', en:'In-Application Programming', cat:'软件', def:'在应用中编程，允许固件在运行中更新自身。实现方式：Bootloader 接收新固件（通过串口/U盘/OTA）→写入 Flash 指定区域→跳转到新固件。需注意 Flash 双区备份和回滚机制。'},
+  {name:'Interrupt / NVIC', en:'Nested Vectored Interrupt Controller', cat:'架构', def:'嵌套向量中断控制器，Cortex-M 的核心中断管理单元。支持 240 个中断源、256 级抢占优先级。中断延迟仅 12 个时钟周期（尾链优化后 6 个周期）。NVIC_SetPriority() 设置优先级。'},
+  {name:'ISP', en:'In-System Programming', cat:'工具', def:'在系统编程，通过串口/USB/SWD 等接口对已焊接在 PCB 上的芯片进行编程。STM32 的 System Memory Bootloader 通过 USART1/USB/SPI 实现 ISP。'},
+
+  // J
+  {name:'JTAG / SWD', en:'JTAG / Serial Wire Debug', cat:'工具', def:'调试和编程接口。JTAG 用 4~5 根信号线（TDI/TDO/TMS/TCK/TRST），SWD 用 2 根（SWDIO/SWCLK）。SWD 是 ARM 专有的两线调试协议，性能不输 JTAG 且占用引脚更少。ST-Link/J-Link 均支持 SWD。'},
+  {name:'JSON', en:'JavaScript Object Notation', cat:'数据', def:'轻量级数据交换格式，常用于嵌入式设备的配置文件存储和网络通信。cJSON 是嵌入式 C 语言最流行的 JSON 解析库（约 1KB ROM）。'},
+
+  // K
+  {name:'Kconfig', en:'Kernel Configuration', cat:'工具', def:'Linux 内核和 Zephyr RTOS 使用的配置系统，通过 Kconfig 文件定义配置选项，生成 .config 文件。ESP-IDF 也用 Kconfig（menuconfig 命令）。'},
+
+  // L
+  {name:'LDO', en:'Low Dropout Regulator', cat:'硬件', def:'低压差线性稳压器，将较高输入电压转换为稳定的较低输出电压，压差可低至几十 mV。相比 DC-DC 纹波更小、电路更简单，但效率低（热能损耗）。AMS1117-3.3 是最常见的 3.3V LDO。'},
+  {name:'Linker Script', en:'链接脚本 (.ld)', cat:'工具链', def:'定义程序各段（.text /.data /.bss /.rodata）在内存中的布局。指定 Flash 起始地址（如 0x08000000）、RAM 起始地址（如 0x20000000）、栈顶地址。GCC 用 -T 选项指定链接脚本。'},
+
+  // M
+  {name:'MCU / MPU', en:'Microcontroller / Microprocessor', cat:'硬件', def:'MCU（微控制器）集成 CPU+RAM+Flash+外设于单芯片，低功耗低成本，如 STM32。MPU（微处理器）通常只有 CPU 核，需外挂 RAM 和 Flash，性能更强，如 Cortex-A 系列。'},
+  {name:'MPU (Memory)', en:'Memory Protection Unit', cat:'架构', def:'内存保护单元，防止任务访问未授权的内存区域。RTOS 使用 MPU 实现任务隔离，增强系统安全性。与 MMU（内存管理单元）不同，MPU 不提供虚拟内存。注意与 Microprocessor 的 MPU 区分。'},
+  {name:'Makefile', en:'Makefile', cat:'工具链', def:'GNU Make 的构建脚本，定义编译规则和依赖关系。嵌入式 Makefile 通常指定交叉编译器（CC=arm-none-eabi-gcc）、编译选项（CFLAGS）、链接选项（LDFLAGS）和目标（all/clean/flash）。'},
+
+  // O
+  {name:'OpenOCD', en:'Open On-Chip Debugger', cat:'工具', def:'开源调试器软件，通过调试适配器（ST-Link/J-Link）与目标芯片通信。支持 GDB 远程调试、Flash 编程和边界扫描。常用命令：openocd -f interface/stlink.cfg -f target/stm32f1x.cfg。'},
+  {name:'OTA', en:'Over-The-Air Update', cat:'软件', def:'无线固件升级，通过 Wi-Fi/BLE/LoRa 等无线方式更新设备固件。ESP32 的 OTA 机制：下载新固件到 OTA 分区→验证完整性→设置启动分区→重启切换。'},
+
+  // P
+  {name:'PWM', en:'Pulse Width Modulation', cat:'硬件', def:'脉冲宽度调制，通过调整方波的占空比来模拟不同电压输出。用于电机调速、LED 调光、舵机控制。STM32 定时器输出 PWM：ARR 决定周期，CCRx 决定占空比，占空比 = CCRx/(ARR+1)。'},
+  {name:'PLL', en:'Phase-Locked Loop', cat:'硬件', def:'锁相环，将输入时钟频率倍频到更高频率。STM32 的 PLL 将 HSI/HSE 倍频到系统时钟。例如 HSE=8MHz × PLLM / PLLN × PLLP = 168MHz。需配置 PLLM、PLLN、PLLP、PLLQ 四个分频系数。'},
+  {name:'POSIX', en:'Portable Operating System Interface', cat:'标准', def:'可移植操作系统接口标准。FreeRTOS+POSIX 为 FreeRTOS 提供 pthread 兼容层，方便移植 Linux 应用程序。CMSIS-RTOS v2 也部分兼容 POSIX 语义。'},
+
+  // R
+  {name:'RAM / SRAM', en:'Static Random Access Memory', cat:'硬件', def:'静态随机存取存储器，用于存放运行时的变量、栈和堆。STM32F103C8T6 有 20KB SRAM，STM32H743 有 1MB SRAM（含 DTCM/ITCM/AXI SRAM 等多区域）。掉电数据丢失。'},
+  {name:'RCC', en:'Reset and Clock Control', cat:'硬件', def:'复位和时钟控制器，STM32 中最先需要配置的外设。控制各总线（AHB/APB1/APB2）时钟使能和分频。关键函数：HAL_RCC_OscConfig() 配置时钟源，HAL_RCC_ClockConfig() 设置系统时钟。'},
+  {name:'RTOS', en:'Real-Time Operating System', cat:'RTOS', def:'实时操作系统，保证任务在确定的时间内完成。关键指标：任务切换时间（FreeRTOS 约 100~200 个 CPU 周期）、中断延迟。常见 RTOS：FreeRTOS、RT-Thread、uc/OS-III、Zephyr、ThreadX。'},
+  {name:'RTC', en:'Real-Time Clock', cat:'硬件', def:'实时时钟，提供日历和时间功能。STM32 的 RTC 使用 LSE（32.768kHz 晶振）作为时钟源，配备后备寄存器（BKP）和 Tamper 检测引脚。VBAT 引脚可接电池保持 RTC 在断电时继续运行。'},
+
+  // S
+  {name:'SPI', en:'Serial Peripheral Interface', cat:'协议', def:'四线串行同步通信总线（SCK/MOSI/MISO/NSS）。全双工，速率可达数十 MHz。模式 0~3 由 CPOL（时钟极性）和 CPHA（时钟相位）决定。常用于 Flash 芯片（W25Qxx）、显示屏和 SD 卡。'},
+  {name:'Stack & Heap', en:'栈和堆', cat:'架构', def:'栈（Stack）存放局部变量和函数返回地址，从高地址向低地址增长，SP 指针指向栈顶。堆（Heap）用于动态内存分配（malloc/free），从低地址向高地址增长。嵌入式栈溢出是常见 Bug（HardFault）。'},
+  {name:'SysTick', en:'System Tick Timer', cat:'架构', def:'Cortex-M 内核内置的 24 位递减定时器，通常配置为 1ms 中断一次。FreeRTOS 使用 SysTick 作为任务调度的时基（configTICK_RATE_HZ=1000）。HAL_Delay() 也依赖 SysTick。'},
+  {name:'Semaphore / Mutex', en:'信号量 / 互斥锁', cat:'RTOS', def:'RTOS 中的同步机制。信号量用于任务间同步和资源计数（二值/计数型）；互斥锁用于保护共享资源，带优先级继承防止优先级反转。FreeRTOS 中：xSemaphoreCreateBinary()、xSemaphoreCreateMutex()。'},
+
+  // T
+  {name:'TIM (Timer)', en:'Timer 定时器', cat:'硬件', def:'STM32 的外设定时器。基本定时器（TIM6/7）仅计数；通用定时器（TIM2~5）支持输入捕获、输出比较、PWM；高级定时器（TIM1/8）支持互补输出和死区控制，用于电机控制。'},
+  {name:'Tickless Idle', en:'Tickless Idle 模式', cat:'RTOS', def:'FreeRTOS 低功耗特性。当所有任务阻塞时，禁用 SysTick 并进入深度睡眠，由外部事件唤醒。唤醒后校准时间补偿睡眠期间的时钟偏移。configUSE_TICKLESS_IDLE 宏启用。'},
+
+  // U
+  {name:'UART / USART', en:'Universal (Synchronous) Asynchronous Receiver Transmitter', cat:'协议', def:'异步串行通信接口，仅需 TX/RX 两根线。最常用的调试输出接口（printf 重定向到 UART）。波特率常用 115200、921600。USART 额外支持同步模式和 SPI 兼容模式。'},
+  {name:'USB CDC', en:'USB Communications Device Class', cat:'协议', def:'USB 虚拟串口，使 USB 设备在主机上显示为 COM 端口。STM32 内置 USB 外设配合 CubeMX 可快速实现。无需安装驱动（Windows 10+ 内置），是替代物理串口的常用方案。'},
+  {name:'USB HID', en:'USB Human Interface Device', cat:'协议', def:'USB 人机接口设备类，用于键盘、鼠标、游戏手柄等。最大优势：免驱（所有操作系统原生支持），但速率受限于轮询间隔（最大 64KB/s）。'},
+  {name:'UUID', en:'Universally Unique Identifier', cat:'数据', def:'通用唯一标识符，128 位数字。STM32 有 96 位唯一 ID（UID，位于 0x1FFF7A10），用于设备序列号、加密密钥派生和防克隆。'},
+
+  // V
+  {name:'Vector Table', en:'中断向量表', cat:'架构', def:'存放中断服务例程（ISR）入口地址的数组。Cortex-M 的向量表默认位于 Flash 起始地址（0x08000000），可通过 VTOR 寄存器重定位到 RAM。前 16 项为系统异常（Reset/NMI/HardFault 等），之后为外设中断。'},
+  {name:'Vref / Vrefint', en:'参考电压', cat:'硬件', def:'ADC 的基准电压。Vref+ 决定 ADC 的满量程（通常为 VDDA 或外部 2.5V/3.0V 基准源）。STM32 内部 Vrefint=1.2V，用作 ADC 自校准。ADC 读数 = (Vin/Vref) × 4095。'},
+
+  // W
+  {name:'WDT / IWDG / WWDG', en:'Watchdog Timer', cat:'硬件', def:'看门狗定时器，防止程序跑飞。独立看门狗（IWDG）使用 LSI（40kHz）独立时钟，硬件使能后不可软件关闭；窗口看门狗（WWDG）可在窗口时间内喂狗。二者可同时使用。'},
+  {name:'Wi-Fi / BLE', en:'Wireless Communication', cat:'协议', def:'无线通信。ESP32 集成 2.4GHz Wi-Fi（802.11 b/g/n）和 BLE 4.2/5.0。Wi-Fi 用于高带宽网络应用（MQTT/HTTP），BLE 用于低功耗外设通信（传感器/穿戴设备）。'},
+
+  // X
+  {name:'XIP', en:'eXecute In Place', cat:'架构', def:'就地执行，从外部 Flash 直接执行代码而无需先加载到 RAM。QSPI Flash 映射到内存地址空间后支持 XIP。节省 RAM 但速度受限于 Flash 读取速率。Cortex-M7 的 QSPI 接口支持内存映射 XIP。'},
+
+  // Z
+  {name:'Zephyr', en:'Zephyr RTOS', cat:'RTOS', def:'Linux 基金会托管的开源 RTOS，支持 500+ 开发板。特点：设备树（DeviceTree）配置硬件、Kconfig 配置系统、完整网络协议栈。适用场景：物联网设备、可穿戴、工业自动化。'},
+];
+
+// Build nav
+(function(){
+  var letters = [];
+  TERMS.forEach(function(t){
+    var l = t.name.charAt(0).toUpperCase();
+    if (letters.indexOf(l) < 0) letters.push(l);
+  });
+  var nav = document.getElementById('glossaryNav');
+  nav.innerHTML = '<a class="active" onclick="showAll()" id="nav-all">All</a>' + letters.map(function(l){
+    return '<a onclick="filterByLetter(\'' + l + '\')" id="nav-' + l + '">' + l + '</a>';
+  }).join('');
+
+  // Render all terms
+  renderTerms(TERMS);
+})();
+
+function renderTerms(terms) {
+  var html = '';
+  var lastLetter = '';
+  terms.forEach(function(t) {
+    var l = t.name.charAt(0);
+    if (l !== lastLetter) {
+      html += '<h2 id="sec-' + l + '" style="color:var(--a,#58a6ff);border-bottom:1px solid var(--br,#30363d);padding-bottom:4px;margin:28px 0 12px">' + l + '</h2>';
+      lastLetter = l;
+    }
+    html += '<div class="term-block" id="term-' + t.name.replace(/\s+/g,'-').replace(/[^\w-]/g,'') + '">';
+    html += '<div class="term-name">' + t.name + '<span class="term-en">' + t.en + '</span><span class="term-cat">' + t.cat + '</span></div>';
+    html += '<div class="term-def">' + t.def + '</div>';
+    html += '</div>';
+  });
+  document.getElementById('glossaryContent').innerHTML = html || '<p style="color:var(--t2,#8b949e)">未找到匹配的术语。</p>';
+}
+
+function filterTerms() {
+  var q = document.getElementById('glossarySearch').value.toLowerCase().trim();
+  if (!q) { renderTerms(TERMS); resetNavActive(); document.getElementById('nav-all').classList.add('active'); return; }
+  var filtered = TERMS.filter(function(t){
+    return t.name.toLowerCase().indexOf(q) >= 0 || t.en.toLowerCase().indexOf(q) >= 0 || t.def.toLowerCase().indexOf(q) >= 0 || t.cat.toLowerCase().indexOf(q) >= 0;
+  });
+  renderTerms(filtered);
+  resetNavActive();
+}
+
+function filterByLetter(l) {
+  document.getElementById('glossarySearch').value = '';
+  var filtered = TERMS.filter(function(t){ return t.name.toUpperCase().startsWith(l); });
+  renderTerms(filtered);
+  resetNavActive();
+  document.getElementById('nav-' + l).classList.add('active');
+}
+
+function showAll() {
+  document.getElementById('glossarySearch').value = '';
+  renderTerms(TERMS);
+  resetNavActive();
+  document.getElementById('nav-all').classList.add('active');
+}
+
+function resetNavActive() {
+  document.querySelectorAll('#glossaryNav a').forEach(function(a){ a.classList.remove('active'); });
+}
+</script>
+</body>
+</html>

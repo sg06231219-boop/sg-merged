@@ -1,0 +1,2174 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>烧录与调试 细致教程 — OpenOCD + GDB + VS Code</title>
+<style>
+/* ===== CSS Variables & Reset ===== */
+:root {
+  --bg: #0d1117;
+  --bg2: #161b22;
+  --bg3: #21262d;
+  --br: #30363d;
+  --t: #c9d1d9;
+  --t2: #8b949e;
+  --a: #58a6ff;
+  --g: #3fb950;
+  --o: #d2991d;
+  --r: #f85149;
+  --p: #a371f7;
+  --c1: #39c5cf;
+  --radius: 8px;
+  --transition: 0.2s;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body {
+  font-family: "PingFang SC", "Microsoft YaHei", "Segoe UI", sans-serif;
+  background: var(--bg);
+  color: var(--t);
+  line-height: 1.75;
+  font-size: 15px;
+}
+
+/* ===== Scrollbar ===== */
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: var(--bg2); }
+::-webkit-scrollbar-thumb { background: var(--br); border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: var(--t2); }
+
+/* ===== Nav Top ===== */
+.nav-top {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  height: 56px;
+  background: rgba(13, 17, 23, 0.92);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--br);
+  display: flex;
+  align-items: center;
+  padding: 0 24px;
+  gap: 32px;
+  z-index: 1000;
+}
+.nav-top .nav-logo {
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--a);
+  white-space: nowrap;
+  text-decoration: none;
+}
+.nav-top .nav-links {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.nav-top .nav-links::-webkit-scrollbar { display: none; }
+.nav-top .nav-links a {
+  padding: 5px 12px;
+  border-radius: 20px;
+  color: var(--t2);
+  text-decoration: none;
+  font-size: 13px;
+  white-space: nowrap;
+  transition: var(--transition);
+}
+.nav-top .nav-links a:hover { background: var(--bg3); color: var(--t); }
+.nav-top .nav-links a.active { background: var(--bg3); color: var(--a); }
+
+/* ===== Main Content ===== */
+.container {
+  max-width: 860px;
+  margin: 0 auto;
+  padding: 80px 24px 48px;
+}
+
+/* ===== Typography ===== */
+h1 {
+  font-size: 2.2em;
+  font-weight: 800;
+  color: #fff;
+  margin-bottom: 12px;
+  line-height: 1.3;
+}
+h1 .subtitle {
+  display: block;
+  font-size: 0.5em;
+  font-weight: 400;
+  color: var(--t2);
+  margin-top: 6px;
+}
+h2 {
+  font-size: 1.5em;
+  font-weight: 700;
+  color: #fff;
+  margin: 48px 0 16px;
+  padding-bottom: 10px;
+  border-bottom: 2px solid var(--br);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+h2 .num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  background: var(--bg3);
+  border: 1px solid var(--br);
+  border-radius: 8px;
+  font-size: 14px;
+  color: var(--a);
+  flex-shrink: 0;
+}
+h3 {
+  font-size: 1.15em;
+  font-weight: 600;
+  color: var(--c1);
+  margin: 28px 0 10px;
+}
+p { margin-bottom: 14px; }
+a { color: var(--a); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+/* ===== Content Helpers ===== */
+.toc {
+  background: var(--bg2);
+  border: 1px solid var(--br);
+  border-radius: var(--radius);
+  padding: 20px 24px;
+  margin-bottom: 32px;
+}
+.toc h4 {
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--t2);
+  margin-bottom: 12px;
+}
+.toc ol { padding-left: 20px; }
+.toc li { margin-bottom: 6px; }
+.toc a { color: var(--t); font-size: 14px; }
+.toc a:hover { color: var(--a); }
+
+/* ===== Style Classes ===== */
+.note {
+  background: rgba(88, 166, 255, 0.08);
+  border-left: 4px solid var(--a);
+  border-radius: 0 var(--radius) var(--radius) 0;
+  padding: 14px 18px;
+  margin: 18px 0;
+  font-size: 14px;
+}
+.note::before { content: "💡 注意"; font-weight: 600; color: var(--a); display: block; margin-bottom: 4px; }
+
+.warn {
+  background: rgba(210, 153, 29, 0.08);
+  border-left: 4px solid var(--o);
+  border-radius: 0 var(--radius) var(--radius) 0;
+  padding: 14px 18px;
+  margin: 18px 0;
+  font-size: 14px;
+}
+.warn::before { content: "⚠️ 警告"; font-weight: 600; color: var(--o); display: block; margin-bottom: 4px; }
+
+.tip {
+  background: rgba(63, 185, 80, 0.08);
+  border-left: 4px solid var(--g);
+  border-radius: 0 var(--radius) var(--radius) 0;
+  padding: 14px 18px;
+  margin: 18px 0;
+  font-size: 14px;
+}
+.tip::before { content: "✅ 技巧"; font-weight: 600; color: var(--g); display: block; margin-bottom: 4px; }
+
+.analogy {
+  background: rgba(163, 113, 247, 0.07);
+  border: 1px dashed var(--p);
+  border-radius: var(--radius);
+  padding: 16px 20px;
+  margin: 18px 0;
+  font-size: 14px;
+  color: var(--t2);
+}
+.analogy::before { content: "🔮 比喻"; font-weight: 600; color: var(--p); display: block; margin-bottom: 4px; }
+
+.step {
+  background: var(--bg2);
+  border: 1px solid var(--br);
+  border-radius: var(--radius);
+  padding: 18px 22px;
+  margin: 14px 0;
+}
+.step-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--c1);
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.card {
+  background: var(--bg2);
+  border: 1px solid var(--br);
+  border-radius: var(--radius);
+  padding: 20px;
+  margin: 14px 0;
+}
+.card h4 {
+  font-size: 15px;
+  color: #fff;
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.card ul { padding-left: 20px; font-size: 14px; }
+.card li { margin-bottom: 6px; }
+
+.tag {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+}
+.tag-green { background: rgba(63,185,80,0.15); color: var(--g); }
+.tag-red { background: rgba(248,81,73,0.15); color: var(--r); }
+.tag-yellow { background: rgba(210,153,29,0.15); color: var(--o); }
+.tag-blue { background: rgba(88,166,255,0.15); color: var(--a); }
+.tag-purple { background: rgba(163,113,247,0.15); color: var(--p); }
+.tag-cyan { background: rgba(57,197,207,0.15); color: var(--c1); }
+
+/* ===== Tables ===== */
+.table-wrap { overflow-x: auto; margin: 18px 0; border-radius: var(--radius); }
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13.5px;
+  min-width: 500px;
+}
+thead { background: var(--bg3); }
+th {
+  padding: 10px 14px;
+  text-align: left;
+  font-weight: 600;
+  color: var(--c1);
+  border-bottom: 2px solid var(--br);
+  white-space: nowrap;
+}
+td {
+  padding: 10px 14px;
+  border-bottom: 1px solid rgba(48,54,61,0.5);
+  vertical-align: top;
+}
+tr:hover td { background: rgba(33,38,45,0.5); }
+td:first-child { color: var(--t2); font-size: 13px; }
+
+/* ===== Code Blocks ===== */
+.code-block {
+  background: var(--bg2);
+  border: 1px solid var(--br);
+  border-radius: var(--radius);
+  margin: 14px 0;
+  overflow: hidden;
+}
+.code-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 14px;
+  background: var(--bg3);
+  border-bottom: 1px solid var(--br);
+  font-size: 12px;
+  color: var(--t2);
+}
+.code-header .lang { font-weight: 600; color: var(--a); }
+.code-header .copy-btn {
+  background: none;
+  border: 1px solid var(--br);
+  color: var(--t2);
+  padding: 2px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 11px;
+  transition: var(--transition);
+}
+.code-header .copy-btn:hover { border-color: var(--a); color: var(--a); }
+.code-body {
+  padding: 16px;
+  overflow-x: auto;
+  font-family: "Cascadia Code", "Fira Code", "Consolas", monospace;
+  font-size: 13px;
+  line-height: 1.7;
+  white-space: pre;
+}
+code {
+  font-family: "Cascadia Code", "Fira Code", "Consolas", monospace;
+  font-size: 0.88em;
+  background: var(--bg3);
+  padding: 2px 6px;
+  border-radius: 4px;
+  color: var(--c1);
+}
+pre code {
+  background: none;
+  padding: 0;
+  color: var(--t);
+  font-size: 13px;
+}
+
+/* Syntax highlight */
+.hl-comment { color: var(--t2); }
+.hl-keyword { color: var(--p); }
+.hl-string { color: var(--g); }
+.hl-number { color: var(--o); }
+.hl-cmd { color: var(--c1); }
+.hl-var { color: var(--a); }
+.hl-param { color: var(--o); }
+.hl-path { color: var(--g); }
+.hl-file { color: var(--c1); }
+.hl-section { color: var(--p); font-weight: 600; }
+
+/* ===== Section Divider ===== */
+.section-divider {
+  border: none;
+  border-top: 1px solid var(--br);
+  margin: 40px 0;
+}
+
+/* ===== Comparison Grid ===== */
+.compare-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 14px;
+  margin: 18px 0;
+}
+.compare-item {
+  background: var(--bg2);
+  border: 1px solid var(--br);
+  border-radius: var(--radius);
+  padding: 16px;
+  text-align: center;
+}
+.compare-item .icon { font-size: 28px; margin-bottom: 8px; }
+.compare-item .name { font-weight: 600; color: #fff; margin-bottom: 6px; }
+.compare-item .pros { font-size: 12px; color: var(--g); }
+.compare-item .cons { font-size: 12px; color: var(--r); margin-top: 4px; }
+
+/* ===== Breadcrumb ===== */
+.breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 0;
+  font-size: 13px;
+  color: var(--t2);
+  border-bottom: 1px solid var(--br);
+  margin-bottom: 40px;
+}
+.breadcrumb a { color: var(--a); }
+.breadcrumb span { color: var(--br); }
+
+/* ===== Checklist ===== */
+.checklist {
+  background: var(--bg2);
+  border: 1px solid var(--br);
+  border-radius: var(--radius);
+  padding: 18px 22px;
+  margin: 18px 0;
+}
+.checklist li {
+  list-style: none;
+  padding: 5px 0;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.checklist li::before { content: "☐"; color: var(--t2); }
+.checklist li.done::before { content: "✅"; }
+
+/* ===== Keyboard ===== */
+kbd {
+  display: inline-block;
+  padding: 2px 7px;
+  background: var(--bg3);
+  border: 1px solid var(--br);
+  border-bottom: 2px solid var(--br);
+  border-radius: 4px;
+  font-family: monospace;
+  font-size: 12px;
+  color: var(--t);
+}
+
+/* ===== Search highlight ===== */
+mark {
+  background: rgba(210,153,29,0.25);
+  color: var(--o);
+  border-radius: 2px;
+  padding: 0 2px;
+}
+
+/* ===== Responsive ===== */
+@media (max-width: 600px) {
+  h1 { font-size: 1.7em; }
+  h2 { font-size: 1.25em; }
+  .container { padding: 70px 14px 40px; }
+  .nav-top { padding: 0 14px; }
+  .compare-grid { grid-template-columns: 1fr 1fr; }
+}
+
+/* ===== Anchor offset ===== */
+:target { scroll-margin-top: 70px; }
+</style>
+</head>
+<body>
+
+<!-- ===== Navigation ===== -->
+<nav class="nav-top" id="navbar">
+  <a href="#" class="nav-logo">🔧 烧录调试教程</a>
+  <div class="nav-links">
+    <a href="#sec1">烧录方式对比</a>
+    <a href="#sec2">OpenOCD安装</a>
+    <a href="#sec3">OpenOCD命令行</a>
+    <a href="#sec4">GDB基础</a>
+    <a href="#sec5">GDB高级</a>
+    <a href="#sec6">VS Code配置</a>
+    <a href="#sec7">串口ISP烧录</a>
+    <a href="#sec8">常见问题</a>
+    <a href="#sec9">速查表</a>
+  </div>
+</nav>
+
+<!-- ===== Content ===== -->
+<div class="container">
+
+  <div class="breadcrumb">
+    <a href="#">主教程目录</a>
+    <span>/</span>
+    <span>烧录与调试 细致教程</span>
+  </div>
+
+  <h1>烧录与调试<span class="subtitle">OpenOCD + GDB + VS Code 完整指南</span></h1>
+
+  <div class="note">
+    本教程面向嵌入式小白，涵盖从零搭建烧录调试环境的所有知识点。不需要任何前置经验，跟着做就能跑起来。
+  </div>
+
+  <div class="toc">
+    <h4>📑 目录导航</h4>
+    <ol>
+      <li><a href="#sec1">烧录方式对比</a></li>
+      <li><a href="#sec2">OpenOCD 安装与配置</a></li>
+      <li><a href="#sec3">OpenOCD 命令行操作</a></li>
+      <li><a href="#sec4">GDB 基础</a></li>
+      <li><a href="#sec5">GDB 高级技巧</a></li>
+      <li><a href="#sec6">VS Code Cortex-Debug 配置</a></li>
+      <li><a href="#sec7">串口 ISP 烧录</a></li>
+      <li><a href="#sec8">常见问题与解决</a></li>
+      <li><a href="#sec9">速查表</a></li>
+    </ol>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- SECTION 1: 烧录方式对比 -->
+  <!-- ============================================================ -->
+  <h2 id="sec1"><span class="num">1</span> 烧录方式对比<span class="tag g" style="margin-left:8px">🟢入门</span></h2>
+
+  <p>烧录（Flash Programming）就是把编译好的程序文件写入芯片内部 Flash 存储器的过程。调试（Debug）则是通过仿真器实时控制芯片运行，观察寄存器、内存、单步执行。不同的工具链适合不同的场景，下面逐一解析。</p>
+
+  <analogy class="analogy">
+    把芯片想成一本手写笔记本。烧录就是在空白页上"写入内容"，调试就是"翻页检查+修改内容"。不同的烧录器就像不同的笔——有的快但贵，有的慢但免费，有的只能写字，有的还能擦除重写。
+  </analogy>
+
+  <div class="compare-grid">
+    <div class="compare-item">
+      <div class="icon">🔌</div>
+      <div class="name">ST-Link</div>
+      <div class="pros">+ 便宜（正品约80元）<br>+ 官方支持好<br>+ 兼容STM32全系列</div>
+      <div class="cons">− 只支持ST芯片<br>− 部分是克隆版</div>
+    </div>
+    <div class="compare-item">
+      <div class="icon">⚡</div>
+      <div class="name">J-Link</div>
+      <div class="pros">+ 速度最快<br>+ 支持所有ARM芯片<br>+ 调试体验最佳</div>
+      <div class="cons">− 价格贵（500元+）<br>− 商业用途要license</div>
+    </div>
+    <div class="compare-item">
+      <div class="icon">🔄</div>
+      <div class="name">DAP-Link</div>
+      <div class="pros">+ 开源免费<br>+ CMSIS-DAP协议<br>+ 可自己DIY</div>
+      <div class="cons">− 速度中等<br>− 需要自己组装</div>
+    </div>
+    <div class="compare-item">
+      <div class="icon">📡</div>
+      <div class="name">串口ISP</div>
+      <div class="pros">+ 零成本（只需USB转串口）<br>+ 所有STM32都支持</div>
+      <div class="cons">− 只能烧录不能调试<br>− 需要切换BOOT引脚</div>
+    </div>
+  </div>
+
+  <h3>1.1 ST-Link 系列</h3>
+
+  <div class="card">
+    <h4>📦 ST-Link/V2</h4>
+    <ul>
+      <li><strong>接口：</strong>SWD（2线：SWDIO + SWCLK）</li>
+      <li><strong>速度：</strong>烧录约 4-8 KB/s，调试流畅</li>
+      <li><strong>驱动：</strong>Windows 需要安装 ST-Link Driver（stm32/ST-Link\USBDriver）</li>
+      <li><strong>芯片支持：</strong>STM32 全系列、STM8</li>
+      <li><strong>Clone 识别：</strong>淘宝大量低价 Clone 版，功能基本一致但固件可能需更新</li>
+      <li><strong>连接方式：</strong>SWD 接口（4根线：GND / SWCLK / SWDIO / 3.3V）</li>
+    </ul>
+  </div>
+
+  <div class="card">
+    <h4>📦 ST-Link/V3</h4>
+    <ul>
+      <li><strong>带宽：</strong>是 V2 的 6 倍（USB 3.0），烧录速度可达 50+ KB/s</li>
+      <li><strong>新功能：</strong>Bridge SPI / I2C / GPIO 调试扩展</li>
+      <li><strong>多探针：</strong>支持多芯片并行调试</li>
+      <li><strong>注意：</strong>cfg 文件使用 <code>stlink</code> 接口类型（非 <code>stlink_dap</code>）</li>
+    </ul>
+  </div>
+
+  <div class="code-block">
+    <div class="code-header">
+      <span class="lang">接线图 — ST-Link V2 → STM32</span>
+    </div>
+    <div class="code-body"><span class="hl-comment">// ST-Link V2  ——  STM32 (SWD接口)</span>
+<span class="hl-comment">// ───────────────────────────────</span>
+<span class="hl-comment">// Pin 1 (3.3V) ──── 3.3V (芯片供电)</span>
+<span class="hl-comment">// Pin 7 (SWDIO) ─── SWDIO (PA13)</span>
+<span class="hl-comment">// Pin 9 (SWCLK) ─── SWCLK (PA14)</span>
+<span class="hl-comment">// Pin 12 (TDI)  ─── (可选)</span>
+<span class="hl-comment">// Pin 15 (TDO)  ─── (可选)</span>
+<span class="hl-comment">// Pin 20 (GND)  ─── GND</span>
+
+<span class="hl-comment">// ⚠️ 重要：芯片和ST-Link必须共地！</span>
+<span class="hl-comment">// ⚠️ 如果使用独立供电，只接 GND/SWDIO/SWCLK 三根线即可</span></div>
+  </div>
+
+  <h3>1.2 J-Link 系列</h3>
+
+  <p>J-Link 是 SEGGER 公司出品的高端调试器，在业内被认为是"黄金标准"。支持的芯片超过 5000 种，调试速度快，功能丰富。</p>
+
+  <div class="card">
+    <h4>⚡ J-Link vs 兼容版</h4>
+    <ul>
+      <li><strong>原装 J-Link：</strong>速度最快，支持所有功能，包含丰富的调试插件</li>
+      <li><strong>J-Link OB：</strong>STM32 芯片内置的简化版 J-Link（STM32F072 等），功能受限但免费</li>
+      <li><strong>兼容 J-Link：</strong>第三方克隆，价格低但固件更新可能有问题</li>
+      <li><strong>限制：</strong>非 SEGGER 官方硬件在商业项目需购买 license</li>
+    </ul>
+  </div>
+
+  <div class="warn">J-Link 固件升级后可能会检测到克隆并限制功能。如果使用的是兼容版，谨慎升级固件！</div>
+
+  <h3>1.3 DAP-Link</h3>
+
+  <p>DAP-Link 是 ARM 官方推出的开源调试方案，基于 CMSIS-DAP 协议。任何带有 MCU（推荐 LPC11U / RP2040 / STM32F1）的开发板都可以刷成 DAP-Link。</p>
+
+  <div class="tip">
+    强烈推荐 DIY DAP-Link！树莓派 Pico 只要 10 元钱，刷上 DAP-Link 固件就是一个专业调试器。性价比无敌。
+  </div>
+
+  <div class="card">
+    <h4>🛠️ 推荐 DAP-Link DIY 方案</h4>
+    <ul>
+      <li><strong>方案A：</strong>树莓派 Pico（10元）× 1块，参考 <a href="#">Pico DAP-Link 固件烧录</a></li>
+      <li><strong>方案B：</strong>STM32F103 蓝色小板（约8元），刷 DAPLink 固件</li>
+      <li><strong>方案C：</strong>NUCLEO 开发板自带 DAP-Link（直接用板载调试器）</li>
+    </ul>
+  </div>
+
+  <h3>1.4 串口 ISP</h3>
+
+  <p>串口 ISP（In-System Programming）是最古老的 STM32 烧录方式，通过芯片内置的 Bootloader 经 UART 下载程序。零成本，只需要一个 USB 转 TTL 模块。</p>
+
+  <div class="code-block">
+    <div class="code-header">
+      <span class="lang">接线图 — USB转TTL → STM32</span>
+    </div>
+    <div class="code-body"><span class="hl-comment">// USB转TTL模块  ——  STM32</span>
+<span class="hl-comment">// ─────────────────────────────</span>
+<span class="hl-comment">// GND           ───  GND</span>
+<span class="hl-comment">// RX            ───  TX (PA9)</span>
+<span class="hl-comment">// TX            ───  RX (PA10)</span>
+
+<span class="hl-comment">// ⚠️ 芯片必须进入 Bootloader 模式（详见第7节）</span></div>
+  </div>
+
+  <h3>1.5 横向对比表</h3>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>对比项</th>
+          <th>ST-Link</th>
+          <th>J-Link</th>
+          <th>DAP-Link</th>
+          <th>串口ISP</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td>价格</td><td>💰 ~80元</td><td>💰💰 500元+</td><td>💰 0-15元</td><td>💰 5-10元</td></tr>
+        <tr><td>烧录速度</td><td>⚡ 中等</td><td>⚡⚡⚡ 最快</td><td>⚡ 中等</td><td>⚡ 慢</td></tr>
+        <tr><td>在线调试</td><td>✅ 支持</td><td>✅ 支持</td><td>✅ 支持</td><td>❌ 不支持</td></tr>
+        <tr><td>断点数量</td><td>有限制</td><td>无限制</td><td>有限制</td><td>不适用</td></tr>
+        <tr><td>芯片支持</td><td>仅STM32</td><td>所有ARM</td><td>所有ARM</td><td>STM32</td></tr>
+        <tr><td>学习曲线</td><td>⭐ 简单</td><td>⭐ 简单</td><td>⭐⭐ 中等</td><td>⭐⭐ 简单</td></tr>
+        <tr><td>推荐场景</td><td>学生/爱好者</td><td>商业项目</td><td>预算有限DIY</td><td>无调试器应急</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="tip">
+    <strong>小白推荐：</strong>优先用 <strong>ST-Link V2</strong>（性价比最高），备选 <strong>Pico 刷 DAP-Link</strong>（最省钱）。串口 ISP 作为保底方案。
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- SECTION 2: OpenOCD 安装与配置 -->
+  <!-- ============================================================ -->
+  <h2 id="sec2"><span class="num">2</span> OpenOCD 安装与配置<span class="tag o" style="margin-left:8px">🟡进阶</span></h2>
+
+  <p><strong>OpenOCD（Open On-Chip Debugger）</strong>是一个开源的片上调试工具，通过调试器（ST-Link / J-Link / DAP-Link 等）与芯片通信，充当 GDB 和芯片之间的"桥梁"。</p>
+
+  <analogy class="analogy">
+    OpenOCD 就像一个"翻译官"：GDB（调试器前端）说的是高级语言，芯片（Target）说的是电路语言，OpenOCD 在中间做翻译和传递。GDB ↔ OpenOCD ↔ 调试器 ↔ 芯片。
+  </analogy>
+
+  <div class="code-block">
+    <div class="code-header">
+      <span class="lang">工作原理图</span>
+    </div>
+    <div class="code-body"><span class="hl-comment">┌──────────────┐     TCP:3333     ┌──────────────┐   USB     ┌────────┐</span>
+<span class="hl-comment">│  GDB         │ ◄──────────────► │  OpenOCD     │ ◄────────►│ ST-Link│</span>
+<span class="hl-comment">│  (调试前端)   │                  │  (桥梁)      │           │  /JLink │</span>
+<span class="hl-comment">└──────────────┘                  └──────────────┘           └────────┘</span>
+                                                                <span class="hl-comment">│</span>
+                                                                <span class="hl-comment">│ JTAG/SWD</span>
+                                                                <span class="hl-comment">▼</span>
+                                                            ┌────────┐
+                                                            │ STM32  │
+                                                            │ Target │
+                                                            └────────┘</span>
+  </div>
+
+  <h3>2.1 Windows 安装</h3>
+
+  <h4>方式一：从 GitHub 下载（推荐）</h4>
+
+  <div class="step">
+    <div class="step-title">① 下载最新 Release</div>
+    打开 <a href="https://github.com/xpack-dev-tools/openocd/releases" target="_blank">xpack-dev-tools/openocd/releases</a>，下载 <code>xpack-openocd-{version}-win32-x64.zip</code>（约 20MB）。
+  </div>
+
+  <div class="step">
+    <div class="step-title">② 解压到合适位置</div>
+    建议放在 <code>C:\Program Files\OpenOCD\</code> 或 <code>D:\Tools\OpenOCD\</code>，路径不要有中文和空格。
+  </div>
+
+  <div class="step">
+    <div class="step-title">③ 配置环境变量（可选）</div>
+    将 <code>bin</code> 目录添加到 PATH：
+    <div class="code-body" style="padding:10px 16px;margin-top:8px;"><span class="hl-cmd">openocd</span> -v  <span class="hl-comment"># 验证安装</span></div>
+  </div>
+
+  <h4>方式二：MSYS2 / MSYS2 编译安装</h4>
+
+  <div class="code-block">
+    <div class="code-header">
+      <span class="lang">BASH</span>
+    </div>
+    <div class="code-body"><span class="hl-cmd">pacman</span> -S mingw-w64-x86_64-openocd</div>
+  </div>
+
+  <div class="step">
+    <div class="step-title">④ 安装 USB 驱动（Windows）</div>
+    <ul style="margin-top:8px;padding-left:20px;font-size:14px;">
+      <li><strong>ST-Link：</strong>安装 <code>STSW-LINK009</code> 驱动（官网下载或驱动人生自动识别）</li>
+      <li><strong>J-Link：</strong>安装 SEGGER J-Link Software</li>
+      <li><strong>DAP-Link：</strong>Windows 10+ 自动识别，无需手动装驱动</li>
+    </ul>
+  </div>
+
+  <h3>2.2 OpenOCD 目录结构</h3>
+
+  <div class="code-block">
+    <div class="code-header">
+      <span class="lang">OpenOCD 目录结构</span>
+    </div>
+    <div class="code-body">OpenOCD/
+  ├── bin/
+  │   └── openocd.exe          <span class="hl-comment">← 主程序（双击运行或命令行调用）</span>
+  ├── dist/
+  │   └── scripts/            <span class="hl-comment">← 配置文件所在目录（重要！）</span>
+  │       ├── board/          <span class="hl-comment">← 开发板配置文件（按板子选）</span>
+  │       ├── interface/      <span class="hl-comment">← 调试器配置文件（按调试器选）</span>
+  │       └── target/         <span class="hl-comment">← 芯片配置文件（按芯片选）</span>
+  ├── doc/
+  └── OpenOCD.pdf</div>
+  </div>
+
+  <h3>2.3 cfg 配置文件说明</h3>
+
+  <p>OpenOCD 使用 TCL 脚本语言编写配置文件。三个关键组件：<strong>Interface（调试器）</strong> + <strong>Target（芯片）</strong> + <strong>Transport（传输协议）</strong>。</p>
+
+  <div class="code-block">
+    <div class="code-header">
+      <span class="lang">OpenOCD 配置文件结构</span>
+    </div>
+    <div class="code-body"><span class="hl-comment"># 配置文件由三部分组成：</span>
+<span class="hl-comment">#</span>
+<span class="hl-comment"># ① interface：调试器硬件（interface/*.cfg）</span>
+<span class="hl-comment"># ② transport：传输协议（swd 或 jtag）</span>
+<span class="hl-comment"># ③ target：目标芯片（target/*.cfg 或 board/*.cfg）</span>
+
+<span class="hl-comment"># 示例：ST-Link + STM32F103</span>
+<span class="hl-keyword">source</span> [find interface/stlink.cfg]        <span class="hl-comment"># ① 加载调试器配置</span>
+<span class="hl-keyword">transport</span> select hla_swd                 <span class="hl-comment"># ② 使用 SWD 协议（STM32推荐）</span>
+<span class="hl-keyword">source</span> [find target/stm32f1x.cfg]        <span class="hl-comment"># ③ 加载芯片配置</span></div>
+  </div>
+
+  <h3>2.4 ST-Link 配置详解</h3>
+
+  <div class="card">
+    <h4>🔌 ST-Link 接口配置文件</h4>
+    <ul>
+      <li><code>interface/stlink.cfg</code> — ST-Link V1/V2（最常用）</li>
+      <li><code>interface/stlink-dap.cfg</code> — ST-Link V3</li>
+      <li><code>interface/stlink-v2.cfg</code> — ST-Link V2 专用</li>
+      <li><code>interface/stlink-v3.cfg</code> — ST-Link V3 专用</li>
+    </ul>
+  </div>
+
+  <div class="code-block">
+    <div class="code-header">
+      <span class="lang">ST-Link + STM32F1 系列</span>
+    </div>
+    <div class="code-body"><span class="hl-comment"># stm32f103.cfg — 通用配置文件</span>
+<span class="hl-comment"># 使用 board/ 下的配置更方便（包含了 target + often reset config）</span>
+<span class="hl-keyword">source</span> [find interface/stlink.cfg]
+<span class="hl-keyword">transport</span> select hla_swd
+
+<span class="hl-comment"># 可选：调整 SWD 速率（kHz）</span>
+<span class="hl-comment"># adapter speed 4000   # 4 MHz，高速（可能不稳定）</span>
+<span class="hl-comment"># adapter speed 1000   # 1 MHz，中速（推荐）</span>
+<span class="hl-comment"># adapter speed 500    # 500 kHz，低速（最稳定）</span>
+
+<span class="hl-keyword">source</span> [find target/stm32f1x.cfg]</div>
+  </div>
+
+  <div class="code-block">
+    <div class="code-header">
+      <span class="lang">ST-Link + STM32F4 系列</span>
+    </div>
+    <div class="code-body"><span class="hl-comment"># stm32f4x.cfg — STM32F4 专用</span>
+<span class="hl-keyword">source</span> [find interface/stlink.cfg]
+<span class="hl-keyword">transport</span> select hla_swd
+<span class="hl-keyword">source</span> [find target/stm32f4x.cfg]
+
+<span class="hl-comment"># 如果使用 board/ 下的配置（推荐）</span>
+<span class="hl-comment"># source [find board/stm32f4discovery.cfg]</span></div>
+  </div>
+
+  <h3>2.5 常见芯片 Target CFG 一览</h3>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>芯片系列</th>
+          <th>配置文件路径</th>
+          <th>备注</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td>STM32F1</td><td><code>target/stm32f1x.cfg</code></td><td>最常用</td></tr>
+        <tr><td>STM32F4</td><td><code>target/stm32f4x.cfg</code></td><td>Flash 更大</td></tr>
+        <tr><td>STM32F7</td><td><code>target/stm32f7x.cfg</code></td><td></td></tr>
+        <tr><td>STM32H7</td><td><code>target/stm32h7x.cfg</code></td><td>需双核配置</td></tr>
+        <tr><td>STM32L4</td><td><code>target/stm32l4x.cfg</code></td><td>低功耗</td></tr>
+        <tr><td>STM32G0</td><td><code>target/stm32g0x.cfg</code></td><td></td></tr>
+        <tr><td>STM32G4</td><td><code>target/stm32g4x.cfg</code></td><td></td></tr>
+        <tr><td>GD32F1</td><td><code>target/stm32f1x.cfg</code></td><td>兼容F1直接用</td></tr>
+        <tr><td>GD32F4</td><td><code>target/gd32vf103.cfg</code></td><td>兆易创新</td></tr>
+        <tr><td>nRF52</td><td><code>target/nrf52.cfg</code></td><td>Nordic蓝牙</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>2.6 J-Link 配置</h3>
+
+  <div class="code-block">
+    <div class="code-header">
+      <span class="lang">J-Link 配置示例</span>
+    </div>
+    <div class="code-body"><span class="hl-comment"># J-Link + STM32F4</span>
+<span class="hl-keyword">source</span> [find interface/jlink.cfg]
+<span class="hl-keyword">transport</span> select swd
+<span class="hl-keyword">source</span> [find target/stm32f4x.cfg]
+
+<span class="hl-comment"># J-Link + nRF52840</span>
+<span class="hl-keyword">source</span> [find interface/jlink.cfg]
+<span class="hl-keyword">transport</span> select swd
+<span class="hl-keyword">source</span> [find target/nrf52.cfg]</div>
+  </div>
+
+  <h3>2.7 DAP-Link / CMSIS-DAP 配置</h3>
+
+  <div class="code-block">
+    <div class="code-header">
+      <span class="lang">DAP-Link 配置示例</span>
+    </div>
+    <div class="code-body"><span class="hl-comment"># DAP-Link (CMSIS-DAP) + STM32F1</span>
+<span class="hl-keyword">source</span> [find interface/cmsis-dap.cfg]
+<span class="hl-keyword">transport</span> select swd
+<span class="hl-keyword">source</span> [find target/stm32f1x.cfg]
+
+<span class="hl-comment"># 也可以使用 hidapi 版本（Windows HID 驱动）</span>
+<span class="hl-comment"># source [find interface/cmsis-dap-hid.cfg]</span></div>
+  </div>
+
+  <div class="warn">
+    <strong>路径问题：</strong>在 Windows 上运行 OpenOCD 时，<code>find</code> 命令从当前目录或 <code>-s</code> 参数指定路径搜索。如果配置文件找不到，使用绝对路径：
+    <code>openocd.exe -s D:\Tools\OpenOCD\share\scripts -f stm32f103.cfg</code>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- SECTION 3: OpenOCD 命令行操作 -->
+  <!-- ============================================================ -->
+  <h2 id="sec3"><span class="num">3</span> OpenOCD 命令行操作<span class="tag o" style="margin-left:8px">🟡进阶</span></h2>
+
+  <h3>3.1 启动连接</h3>
+
+  <div class="code-block">
+    <div class="code-header">
+      <span class="lang">BASH / CMD</span>
+    </div>
+    <div class="code-body"><span class="hl-comment"># 基础连接命令</span>
+<span class="hl-cmd">openocd</span> -f interface/stlink.cfg -f target/stm32f1x.cfg
+
+<span class="hl-comment"># 指定配置文件（最推荐写法）</span>
+<span class="hl-cmd">openocd</span> -f interface/stlink.cfg -f target/stm32f1x.cfg
+
+<span class="hl-comment"># 指定端口（不指定则用默认：3333 GDB / 4444 Telnet / 6666 TCL）</span>
+<span class="hl-cmd">openocd</span> -f interface/stlink.cfg -f target/stm32f1x.cfg \
+    -c "adapter speed 1000"
+
+<span class="hl-comment"># 显示详细调试信息</span>
+<span class="hl-cmd">openocd</span> -d3 -f interface/stlink.cfg -f target/stm32f1x.cfg
+
+<span class="hl-comment"># 成功后 OpenOCD 会输出：</span>
+<span class="hl-comment"># Info : ST-Link V2 JTAG/SWD interface</span>
+<span class="hl-comment"># Info : using swd</span>
+<span class="hl-comment"># Info : Found flash device ... (flash auto-program enabled)</span>
+<span class="hl-comment"># Info : stm32f1x.cpu: hardware has 6 breakpoints, 4 watchpoints</span>
+<span class="hl-comment">#</span>
+<span class="hl-comment"># 等待 GDB 连接后，OpenOCD 阻塞运行（不要关掉这个窗口）</span></div>
+  </div>
+
+  <div class="note">
+    OpenOCD 启动后会一直运行，直到按 <kbd>Ctrl+C</kbd> 退出。保持这个窗口开着，用另一个终端/窗口连接 GDB 进行调试。
+  </div>
+
+  <h3>3.2 Telnet 连接与命令</h3>
+
+  <p>除了 GDB，我们还可以通过 <strong>Telnet</strong> 直接向 OpenOCD 发送命令。这是快速执行烧录、擦除操作的利器。</p>
+
+  <div class="code-block">
+    <div class="code-header">
+      <span class="lang">BASH</span>
+    </div>
+    <div class="code-body"><span class="hl-comment"># 新开一个终端，连接到 OpenOCD Telnet</span>
+<span class="hl-cmd">telnet</span> localhost 4444
+
+<span class="hl-comment"># 连接成功后可以看到：</span>
+<span class="hl-comment"># Trying ::1...</span>
+<span class="hl-comment"># Connected to localhost.</span>
+<span class="hl-comment"># Escape character is '^]'.</span>
+<span class="hl-comment"># Open On-Chip Debugger</span>
+<span class="hl-comment"># &gt; </span>
+
+<span class="hl-comment"># 常用命令（直接输入并回车）</span>
+<span class="hl-cmd">help</span>              <span class="hl-comment"># 查看所有命令</span>
+<span class="hl-cmd">halt</span>             <span class="hl-comment"># 暂停 CPU</span>
+<span class="hl-cmd">reset</span>            <span class="hl-comment"># 复位芯片</span>
+<span class="hl-cmd">shutdown</span>         <span class="hl-comment"># 关闭 OpenOCD</span></div>
+  </div>
+
+  <h3>3.3 烧录文件</h3>
+
+  <p>OpenOCD 支持三种常见格式：<code>.elf</code>（含调试信息）、<code>.hex</code>（Intel格式）、<code>.bin</code>（纯二进制）。</p>
+
+  <div class="code-block">
+    <div class="code-header">
+      <span class="lang">Telnet 命令</span>
+    </div>
+    <div class="code-body"><span class="hl-comment"># 先连接到 OpenOCD telnet</span>
+<span class="hl-comment"># 然后执行烧录命令：</span>
+
+<span class="hl-comment"># 烧录 .elf 文件（推荐！包含调试信息）</span>
+<span class="hl-cmd">program</span> build/myproject.elf verify reset exit
+
+<span class="hl-comment"># 烧录 .bin 文件（需要指定起始地址）</span>
+<span class="hl-cmd">program</span> build/myproject.bin 0x08000000 verify reset exit
+
+<span class="hl-comment"># 烧录 .hex 文件（自动识别格式和地址）</span>
+<span class="hl-cmd">program</span> build/myproject.hex verify reset exit
+
+<span class="hl-comment"># 参数解释：</span>
+<span class="hl-comment"># program &lt;file&gt; [addr] — 烧录文件</span>
+<span class="hl-comment"># verify              — 烧录后验证（强烈推荐开启）</span>
+<span class="hl-comment"># reset               — 烧录后复位芯片</span>
+<span class="hl-comment"># exit                — 烧录后退出（Telnet 会断开连接）</span></div>
+  </div>
+
+  <div class="step">
+    <div class="step-title">💡 烧录流程详解</div>
+    <ol style="padding-left:20px;font-size:14px;margin-top:8px;">
+      <li><strong>halt</strong> — 先暂停 CPU（确保 Flash 不被读取）</li>
+      <li><strong>flash erase_address</strong> — 擦除对应地址的 Flash（可选，program 会自动擦除）</li>
+      <li><strong>flash write_image</strong> — 写入数据到 Flash</li>
+      <li><strong>verify_image</strong> — 读取 Flash 与原文件对比（验证正确性）</li>
+      <li><strong>reset run</strong> — 复位芯片并运行</li>
+    </ol>
+  </div>
+
+  <h3>3.4 擦除操作</h3>
+
+  <div class="code-block">
+    <div class="code-header">
+      <span class="lang">Telnet 命令</span>
+    </div>
+    <div class="code-body"><span class="hl-comment"># 擦除整个芯片 Flash</span>
+<span class="hl-cmd">stm32f1x</span> mass_erase 0
+<span class="hl-comment"># 或使用通用命令</span>
+<span class="hl-cmd">flash</span> erase_address 0x08000000 0x10000
+
+<span class="hl-comment"># 擦除指定扇区（部分芯片支持）</span>
+<span class="hl-cmd">flash</span> erase_sector 0 first 0 last
+
+<span class="hl-comment"># 擦除后验证 Flash 为空（应该全是 0xFF）</span>
+<span class="hl-cmd">mdw</span> 0x08000000 16</div>
+  </div>
+
+  <h3>3.5 读取 Flash / 内存</h3>
+
+  <div class="code-block">
+    <div class="code-header">
+      <span class="lang">Telnet 命令</span>
+    </div>
+    <div class="code-body"><span class="hl-comment"># 读取内存（word，32位）</span>
+<span class="hl-cmd">mdw</span> 0x08000000 16     <span class="hl-comment"># 从 Flash 起始地址读取16个32位字</span>
+
+<span class="hl-comment"># 读取内存（byte，8位）</span>
+<span class="hl-cmd">mdb</span> 0x20000000 32     <span class="hl-comment"># 从 RAM 起始地址读取32字节</span>
+
+<span class="hl-comment"># 读取内存（halfword，16位）</span>
+<span class="hl-cmd">mdh</span> 0x08000000 16
+
+<span class="hl-comment"># 读取外设寄存器</span>
+<span class="hl-cmd">mdw</span> 0x40021000 4      <span class="hl-comment"># RCC APB2ENR 寄存器</span>
+
+<span class="hl-comment"># 将 Flash 读出保存为 .bin 文件</span>
+<span class="hl-cmd">dump_image</span> backup.bin 0x08000000 0x10000  <span class="hl-comment"># 读取64KB</span></div>
+  </div>
+
+  <h3>3.6 验证与比较</h3>
+
+  <div class="code-block">
+    <div class="code-header">
+      <span class="lang">Telnet 命令</span>
+    </div>
+    <div class="code-body"><span class="hl-comment"># 验证烧录是否正确（与源文件比对）</span>
+<span class="hl-cmd">verify_image</span> build/myproject.elf
+
+<span class="hl-comment"># 比较两个内存区域</span>
+<span class="hl-cmd">cmp</span> 0x08000000 0x08010000 backup.bin 0x0
+
+<span class="hl-comment"># 读出并保存</span>
+<span class="hl-cmd">dump_image</span> output.bin 0x08000000 0x10000</div>
+  </div>
+
+  <div class="tip">
+    <strong>一键烧录脚本（Windows .bat）：</strong>把以下内容保存为 <code>flash.bat</code>，双击即可完成烧录。
+  </div>
+
+  <div class="code-block">
+    <div class="code-header">
+      <span class="lang">flash.bat</span>
+    </div>
+    <div class="code-body"><span class="hl-comment">@echo off</span>
+<span class="hl-cmd">cd</span> /d "%~dp0"
+
+<span class="hl-comment"># 先杀掉可能占用端口的旧OpenOCD进程</span>
+<span class="hl-cmd">taskkill</span> /F /IM openocd.exe 2>nul
+
+<span class="hl-comment"># 启动 OpenOCD 并后台运行</span>
+<span class="hl-cmd">start</span> "OpenOCD" openocd.exe -f interface/stlink.cfg -f target/stm32f1x.cfg
+
+<span class="hl-comment"># 等待 OpenOCD 启动</span>
+<span class="hl-cmd">timeout</span> /t 3 /nobreak >nul
+
+<span class="hl-comment"># 通过 Telnet 自动烧录</span>
+<span class="hl-cmd">echo</span> program build/firmware.elf verify reset exit ^& exit | telnet localhost 4444
+
+<span class="hl-cmd">timeout</span> /t 5 /nobreak >nul
+<span class="hl-cmd">taskkill</span> /F /IM openocd.exe
+<span class="hl-cmd">echo</span> <span class="hl-string">Flash complete!</span></div>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- SECTION 4: GDB 基础 -->
+  <!-- ============================================================ -->
+  <h2 id="sec4"><span class="num">4</span> GDB 基础<span class="tag g" style="margin-left:8px">🟢入门</span></h2>
+
+  <p><strong>GDB（GNU Debugger）</strong>是 Linux 下最强大的程序调试器，ARM 嵌入式使用专门的 <code>arm-none-eabi-gdb</code>。配合 OpenOCD 可以实现源码级调试、寄存器查看、内存修改等功能。</p>
+
+  <analogy class="analogy">
+    GDB 就像芯片的"监控摄像头控制台"。你可以让芯片"暂停"（暂停运行）、"单步走"（执行一条指令）、"查看变量"（看内存里的值）、"设断点"（让程序停在你关心的位置）。OpenOCD 就是连接摄像头和监控台的"网线"。
+  </analogy>
+
+  <h3>4.1 安装 arm-none-eabi-gdb</h3>
+
+  <div class="step">
+    <div class="step-title">① Windows 安装</div>
+    下载 <a href="https://developer.arm.com/tools-and-software/open-source-software/developer-tools/gnu-toolchain/gnu-rm" target="_blank">GNU Arm Embedded Toolchain</a>，安装后 <code>bin\arm-none-eabi-gdb.exe</code> 在 PATH 中。
+  </div>
+
+  <div class="code-block">
+    <div class="code-header">
+      <span class="lang">验证安装</span>
+    </div>
+    <div class="code-body"><span class="hl-cmd">arm-none-eabi-gdb</span> -v
+<span class="hl-comment"># 输出示例：</span>
+<span class="hl-comment"># arm-none-eabi-gdb.exe (Arm GNU Toolchain 11.3.Rel1) 12.1</span>
+<span class="hl-comment"># Copyright (C) 2022 Free Software Foundation, Inc.</span></div>
+  </div>
+
+  <h3>4.2 启动 GDB 并连接 OpenOCD</h3>
+
+  <p>完整的调试流程分为两步：先启动 OpenOCD，再启动 GDB 并连接。</p>
+
+  <div class="step">
+    <div class="step-title">第一步：启动 OpenOCD</div>
+    <div class="code-body" style="margin-top:8px;"><span class="hl-cmd">openocd</span> -f interface/stlink.cfg -f target/stm32f1x.cfg
+<span class="hl-comment"># 保持运行，切换到另一个终端</span></div>
+  </div>
+
+  <div class="step">
+    <div class="step-title">第二步：启动 GDB</div>
+    <div class="code-body" style="margin-top:8px;"><span class="hl-comment"># 在另一个终端，进入项目目录（.elf文件所在位置）</span>
+<span class="hl-cmd">cd</span> myproject/
+
+<span class="hl-comment"># 启动 GDB，加载 .elf 文件（重要！含调试信息）</span>
+<span class="hl-cmd">arm-none-eabi-gdb</span> build/myproject.elf
+
+<span class="hl-comment"># GDB 交互界面出现：</span>
+<span class="hl-comment"># (gdb) _</span></div>
+  </div>
+
+  <div class="step">
+    <div class="step-title">第三步：在 GDB 中连接 OpenOCD</div>
+    <div class="code-body" style="margin-top:8px;"><span class="hl-comment"># 在 (gdb) 提示符下输入：</span>
+<span class="hl-cmd">(gdb)</span> target remote localhost:3333
+
+<span class="hl-comment"># 成功后显示：</span>
+<span class="hl-comment"># Remote debugging using localhost:3333</span>
+<span class="hl-comment"># 0x08000xxx in ...</span></div>
+  </div>
+
+  <div class="code-block">
+    <div class="code-header">
+      <span class="lang">完整启动脚本（保存为 gdbinit）</span>
+    </div>
+    <div class="code-body"><span class="hl-comment"># 在项目根目录创建 .gdbinit 文件</span>
+<span class="hl-comment"># GDB 启动时会自动加载</span>
+
+<span class="hl-keyword">target</span> remote localhost:3333
+
+<span class="hl-comment"># 加载 .elf 中的符号表（可省略，openocd会自动加载）</span>
+<span class="hl-comment"># load</span>
+
+<span class="hl-comment"># 设置芯片向量表地址</span>
+<span class="hl-keyword">set</span> mem inaccessible-by-default off
+
+<span class="hl-comment"># GDB 终端设置（回车不退出，连续输出）</span>
+<span class="hl-keyword">set</span> pagination off
+
+<span class="hl-comment"># 监控 Reset 引脚（复位时自动 halt）</span>
+<span class="hl-keyword">monitor</span> reset halt</div>
+  </div>
+
+  <h3>4.3 常用 GDB 命令</h3>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>命令</th><th>简写</th><th>说明</th><th>示例</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><code>load</code></td><td><code>lo</code></td><td>将程序下载到芯片</td><td><code>load</code></td></tr>
+        <tr><td><code>break</code></td><td><code>b</code></td><td>设置断点</td><td><code>b main</code> / <code>b 0x08000100</code></td></tr>
+        <tr><td><code>continue</code></td><td><code>c</code></td><td>继续运行（到下一个断点）</td><td><code>c</code></td></tr>
+        <tr><td><code>step</code></td><td><code>s</code></td><td>单步步入（进入函数内部）</td><td><code>s</code></td></tr>
+        <tr><td><code>next</code></td><td><code>n</code></td><td>单步步过（不进入函数）</td><td><code>n</code></td></tr>
+        <tr><td><code>finish</code></td><td><code>fin</code></td><td>运行到函数返回</td><td><code>finish</code></td></tr>
+        <tr><td><code>print</code></td><td><code>p</code></td><td>打印变量/表达式值</td><td><code>p counter</code> / <code>p x=5</code></td></tr>
+        <tr><td><code>print</code></td><td><code>p</code></td><td>打印类型</td><td><code>ptype myvar</code></td></tr>
+        <tr><td><code>examine</code></td><td><code>x</code></td><td>查看内存</td><td><code>x/8x 0x20000000</code></td></tr>
+        <tr><td><code>backtrace</code></td><td><code>bt</code></td><td>打印调用栈</td><td><code>bt</code></td></tr>
+        <tr><td><code>info</code></td><td><code>i</code></td><td>查看各类信息</td><td><code>info registers</code></td></tr>
+        <tr><td><code>list</code></td><td><code>l</code></td><td>列出源码</td><td><code>l</code> / <code>l func</code></td></tr>
+        <tr><td><code>delete</code></td><td><code>d</code></td><td>删除断点</td><td><code>d 1</code> / <code>d</code>（全部）</td></tr>
+        <tr><td><code>disable</code></td><td><code>dis</code></td><td>禁用断点</td><td><code>dis 1</code></td></tr>
+        <tr><td><code>enable</code></td><td><code>en</code></td><td>启用断点</td><td><code>en 1</code></td></tr>
+        <tr><td><code>monitor</code></td><td><code>mon</code></td><td>发送命令给 OpenOCD</td><td><code>monitor reset halt</code></td></tr>
+        <tr><td><code>run</code></td><td><code>r</code></td><td>从头运行</td><td><code>r</code></td></tr>
+        <tr><td><code>kill</code></td><td><code>k</code></td><td>停止当前调试</td><td><code>k</code></td></tr>
+        <tr><td><code>quit</code></td><td><code>q</code></td><td>退出 GDB</td><td><code>q</code></td></tr>
+        <tr><td><code>help</code></td><td><code>h</code></td><td>帮助</td><td><code>h break</code></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>4.4 命令详解：断点 (break)</h3>
+
+  <div class="code-block">
+    <div class="code-header">
+      <span class="lang">GDB 命令</span>
+    </div>
+    <div class="code-body"><span class="hl-comment"># 在函数名处设置断点</span>
+<span class="hl-cmd">(gdb)</span> break main
+<span class="hl-comment"># Breakpoint 1 at 0x8000xxx: file main.c, line 15.</span>
+
+<span class="hl-comment"># 在源文件指定行号设置断点</span>
+<span class="hl-cmd">(gdb)</span> break main.c:30
+
+<span class="hl-comment"># 在指定地址设置断点</span>
+<span class="hl-cmd">(gdb)</span> break *0x08000100
+
+<span class="hl-comment"># 临时断点（触发一次后自动删除）</span>
+<span class="hl-cmd">(gdb)</span> tbreak delay_ms
+
+<span class="hl-comment"># 查看所有断点</span>
+<span class="hl-cmd">(gdb)</span> info breakpoints
+<span class="hl-comment"># Num     Type           Disp Enb Address    What</span>
+<span class="hl-comment"># 1       breakpoint     keep y   0x08000100 in main at main.c:15</span>
+
+<span class="hl-comment"># 删除断点</span>
+<span class="hl-cmd">(gdb)</span> delete 1          <span class="hl-comment"># 删除1号断点</span>
+<span class="hl-cmd">(gdb)</span> delete           <span class="hl-comment"># 删除所有断点</span></div>
+  </div>
+
+  <h3>4.5 命令详解：print / examine</h3>
+
+  <div class="code-block">
+    <div class="code-header">
+      <span class="lang">GDB 命令</span>
+    </div>
+    <div class="code-body"><span class="hl-comment"># 打印变量值</span>
+<span class="hl-cmd">(gdb)</span> p counter
+<span class="hl-comment"># $1 = 42</span>
+
+<span class="hl-comment"># 打印指针指向的内容</span>
+<span class="hl-cmd">(gdb)</span> p *ptr
+<span class="hl-comment"># $2 = {value = 100, next = 0x20000010}</span>
+
+<span class="hl-comment"># 打印结构体</span>
+<span class="hl-cmd">(gdb)</span> p my_gpio
+<span class="hl-comment"># $3 = {MODER = 0x0, ODR = 0x0, IDR = 0xffff, ...}</span>
+
+<span class="hl-comment"># 修改变量值（设置断点前临时改值）</span>
+<span class="hl-cmd">(gdb)</span> set var counter = 100
+
+<span class="hl-comment"># examine — 查看内存（格式：x/数量格式 地址）</span>
+<span class="hl-comment"># x/nfu address</span>
+<span class="hl-comment"># n = 个数, f = 格式(x=十六进制,d=十进制,s=字符串), u = 单位(b=1字节,h=2字,w=4字)</span>
+
+<span class="hl-cmd">(gdb)</span> x/8x 0x20000000   <span class="hl-comment"># 从 RAM 起始地址查看 8 个 32 位十六进制数</span>
+<span class="hl-cmd">(gdb)</span> x/16b 0x08000000  <span class="hl-comment"># 查看 Flash 前 16 字节</span>
+<span class="hl-cmd">(gdb)</span> x/s 0x08001000   <span class="hl-comment"># 以字符串格式查看（找字符串常量）</span>
+<span class="hl-cmd">(gdb)</span> x/4wx 0x40021000  <span class="hl-comment"># 查看 RCC 寄存器（4个32位字）</span></div>
+  </div>
+
+  <h3>4.6 命令详解：backtrace / info</h3>
+
+  <div class="code-block">
+    <div class="code-header">
+      <span class="lang">GDB 命令</span>
+    </div>
+    <div class="code-body"><span class="hl-comment"># 打印调用栈（程序崩溃时看谁调用了谁）</span>
+<span class="hl-cmd">(gdb)</span> bt
+<span class="hl-comment"># #0  delay_ms (ms=500) at main.c:25</span>
+<span class="hl-comment"># #1  in main () at main.c:60</span>
+
+<span class="hl-comment"># 切换栈帧（查看调用者上下文）</span>
+<span class="hl-cmd">(gdb)</span> frame 1
+<span class="hl-cmd">(gdb)</span> p ms
+<span class="hl-comment"># $4 = 500</span>
+
+<span class="hl-comment"># 查看所有寄存器</span>
+<span class="hl-cmd">(gdb)</span> info registers
+<span class="hl-comment"># r0 = 0x00000000   r1 = 0x20000010   r2 = 0x08001234</span>
+<span class="hl-comment"># sp = 0x20000800   lr = 0x08000234   pc = 0x08000100</span>
+
+<span class="hl-comment"># 查看指定寄存器</span>
+<span class="hl-cmd">(gdb)</span> p $r0
+<span class="hl-cmd">(gdb)</span> p $pc          <span class="hl-comment"># program counter，当前执行位置</span>
+<span class="hl-cmd">(gdb)</span> p $sp          <span class="hl-comment"># stack pointer，栈指针</span>
+<span class="hl-cmd">(gdb)</span> p $lr          <span class="hl-comment"># link register，返回地址</span>
+
+<span class="hl-comment"># 查看局部变量</span>
+<span class="hl-cmd">(gdb)</span> info locals
+<span class="hl-comment"># counter = 42</span>
+<span class="hl-comment"># flag = 1</span>
+
+<span class="hl-comment"># 查看函数参数</span>
+<span class="hl-cmd">(gdb)</span> info args
+<span class="hl-comment"># ms = 500</span></div>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- SECTION 5: GDB 高级 -->
+  <!-- ============================================================ -->
+  <h2 id="sec5"><span class="num">5</span> GDB 高级技巧<span class="tag r" style="margin-left:8px">🔴高级</span></h2>
+
+  <h3>5.1 条件断点</h3>
+
+  <p>普通断点每次都停，条件断点只有满足特定条件才停。这在循环调试中非常有用。</p>
+
+  <div class="code-block">
+    <div class="code-header">
+      <span class="lang">GDB 命令</span>
+    </div>
+    <div class="code-body"><span class="hl-comment"># 普通断点：循环第1000次时才停</span>
+<span class="hl-cmd">(gdb)</span> break delay_ms
+<span class="hl-cmd">(gdb)</span> condition 1 i == 1000
+
+<span class="hl-comment"># 创建时直接带条件</span>
+<span class="hl-cmd">(gdb)</span> break main.c:30 if counter > 50
+
+<span class="hl-comment"># 跳过前N次（忽略计数）</span>
+<span class="hl-cmd">(gdb)</span> break my_func
+<span class="hl-cmd">(gdb)</span> ignore 1 99     <span class="hl-comment"># 忽略1号断点前99次触发</span>
+
+<span class="hl-comment"># 删除条件（恢复为普通断点）</span>
+<span class="hl-cmd">(gdb)</span> condition 1
+
+<span class="hl-comment"># 动态修改变量触发断点（适合状态机调试）</span>
+<span class="hl-cmd">(gdb)</span> break handle_uart if (state == 0xAA)</span></div>
+  </div>
+
+  <h3>5.2 观察点 (Watchpoint)</h3>
+
+  <p>观察点不是停在某一行代码，而是当某个变量/内存的值发生变化时才停。相当于给数据装上"监控摄像头"。</p>
+
+  <div class="code-block">
+    <div class="code-header">
+      <span class="lang">GDB 命令</span>
+    </div>
+    <div class="code-body"><span class="hl-comment"># 观察点：当 counter 的值被写入时暂停</span>
+<span class="hl-cmd">(gdb)</span> watch counter
+
+<span class="hl-comment"># 硬件观察点：当 0x20000000 地址的内存被写入时暂停</span>
+<span class="hl-cmd">(gdb)</span> watch *(int*)0x20000000
+
+<span class="hl-comment"># 读取观察点：当变量被读取时暂停（消耗一个硬件断点）</span>
+<span class="hl-cmd">(gdb)</span> rwatch counter
+
+<span class="hl-comment"># 访问观察点：读或写都触发</span>
+<span class="hl-cmd">(gdb)</span> awatch counter
+
+<span class="hl-comment"># 查看当前所有观察点</span>
+<span class="hl-cmd">(gdb)</span> info watchpoints
+
+<span class="hl-comment"># 删除观察点</span>
+<span class="hl-cmd">(gdb)</span> delete 3</span>
+  </div>
+
+  <div class="warn">
+    ARM Cortex-M 最多只有 <strong>4 个硬件观察点</strong>（watchpoint）。别设太多，否则会报错。<code>watch variable</code> 会消耗一个硬件断点资源。
+  </div>
+
+  <h3>5.3 多线程调试</h3>
+
+  <p>STM32 使用 RTX / FreeRTOS 时，程序可能有多个任务同时运行。GDB 支持在线程间切换和单独控制。</p>
+
+  <div class="code-block">
+    <div class="code-header">
+      <span class="lang">GDB 命令</span>
+    </div>
+    <div class="code-body"><span class="hl-comment"># 查看所有线程</span>
+<span class="hl-cmd">(gdb)</span> info threads
+
+<span class="hl-comment"># 输出示例：</span>
+<span class="hl-comment">#   Id   Target Id         Frame</span>
+<span class="hl-comment"># * 1    Thread 1 (Name)   delay_ms () at main.c:25</span>
+<span class="hl-comment">#   2    Thread 2          vTaskDelay () at freertos/tasks.c:1000</span>
+<span class="hl-comment">#   3    Thread 3          UART_IRQHandler () at usart.c:50</span>
+
+<span class="hl-comment"># 切换到指定线程（* 表示当前活跃线程）</span>
+<span class="hl-cmd">(gdb)</span> thread 2
+
+<span class="hl-comment"># 在所有线程的指定函数设断点</span>
+<span class="hl-cmd">(gdb)</span> break UART_IRQHandler thread 3
+
+<span class="hl-comment"># 只让某个线程继续（冻结其他线程）</span>
+<span class="hl-cmd">(gdb)</span> thread apply 2 next
+<span class="hl-cmd">(gdb)</span> thread apply all bt   <span class="hl-comment"># 查看所有线程的调用栈</span>
+
+<span class="hl-comment"># 冻结/解冻线程</span>
+<span class="hl-cmd">(gdb)</span> thread 2
+<span class="hl-cmd">(gdb)</span> disable scheduler-locking on   <span class="hl-comment"># 只让当前线程运行</span>
+<span class="hl-cmd">(gdb)</span> disable scheduler-locking off  <span class="hl-comment"># 恢复多线程调度</span></div>
+  </div>
+
+  <h3>5.4 调试 FreeRTOS</h3>
+
+  <p>FreeRTOS 使用软件定时器/任务调度，普通的 <code>next</code> 可能跳进系统调度导致调试体验很差。以下技巧可以改善：</p>
+
+  <div class="code-block">
+    <div class="code-header">
+      <span class="lang">FreeRTOS 调试配置</span>
+    </div>
+    <div class="code-body"><span class="hl-comment"># 冻结其他任务（推荐！），避免 step 时进入调度器</span>
+<span class="hl-cmd">(gdb)</span> set scheduler-locking step
+
+<span class="hl-comment"># 也可以在 .gdbinit 中预设</span>
+<span class="hl-comment"># set scheduler-locking step</span>
+
+<span class="hl-comment"># 查看 FreeRTOS 任务列表</span>
+<span class="hl-cmd">(gdb)</span> monitor pxCurrentTCB
+<span class="hl-cmd">(gdb)</span> monitor pxReadyTasksLists
+
+<span class="hl-comment"># OpenOCD TCL 命令 — 查看任务状态</span>
+<span class="hl-cmd">(gdb)</span> monitor rt1050 kernel_shell_commands</span>
+  </div>
+
+  <div class="code-block">
+    <div class="code-header">
+      <span class="lang">.gdbinit — FreeRTOS 友好配置</span>
+    </div>
+    <div class="code-body"><span class="hl-keyword">target</span> remote localhost:3333
+<span class="hl-keyword">set</span> pagination off
+
+<span class="hl-comment"># FreeRTOS 调试关键：避免意外进入调度器</span>
+<span class="hl-keyword">set</span> scheduler-locking step
+
+<span class="hl-comment"># 自动 halt 复位后的芯片</span>
+<span class="hl-keyword">monitor</span> reset halt
+
+<span class="hl-comment"># 加载程序</span>
+<span class="hl-keyword">load</span>
+
+<span class="hl-comment"># 断点打在 main 入口</span>
+<span class="hl-keyword">break</span> main</div>
+  </div>
+
+  <h3>5.5 远程调试 (Remote Debug)</h3>
+
+  <p>OpenOCD 运行在一台机器上，GDB 可以连接另一台机器（通过 TCP/IP）。这在嵌入式开发中用于"调试单元"和"开发机"分离的场景。</p>
+
+  <div class="code-block">
+    <div class="code-header">
+      <span class="lang">远程调试配置</span>
+    </div>
+    <div class="code-body"><span class="hl-comment"># OpenOCD 端（192.168.1.100）：允许远程连接</span>
+<span class="hl-cmd">openocd</span> -f interface/stlink.cfg -f target/stm32f1x.cfg \
+    -c "bindto 0.0.0.0"
+
+<span class="hl-comment"># GDB 端（开发机）：连接远程 OpenOCD</span>
+<span class="hl-cmd">arm-none-eabi-gdb</span> build/firmware.elf
+<span class="hl-cmd">(gdb)</span> target remote 192.168.1.100:3333</div>
+  </div>
+
+  <h3>5.6 调试脚本自动化</h3>
+
+  <div class="code-block">
+    <div class="code-header">
+      <span class="lang">commands.txt — GDB 批处理脚本</span>
+    </div>
+    <div class="code-body"><span class="hl-comment"># 加载文件</span>
+<span class="hl-keyword">file</span> build/myproject.elf
+<span class="hl-keyword">target</span> remote localhost:3333
+
+<span class="hl-comment"># 初始化</span>
+<span class="hl-keyword">monitor</span> reset halt
+<span class="hl-keyword">load</span>
+
+<span class="hl-comment"># 设置断点</span>
+<span class="hl-keyword">break</span> HardFault_Handler
+<span class="hl-keyword">break</span> main
+<span class="hl-keyword">break</span> my_critical_function
+
+<span class="hl-comment"># 自动运行到 main</span>
+<span class="hl-keyword">continue</span>
+
+<span class="hl-comment"># 自动执行后续命令（停在断点后）</span>
+<span class="hl-keyword">commands</span>
+  <span class="hl-keyword">silent</span>
+  <span class="hl-keyword">info</span> registers
+  <span class="hl-keyword">bt</span>
+<span class="hl-keyword">end</span></div>
+  </div>
+
+  <div class="code-block">
+    <div class="code-header">
+      <span class="lang">启动 GDB 时指定脚本</span>
+    </div>
+    <div class="code-body"><span class="hl-cmd">arm-none-eabi-gdb</span> -x commands.txt build/myproject.elf</div>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- SECTION 6: VS Code Cortex-Debug -->
+  <!-- ============================================================ -->
+  <h2 id="sec6"><span class="num">6</span> VS Code Cortex-Debug 配置<span class="tag r" style="margin-left:8px">🟠实战</span></h2>
+
+  <p>前面我们用命令行操作 GDB，每次调试都要敲一堆命令。VS Code + Cortex-Debug 插件把这一切可视化，一个按钮完成连接、烧录、调试。</p>
+
+  <h3>6.1 安装插件</h3>
+
+  <div class="step">
+    <div class="step-title">① 安装 Cortex-Debug 插件</div>
+    在 VS Code Extensions 中搜索 <code>Cortex-Debug</code>，安装 Marus25 出品的插件（已超过 200 万下载量）。
+  </div>
+
+  <div class="step">
+    <div class="step-title">② 安装依赖工具</div>
+    确保以下工具在系统 PATH 中：
+    <ul style="margin-top:8px;padding-left:20px;font-size:14px;">
+      <li><code>arm-none-eabi-gdb</code> — ARM 工具链自带</li>
+      <li><code>openocd.exe</code> — 安装好的 OpenOCD</li>
+      <li><code>make</code> / <code>cmake</code> — 构建工具（看项目用什么构建系统）</li>
+    </ul>
+  </div>
+
+  <h3>6.2 launch.json 详解</h3>
+
+  <p><code>launch.json</code> 是 VS Code 调试配置的入口，放置在项目根目录的 <code>.vscode/</code> 文件夹下。</p>
+
+  <div class="code-block">
+    <div class="code-header">
+      <span class="lang">.vscode/launch.json</span>
+    </div>
+    <div class="code-body"><span class="hl-comment">// 按 Ctrl+Shift+P → 输入 "Open Configuration" → 选择 "Cortex Debug"</span>
+<span class="hl-comment">// VS Code 会自动生成基础配置，再按需要修改</span>
+
+<span class="hl-section">[</span>
+  <span class="hl-section">{</span>
+    <span class="hl-string">"name"</span>: <span class="hl-string">"Cortex Debug (OpenOCD)"</span>,
+    <span class="hl-string">"cwd"</span>: <span class="hl-string">"${workspaceFolder}"</span>,
+    <span class="hl-string">"executable"</span>: <span class="hl-string">"${workspaceFolder}/build/myproject.elf"</span>,
+    <span class="hl-string">"request"</span>: <span class="hl-string">"launch"</span>,
+    <span class="hl-string">"type"</span>: <span class="hl-string">"cortex-debug"</span>,
+    <span class="hl-string">"runToEntryPoint"</span>: <span class="hl-string">"main"</span>,
+
+    <span class="hl-comment">// ===== OpenOCD 方式 =====</span>
+    <span class="hl-string">"servertype"</span>: <span class="hl-string">"openocd"</span>,
+    <span class="hl-string">"configFiles"</span>: <span class="hl-section">[</span>
+      <span class="hl-string">"interface/stlink.cfg"</span>,
+      <span class="hl-string">"target/stm32f1x.cfg"</span>
+    <span class="hl-section">]</span>,
+
+    <span class="hl-comment">// ===== ST-Link V3 需要用 stlink-dap.cfg =====</span>
+    <span class="hl-comment">// "configFiles": [</span>
+    <span class="hl-comment">//   "interface/stlink-dap.cfg",</span>
+    <span class="hl-comment">//   "target/stm32f4x.cfg"</span>
+    <span class="hl-comment">// ],</span>
+
+    <span class="hl-comment">// OpenOCD 搜索路径（Windows 绝对路径）</span>
+    <span class="hl-string">"searchDir"</span>: <span class="hl-section">[</span>
+      <span class="hl-string">"D:/Tools/OpenOCD/share/openocd/scripts"</span>
+    <span class="hl-section">]</span>,
+
+    <span class="hl-comment">// OpenOCD 启动参数</span>
+    <span class="hl-string">"openOCDLaunchCommands"</span>: <span class="hl-section">[</span>
+      <span class="hl-string">"adapter speed 1000"</span>
+    <span class="hl-section">]</span>,
+
+    <span class="hl-comment">// GDB 初始化命令（发送给 OpenOCD 的 monitor 命令）</span>
+    <span class="hl-string">"gdbPath"</span>: <span class="hl-string">"arm-none-eabi-gdb"</span>,
+    <span class="hl-string">"gdbTarget"</span>: <span class="hl-string">"localhost:3333"</span>,
+    <span class="hl-string">"gdbInitCmds"</span>: <span class="hl-section">[</span>
+      <span class="hl-string">"set pagination off"</span>,
+      <span class="hl-string">"set mem inaccessible-by-default off"</span>,
+      <span class="hl-string">"monitor reset halt"</span>
+    <span class="hl-section">]</span>,
+    <span class="hl-string">"gdbLaunchCommands"</span>: <span class="hl-section">[</span>
+      <span class="hl-string">"target remote localhost:3333"</span>
+    <span class="hl-section">]</span>,
+
+    <span class="hl-comment">// ===== SVD 文件（寄存器可视化）=====</span>
+    <span class="hl-string">"svdFile"</span>: <span class="hl-string">"${workspaceFolder}/STM32F103.svd"</span>,
+
+    <span class="hl-comment">// ===== 预执行命令（烧录前/后自动执行）=====</span>
+    <span class="hl-string">"preLaunchTask"</span>: <span class="hl-string">"Build"</span>,
+    <span class="hl-string">"postLaunchCommands"</span>: <span class="hl-section">[</span>
+      <span class="hl-string">"monitor halt"</span>,
+      <span class="hl-string">"monitor flash write_image erase build/myproject.elf"</span>
+    <span class="hl-section">]</span>
+  <span class="hl-section">}</span>
+<span class="hl-section">]</span></div>
+  </div>
+
+  <h3>6.3 launch.json 关键参数说明</h3>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>参数</th><th>说明</th><th>推荐值</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><code>executable</code></td><td>.elf 文件路径（含调试信息）</td><td><code>build/xxx.elf</code></td></tr>
+        <tr><td><code>servertype</code></td><td>调试服务器类型</td><td><code>openocd</code> / <code>stutil</code></td></tr>
+        <tr><td><code>configFiles</code></td><td>OpenOCD 配置文件列表</td><td><code>["interface/xxx", "target/yyy"]</code></td></tr>
+        <tr><td><code>searchDir</code></td><td>OpenOCD scripts 搜索路径</td><td>绝对路径</td></tr>
+        <tr><td><code>gdbPath</code></td><td>GDB 可执行文件路径</td><td><code>arm-none-eabi-gdb</code></td></tr>
+        <tr><td><code>gdbTarget</code></td><td>GDB 连接地址</td><td><code>localhost:3333</code></td></tr>
+        <tr><td><code>svdFile</code></td><td>SVD 寄存器描述文件</td><td><code>STM32F103.svd</code></td></tr>
+        <tr><td><code>runToEntryPoint</code></td><td>启动后运行到的函数</td><td><code>main</code></td></tr>
+        <tr><td><code>preLaunchTask</code></td><td>调试前自动执行的任务</td><td><code>Build</code></td></tr>
+        <tr><td><code>toolchainPrefix</code></td><td>工具链前缀</td><td><code>arm-none-eabi</code></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>6.4 st-util 方案配置</h3>
+
+  <p><code>st-util</code> 是 ST 官方维护的轻量调试服务器，专为 ST-Link 优化，配置更简单（不需要写 cfg 文件）。</p>
+
+  <div class="code-block">
+    <div class="code-header">
+      <span class="lang">st-util 安装</span>
+    </div>
+    <div class="code-body"><span class="hl-comment"># MSYS2</span>
+<span class="hl-cmd">pacman</span> -S mingw-w64-x86_64-stlink
+
+<span class="hl-comment"># 或从源码编译</span>
+<span class="hl-cmd">git</span> clone https://github.com/stlink-org/stlink
+<span class="hl-cmd">cd</span> stlink && cmake . && make</span>
+  </div>
+
+  <div class="code-block">
+    <div class="code-header">
+      <span class="lang">.vscode/launch.json — st-util 方案</span>
+    </div>
+    <div class="code-body"><span class="hl-section">{</span>
+  <span class="hl-string">"name"</span>: <span class="hl-string">"Cortex Debug (st-util)"</span>,
+  <span class="hl-string">"executable"</span>: <span class="hl-string">"${workspaceFolder}/build/myproject.elf"</span>,
+  <span class="hl-string">"request"</span>: <span class="hl-string">"launch"</span>,
+  <span class="hl-string">"type"</span>: <span class="hl-string">"cortex-debug"</span>,
+  <span class="hl-string">"runToEntryPoint"</span>: <span class="hl-string">"main"</span>,
+
+  <span class="hl-comment">// ===== st-util 方式（不需要 cfg 文件）=====</span>
+  <span class="hl-string">"servertype"</span>: <span class="hl-string">"stutil"</span>,
+
+  <span class="hl-string">"gdbPath"</span>: <span class="hl-string">"arm-none-eabi-gdb"</span>,
+  <span class="hl-string">"gdbTarget"</span>: <span class="hl-string">"localhost:4242"</span>,
+  <span class="hl-string">"svdFile"</span>: <span class="hl-string">"${workspaceFolder}/STM32F103.svd"</span>,
+
+  <span class="hl-string">"preLaunchTask"</span>: <span class="hl-string">"Build"</span>
+<span class="hl-section">}</span>
+<span class="hl-comment">// 启动调试后，VS Code 会自动在后台启动 st-util</span></div>
+  </div>
+
+  <h3>6.5 SVD 文件 — 外设寄存器可视化</h3>
+
+  <p>SVD（System View Description）文件描述了芯片所有外设寄存器的地址、位域、名称。配合 Cortex-Debug 可以直观地查看和修改寄存器。</p>
+
+  <div class="step">
+    <div class="step-title">① 获取 SVD 文件</div>
+    <ul style="margin-top:8px;padding-left:20px;font-size:14px;">
+      <li>STM32 官方 SVD：<a href="https://www.st.com/en/development-tools/stm32cubemx.html" target="_blank">STM32CubeMX</a> → HELP → Update Settings → Download available patches</li>
+      <li>Keil MDK 安装目录下：<code>Keil\STM32F1xx_DFP\SVD\STM32F103.svd</code></li>
+      <li>GitHub: <code>posborne/cmsis-svd</code> 仓库收录了主流芯片的 SVD</li>
+    </ul>
+  </div>
+
+  <div class="code-block">
+    <div class="code-header">
+      <span class="lang">SVD 文件示例（STM32F103 GPIO 寄存器）</span>
+    </div>
+    <div class="code-body"><span class="hl-comment">&lt;?xml version="1.0"?&gt;</span>
+<span class="hl-comment">&lt;device schemaVersion="1.1" xmlns:xs="http://www.w3.org/2001/XMLSchema"&gt;</span>
+  <span class="hl-comment">&lt;name&gt;STM32F103&lt;/name&gt;</span>
+  <span class="hl-comment">&lt;peripherals&gt;</span>
+    <span class="hl-comment">&lt;peripheral name="GPIOA"&gt;</span>
+      <span class="hl-comment">&lt;baseAddress&gt;0x40010800&lt;/baseAddress&gt;</span>
+      <span class="hl-comment">&lt;registers&gt;</span>
+        <span class="hl-comment">&lt;register name="CRL"&gt;</span>
+          <span class="hl-comment">&lt;addressOffset&gt;0x00&lt;/addressOffset&gt;</span>
+          <span class="hl-comment">&lt;size&gt;32&lt;/size&gt;</span>
+          <span class="hl-comment">&lt;resetValue&gt;0x44444444&lt;/resetValue&gt;</span>
+          <span class="hl-comment">&lt;fields&gt;</span>
+            <span class="hl-comment">&lt;field name="MODE0"&gt;</span>
+              <span class="hl-comment">&lt;bitOffset&gt;0&lt;/bitOffset&gt;</span>
+              <span class="hl-comment">&lt;bitWidth&gt;2&lt;/bitWidth&gt;</span>
+              <span class="hl-comment">&lt;description&gt;Port x mode bits (y=0..7)&lt;/description&gt;</span>
+            <span class="hl-comment">&lt;/field&gt;</span>
+            <span class="hl-comment">&lt;field name="CNF0"&gt;</span>
+              <span class="hl-comment">&lt;bitOffset&gt;2&lt;/bitOffset&gt;</span>
+              <span class="hl-comment">&lt;bitWidth&gt;2&lt;/bitWidth&gt;</span>
+            <span class="hl-comment">&lt;/field&gt;</span>
+          <span class="hl-comment">&lt;/fields&gt;</span>
+        <span class="hl-comment">&lt;/register&gt;</span>
+      <span class="hl-comment">&lt;/registers&gt;</span>
+    <span class="hl-comment">&lt;/peripheral&gt;</span>
+  <span class="hl-comment">&lt;/peripherals&gt;</span>
+<span class="hl-comment">&lt;/device&gt;</span></div>
+  </div>
+
+  <div class="tip">
+    <strong>VS Code 中打开寄存器视图：</strong>调试时按 <kbd>F5</kbd> 开始，在左侧"调试面板"展开"CORTEX PERIPHERALS"即可看到所有外设寄存器。
+  </div>
+
+  <h3>6.6 tasks.json — 自动构建任务</h3>
+
+  <div class="code-block">
+    <div class="code-header">
+      <span class="lang">.vscode/tasks.json</span>
+    </div>
+    <div class="code-body"><span class="hl-section">[</span>
+  <span class="hl-section">{</span>
+    <span class="hl-string">"label"</span>: <span class="hl-string">"Build"</span>,
+    <span class="hl-string">"type"</span>: <span class="hl-string">"shell"</span>,
+    <span class="hl-string">"command"</span>: <span class="hl-string">"make"</span>,
+    <span class="hl-string">"args"</span>: <span class="hl-section">[</span><span class="hl-string">"-j4"</span><span class="hl-section">]</span>,
+    <span class="hl-string">"problemMatcher"</span>: <span class="hl-section">[</span><span class="hl-string">"$gcc"</span><span class="hl-section">]</span>,
+    <span class="hl-string">"group"</span>: <span class="hl-section">{</span>
+      <span class="hl-string">"kind"</span>: <span class="hl-string">"build"</span>,
+      <span class="hl-string">"isDefault"</span>: <span class="hl-keyword">true</span>
+    <span class="hl-section">}</span>
+  <span class="hl-section">}</span>
+<span class="hl-section">]</span></div>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- SECTION 7: 串口 ISP 烧录 -->
+  <!-- ============================================================ -->
+  <h2 id="sec7"><span class="num">7</span> 串口 ISP 烧录<span class="tag o" style="margin-left:8px">🟡进阶</span></h2>
+
+  <p>串口 ISP（In-System Programming）是 STM32 内置的 Bootloader 提供的功能。所有 STM32 芯片都内置了 UART Bootloader，只要把 BOOT0 引脚拉高，就能从内部 ROM 区（0x1FFF0000）启动这个 bootloader，通过串口下载程序。</p>
+
+  <div class="note">
+    这是<strong>零硬件成本</strong>的烧录方案！只要你有一块 STM32 芯片 + 一个 USB 转 TTL 模块（某宝 5 元），就能烧录。不需要任何调试器！
+  </div>
+
+  <analogy class="analogy">
+    把 STM32 想象成一台有"两个启动盘"的电脑。正常运行时从 Flash（硬盘）启动（BOOT0=0），刷固件时从 ROM Bootloader（内置恢复系统）启动（BOOT0=1）。串口 ISP 就是通过内置恢复系统往硬盘写数据。
+  </analogy>
+
+  <h3>7.1 BOOT0 引脚操作</h3>
+
+  <p>这是串口 ISP 最关键的地方！STM32 有三种启动模式，由 BOOT0 和 BOOT1 两个引脚控制：</p>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>BOOT0</th><th>BOOT1</th><th>启动位置</th><th>用途</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>0</td><td>x</td><td>Flash (0x08000000)</td><td>正常运行</td></tr>
+        <tr><td>1</td><td>0</td><td>System Memory (0x1FFF0000)</td><td><strong>串口 ISP / USB DFU</strong></td></tr>
+        <tr><td>1</td><td>1</td><td>SRAM (0x20000000)</td><td> SRAM 调试（掉电丢失）</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="step">
+    <div class="step-title">烧录操作流程</div>
+    <ol style="padding-left:20px;font-size:14px;margin-top:8px;">
+      <li><strong>断电</strong>，将 BOOT0 跳线帽插到 3.3V（高电平），BOOT1 保持接地</li>
+      <li><strong>通电</strong>，芯片进入 System Memory 模式（ROM Bootloader）</li>
+      <li>在电脑上打开 FlyMcu / stm32flash，选择 COM 口，波特率 57600 或 115200</li>
+      <li>点击"开始编程"，等待下载完成</li>
+      <li><strong>断电</strong>，将 BOOT0 跳线帽恢复到 GND（正常运行模式）</li>
+      <li><strong>重新通电</strong>，程序从 Flash 启动</li>
+    </ol>
+  </div>
+
+  <div class="warn">
+    BOOT0 跳线帽必须在<strong>断电状态</strong>下切换！带电插拔可能导致芯片损坏或进入未知状态。
+  </div>
+
+  <h3>7.2 FlyMcu 使用教程</h3>
+
+  <p>FlyMcu 是最流行的 Windows 图形化 ISP 工具，支持 STM32 全系列。</p>
+
+  <div class="step">
+    <div class="step-title">① 下载 FlyMcu</div>
+    在 <code>mcuisp.com</code> 或 GitHub 搜索 <code>mculover666/FlyMcu</code> 下载绿色版，无需安装。
+  </div>
+
+  <div class="step">
+    <div class="step-title">② 连接硬件</div>
+    USB 转 TTL 模块 → STM32：
+    <ul style="margin-top:8px;padding-left:20px;font-size:14px;">
+      <li>TX → PA10（USART1 RX）</li>
+      <li>RX → PA9（USART1 TX）</li>
+      <li>GND → GND</li>
+      <li>（不需要接 3.3V，由目标板独立供电）</li>
+    </ul>
+  </div>
+
+  <div class="step">
+    <div class="step-title">③ 配置参数</div>
+    <ul style="margin-top:8px;padding-left:20px;font-size:14px;">
+      <li><strong>串口：</strong>选择对应的 COM 口</li>
+      <li><strong>波特率：</strong>115200（推荐，稳定）</li>
+      <li><strong>数据位：</strong>8，<strong>停止位：</strong>1，<strong>校验：</strong>无</li>
+      <li><strong>编程后执行：</strong>✅ 勾选（下载后自动运行）</li>
+      <li><strong>编程后复位：</strong>✅ 勾选</li>
+      <li><strong>只读选项字节：</strong>❌ 不勾选</li>
+      <li><strong>校验：</strong>✅ 勾选（烧录后自动验证）</li>
+    </ul>
+  </div>
+
+  <div class="step">
+    <div class="step-title">④ 搜索芯片</div>
+    点击"搜索芯片"按钮，如果连接正确，状态栏会显示芯片型号（Device ID / Flash Size）。
+  </div>
+
+  <div class="step">
+    <div class="step-title">⑤ 烧录</div>
+    选择要烧录的 .hex 或 .bin 文件，点击"开始编程"。进度条跑完后芯片自动运行。
+  </div>
+
+  <h3>7.3 stm32flash 命令行工具</h3>
+
+  <p><code>stm32flash</code> 是 Linux / macOS / Windows 命令行版本的 ISP 烧录工具，GitHub 开源。</p>
+
+  <div class="code-block">
+    <div class="code-header">
+      <span class="lang">安装 stm32flash</span>
+    </div>
+    <div class="code-body"><span class="hl-comment"># Windows: 从 GitHub 下载 exe</span>
+<span class="hl-comment"># https://github.com/mcauser/stm32flash/releases</span>
+
+<span class="hl-comment"># macOS</span>
+<span class="hl-cmd">brew</span> install stm32flash
+
+<span class="hl-comment"># Linux</span>
+<span class="hl-cmd">sudo</span> apt install stm32flash</span>
+  </div>
+
+  <div class="code-block">
+    <div class="code-header">
+      <span class="lang">stm32flash 常用命令</span>
+    </div>
+    <div class="code-body"><span class="hl-comment"># 搜索芯片（确认连接）</span>
+<span class="hl-cmd">stm32flash</span> /dev/ttyUSB0
+
+<span class="hl-comment"># 烧录 .hex 文件</span>
+<span class="hl-cmd">stm32flash</span> -w build/myproject.hex -v -g 0x08000000 /dev/ttyUSB0
+
+<span class="hl-comment"># 烧录 .bin 文件（需指定起始地址）</span>
+<span class="hl-cmd">stm32flash</span> -w build/myproject.bin -v -g 0x08000000 /dev/ttyUSB0
+
+<span class="hl-comment"># 读取 Flash 并保存</span>
+<span class="hl-cmd">stm32flash</span> -r backup.bin /dev/ttyUSB0
+
+<span class="hl-comment"># 擦除芯片</span>
+<span class="hl-cmd">stm32flash</span> -e 0 /dev/ttyUSB0
+
+<span class="hl-comment"># 参数说明：</span>
+<span class="hl-comment"># -w <file>   写入文件</span>
+<span class="hl-comment"># -r <file>   读取到文件</span>
+<span class="hl-comment"># -v          烧录后验证</span>
+<span class="hl-comment"># -g 0xaddr   烧录后跳转到地址运行</span>
+<span class="hl-comment"># -e N        擦除前N页（0=全部）</span>
+<span class="hl-comment"># -b 115200   指定波特率</span></div>
+  </div>
+
+  <h3>7.4 零硬件成本的"穷烧录"方案</h3>
+
+  <div class="card">
+    <h4>🆓 方案一：Arduino + STM32CubeProgrammer</h4>
+    <ul>
+      <li>Arduino Uno 的 USB 转串口部分可以复用（ATmega16U2 固件需要修改）</li>
+      <li>用 STM32CubeProgrammer 的 CLI 版本通过任意串口烧录</li>
+    </ul>
+  </div>
+
+  <div class="card">
+    <h4>🆓 方案二：USB 转 TTL 模块（5元方案）</h4>
+    <ul>
+      <li>购买 CH340 / CP2102 USB 转 TTL 模块</li>
+      <li>接线：模块 TX→PA10, RX→PA9, GND→GND</li>
+      <li>BOOT0 跳线帽置高 → FlyMcu 烧录 → BOOT0 恢复正常 → 完成</li>
+      <li>全程 5 元搞定的终极省钱方案</li>
+    </ul>
+  </div>
+
+  <div class="card">
+    <h4>🆓 方案三：其他 MCU 开发板充当调试器</h4>
+    <ul>
+      <li>ESP32 / 树莓派 Pico 可以通过 GPIO 模拟 SWD 协议</li>
+      <li>参考项目：<code>Espressif/OpenOCD-ESP32</code> 或 Pico 的 DAP-Link 固件</li>
+    </ul>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- SECTION 8: 常见问题 -->
+  <!-- ============================================================ -->
+  <h2 id="sec8"><span class="num">8</span> 常见问题与解决</h2>
+
+  <h3>8.1 OpenOCD 连不上</h3>
+
+  <div class="card">
+    <h4>❌ 症状：OpenOCD 启动后报错 "Error: open failed"</h4>
+    <ul>
+      <li><strong>驱动未安装：</strong>设备管理器中 ST-Link 有黄色感叹号 → 安装 <code>STSW-LINK009</code> 驱动</li>
+      <li><strong>权限问题（Linux）：</strong><code>sudo openocd ...</code> 或将用户加入 <code>dialout</code> 组</li>
+      <li><strong>端口被占用：</strong><code>netstat -ano | findstr 3333</code> 查看是否已有 OpenOCD 占用</li>
+      <li><strong>USB 线太长/质量差：</strong>USB 线超过 1.5m 或只接了电源线没接数据线</li>
+      <li><strong>调试器固件损坏：</strong>Clone 版 ST-Link 固件损坏，需要重新刷固件（用 ST-Link Utility 修复）</li>
+    </ul>
+  </div>
+
+  <div class="code-block">
+    <div class="code-header">
+      <span class="lang">排查命令</span>
+    </div>
+    <div class="code-body"><span class="hl-comment"># Windows：查看 ST-Link 是否被识别</span>
+<span class="hl-cmd">lsusb</span>  <span class="hl-comment"># Git Bash 下，或在设备管理器查看</span>
+
+<span class="hl-comment"># 检查端口占用</span>
+<span class="hl-cmd">netstat</span> -ano | findstr "3333 4444"</span>
+</div>
+  </div>
+
+  <div class="card">
+    <h4>❌ 症状：OpenOCD 连接成功但 GDB 连接时报错 "Remote connection refused"</h4>
+    <ul>
+      <li>OpenOCD 未完全启动完成 → 等 2-3 秒再连</li>
+      <li>防火墙阻止了 3333 端口 → 关闭防火墙或允许 openocd.exe</li>
+      <li>端口写错了 → 检查 <code>target remote localhost:3333</code></li>
+    </ul>
+  </div>
+
+  <div class="card">
+    <h4>❌ 症状："stm32f1x.cpu: hardware has 0 breakpoints, 0 watchpoints"</h4>
+    <ul>
+      <li>这是正常的（部分 Clone 调试器不会报告断点数量），不影响使用</li>
+      <li>真实 ARM Cortex-M 有 6 个硬件断点 + 4 个观察点</li>
+      <li>如果实际无法设置断点，可能是芯片已被读保护（见下文）</li>
+    </ul>
+  </div>
+
+  <h3>8.2 GDB 超时 / 连接失败</h3>
+
+  <div class="card">
+    <h4>❌ 症状：GDB 报 "Timeout waiting for target"</h4>
+    <ul>
+      <li><strong>SWD 速率太高：</strong><code>adapter speed 1000</code> → 改成 <code>adapter speed 500</code></li>
+      <li><strong>芯片掉电：</strong>目标板供电不足或断电，OpenOCD 连不上 halted 状态的芯片</li>
+      <li><strong>接线问题：</strong>SWDIO / SWCLK 线路太长（超过 20cm）或接反</li>
+      <li><strong>SWDIO 未接上拉电阻：</strong>部分板子需要 10kΩ 上拉（STM32 内部已有，但部分开发板去掉了）</li>
+    </ul>
+  </div>
+
+  <div class="card">
+    <h4>❌ 症状："undefined debug reason 7 - target needs reset"</h4>
+    <ul>
+      <li>GDB 先于 OpenOCD 完成复位 → 在 <code>.gdbinit</code> 中加 <code>monitor reset halt</code></li>
+      <li>或 <code>(gdb) monitor reset halt</code> 手动复位</li>
+    </ul>
+  </div>
+
+  <h3>8.3 芯片锁死 / 读保护</h3>
+
+  <div class="warn">
+    如果芯片的 Option Bytes 被错误配置（例如把 SWD 引脚配置为普通 GPIO，或开启了读保护 RDP），芯片可能会"锁死"无法连接。此时需要用串口 ISP 或 ST-Link Utility 强制擦除。
+  </div>
+
+  <div class="card">
+    <h4>🔓 解除读保护（STM32F1）</h4>
+    <ul>
+      <li><strong>方法A：</strong>FlyMcu → 芯片解锁 → 擦除 → 重新烧录</li>
+      <li><strong>方法B：</strong>ST-Link Utility → Target → Option Bytes → 关闭 RDP</li>
+      <li><strong>方法C：</strong>串口 ISP 进入 Bootloader → 全片擦除（会清除 Flash）</li>
+    </ul>
+  </div>
+
+  <div class="card">
+    <h4>🔓 解除 SWD 禁用（引脚配置错误）</h4>
+    <ul>
+      <li>有些用户不小心把 PA13/PA14（SWDIO/SWCLK）配置成了普通 GPIO 并编程</li>
+      <li>解决：拉高 BOOT0 → 进入串口 ISP → 重新烧录正确固件</li>
+      <li>或者：按住复位键 → 连接 OpenOCD → 在复位释放前执行 <code>monitor reset halt</code></li>
+    </ul>
+  </div>
+
+  <h3>8.4 驱动安装问题</h3>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>设备</th><th>驱动来源</th><th>下载地址</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>ST-Link V2</td><td>STSW-LINK009</td><td>st.com/stsw-link009</td></tr>
+        <tr><td>ST-Link V3</td><td>STSW-LINK007</td><td>st.com/stsw-link007</td></tr>
+        <tr><td>J-Link</td><td>J-Link Software</td><td>segger.com/downloads/jlink</td></tr>
+        <tr><td>DAP-Link (HID)</td><td>自动识别（Win10+）</td><td>无需安装</td></tr>
+        <tr><td>CH340</td><td>CH340 驱动</td><td>winchiphead.com</td></tr>
+        <tr><td>CP2102</td><td>Silicon Labs 驱动</td><td>silabs.com/developers/cp210x</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="code-block">
+    <div class="code-header">
+      <span class="lang">Windows 驱动安装后验证</span>
+    </div>
+    <div class="code-body"><span class="hl-comment"># 打开设备管理器，查看 COM 端口</span>
+<span class="hl-cmd">mode</span>
+
+<span class="hl-comment"># 或用 PowerShell 列出 COM 端口</span>
+<span class="hl-cmd">[System.IO.Ports.SerialPort]::GetPortNames()</span></div>
+  </div>
+
+  <h3>8.5 调试断点失效</h3>
+
+  <div class="card">
+    <h4>⚠️ 断点无法生效的常见原因</h4>
+    <ul>
+      <li><strong>优化等级太高：</strong><code>-Og</code> 或 <code>-O2</code> 优化后部分变量被优化掉，断点设在被优化代码上会失效 → 改为 <code>-O0</code></li>
+      <li><strong>Flash 烧录后立即运行：</strong>用 <code>monitor reset halt</code> 确保芯片停在断点处</li>
+      <li><strong>中断里设断点：</strong>中断处理函数中设断点可能触发其他问题，小心使用</li>
+      <li><strong>硬件断点耗尽：</strong>Cortex-M 只有 6 个硬件断点，设太多会失败 → 用软件断点 <code>break</code> 替代（需芯片支持）</li>
+    </ul>
+  </div>
+
+  <div class="code-block">
+    <div class="code-header">
+      <span class="lang">确保调试信息的 CMakeLists.txt / Makefile</span>
+    </div>
+    <div class="code-body"><span class="hl-comment"># 调试编译选项（不优化，保留所有调试信息）</span>
+<span class="hl-var">CFLAGS</span> += -Og -g3 -ggdb3
+<span class="hl-comment"># -Og  : 最高优化等级（但保留调试信息）</span>
+<span class="hl-comment"># -g3  : 生成最详细的 DWARF 调试信息</span>
+<span class="hl-comment"># -ggdb3: 生成 GDB 友好格式</span>
+
+<span class="hl-comment"># 正式发布编译选项</span>
+<span class="hl-var">CFLAGS</span> += -O2 -g0   <span class="hl-comment"># 不生成调试信息</span></div>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- SECTION 9: 速查表 -->
+  <!-- ============================================================ -->
+  <h2 id="sec9"><span class="num">9</span> 速查表</h2>
+
+  <h3>OpenOCD 一行命令</h3>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>场景</th><th>命令</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>ST-Link + STM32F1</td><td><code>openocd -f interface/stlink.cfg -f target/stm32f1x.cfg</code></td></tr>
+        <tr><td>ST-Link + STM32F4</td><td><code>openocd -f interface/stlink.cfg -f target/stm32f4x.cfg</code></td></tr>
+        <tr><td>ST-Link V3</td><td><code>openocd -f interface/stlink-dap.cfg -f target/stm32f1x.cfg</code></td></tr>
+        <tr><td>J-Link + STM32F4</td><td><code>openocd -f interface/jlink.cfg -f target/stm32f4x.cfg</code></td></tr>
+        <tr><td>DAP-Link</td><td><code>openocd -f interface/cmsis-dap.cfg -f target/stm32f1x.cfg</code></td></tr>
+        <tr><td>低速率（稳定）</td><td>加 <code>-c "adapter speed 500"</code></td></tr>
+        <tr><td>显示调试信息</td><td>加 <code>-d3</code></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>GDB 速查</h3>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>操作</th><th>命令</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>连接 OpenOCD</td><td><code>target remote localhost:3333</code></td></tr>
+        <tr><td>加载程序</td><td><code>load</code></td></tr>
+        <tr><td>运行</td><td><code>r</code> / <code>run</code></td></tr>
+        <tr><td>继续运行</td><td><code>c</code> / <code>continue</code></td></tr>
+        <tr><td>单步步入</td><td><code>s</code> / <code>step</code></td></tr>
+        <tr><td>单步步过</td><td><code>n</code> / <code>next</code></td></tr>
+        <tr><td>函数返回</td><td><code>fin</code> / <code>finish</code></td></tr>
+        <tr><td>断点</td><td><code>b main</code> / <code>b file.c:30</code> / <code>b *0x08000100</code></td></tr>
+        <tr><td>条件断点</td><td><code>break func if var==100</code></td></tr>
+        <tr><td>观察点</td><td><code>watch counter</code> / <code>rwatch counter</code></td></tr>
+        <tr><td>打印变量</td><td><code>p counter</code> / <code>p *ptr</code></td></tr>
+        <tr><td>打印寄存器</td><td><code>p $pc</code> / <code>info registers</code></td></tr>
+        <tr><td>查看内存</td><td><code>x/8x 0x20000000</code> / <code>x/16b 0x08000000</code></td></tr>
+        <tr><td>调用栈</td><td><code>bt</code> / <code>bt 5</code></td></tr>
+        <tr><td>局部变量</td><td><code>info locals</code></td></tr>
+        <tr><td>线程列表</td><td><code>info threads</code></td></tr>
+        <tr><td>切换线程</td><td><code>thread 2</code></td></tr>
+        <tr><td>OpenOCD命令</td><td><code>monitor reset halt</code> / <code>monitor flash write_image erase build/fw.elf</code></td></tr>
+        <tr><td>退出</td><td><code>quit</code></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>OpenOCD Telnet 速查</h3>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>操作</th><th>命令</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>连接</td><td><code>telnet localhost 4444</code></td></tr>
+        <tr><td>烧录 ELF</td><td><code>program firmware.elf verify reset exit</code></td></tr>
+        <tr><td>烧录 BIN</td><td><code>program firmware.bin 0x08000000 verify reset exit</code></td></tr>
+        <tr><td>烧录 HEX</td><td><code>program firmware.hex verify reset exit</code></td></tr>
+        <tr><td>擦除</td><td><code>stm32f1x mass_erase 0</code></td></tr>
+        <tr><td>读 Flash</td><td><code>dump_image out.bin 0x08000000 0x10000</code></td></tr>
+        <tr><td>读内存</td><td><code>mdw 0x08000000 16</code></td></tr>
+        <tr><td>复位</td><td><code>reset</code> / <code>reset halt</code></td></tr>
+        <tr><td>暂停</td><td><code>halt</code></td></tr>
+        <tr><td>退出</td><td><code>shutdown</code></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>Flash 地址速查</h3>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>区域</th><th>地址</th><th>说明</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>STM32F1 Flash</td><td><code>0x08000000</code></td><td>起始地址（大小见芯片手册）</td></tr>
+        <tr><td>STM32F4 Flash</td><td><code>0x08000000</code></td><td>起始地址（1MB 芯片: 0x08000000~0x08100000）</td></tr>
+        <tr><td>SRAM</td><td><code>0x20000000</code></td><td>STM32 内部 RAM</td></tr>
+        <tr><td>System Memory</td><td><code>0x1FFF0000</code></td><td>ROM Bootloader（STM32F1）</td></tr>
+        <tr><td>Option Bytes</td><td><code>0x1FFFF800</code></td><td>选项字节（STM32F1）</td></tr>
+        <tr><td>备份 SRAM</td><td><code>0x40024000</code></td><td>STM32F4 BKP SRAM</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>VS Code 快捷键</h3>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>快捷键</th><th>功能</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><kbd>F5</kbd></td><td>开始调试 / 继续运行</td></tr>
+        <tr><td><kbd>F6</kbd></td><td>暂停</td></tr>
+        <tr><td><kbd>F10</kbd></td><td>单步步过</td></tr>
+        <tr><td><kbd>F11</kbd></td><td>单步步入</td></tr>
+        <tr><td><kbd>Shift+F5</kbd></td><td>停止调试</td></tr>
+        <tr><td><kbd>Shift+F11</kbd></td><td>跳出函数</td></tr>
+        <tr><td><kbd>F9</kbd></td><td>添加/删除断点</td></tr>
+        <tr><td><kbd>Ctrl+Shift+F9</kbd></td><td>删除所有断点</td></tr>
+        <tr><td><kbd>Ctrl+Shift+P</kbd></td><td>命令面板</td></tr>
+        <tr><td><kbd>Ctrl+Shift+B</kbd></td><td>运行构建任务</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <hr class="section-divider">
+
+  <div class="tip" style="font-size:14px;">
+    <strong>恭喜你完成本教程！</strong>你现在应该能够：
+    <br>✅ 选择合适的烧录器并接线
+    <br>✅ 安装并配置 OpenOCD
+    <br>✅ 使用 GDB 进行单步调试
+    <br>✅ 在 VS Code 中一键调试 STM32
+    <br>✅ 使用串口 ISP 作为备用烧录方案
+    <br>✅ 排查常见的连接和烧录问题
+  </div>
+
+  <div class="breadcrumb" style="margin-top:40px;">
+    <a href="#">主教程目录</a>
+    <span>/</span>
+    <span>烧录与调试 细致教程</span>
+  </div>
+
+</div><!-- /container -->
+
+<script>
+  // Smooth scroll for nav links
+  document.querySelectorAll('.nav-links a[href^="#"]').forEach(function(link) {
+    link.addEventListener('click', function(e) {
+      e.preventDefault();
+      var target = document.querySelector(this.getAttribute('href'));
+      if (target) {
+        var offset = target.getBoundingClientRect().top - 64;
+        window.scrollTo({ top: offset, behavior: 'smooth' });
+      }
+    });
+  });
+
+  // Active nav link highlight on scroll
+  var sections = document.querySelectorAll('h2[id]');
+  var navLinks = document.querySelectorAll('.nav-links a[href^="#"]');
+  window.addEventListener('scroll', function() {
+    var scrollPos = window.scrollY + 80;
+    sections.forEach(function(sec) {
+      if (scrollPos >= sec.offsetTop && scrollPos < sec.offsetTop + sec.offsetHeight) {
+        navLinks.forEach(function(a) {
+          a.classList.remove('active');
+          if (a.getAttribute('href') === '#' + sec.id) {
+            a.classList.add('active');
+          }
+        });
+      }
+    });
+  });
+
+  // Copy code block
+  document.querySelectorAll('.copy-btn').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      var code = this.closest('.code-block').querySelector('.code-body').textContent;
+      navigator.clipboard.writeText(code).then(function() {
+        btn.textContent = '复制成功!';
+        setTimeout(function() { btn.textContent = '复制'; }, 1500);
+      });
+    });
+  });
+</script>
+
+
+<hr><h2>❓ 常见问题 FAQ</h2>
+
+<div style="margin:12px 0;padding:12px 16px;background:var(--bg2);border-left:3px solid var(--a);border-radius:0 8px 8px 0">
+  <p style="font-weight:600;color:var(--c1);margin-bottom:4px">Q: ST-Link和J-Link哪个好？</p>
+  <p style="color:var(--t)">A: ST-Link便宜（克隆版¥8），只支持ST芯片；J-Link贵（¥200+），支持所有ARM芯片且速度快。初学用ST-Link够了。</p>
+</div>
+
+<div style="margin:12px 0;padding:12px 16px;background:var(--bg2);border-left:3px solid var(--a);border-radius:0 8px 8px 0">
+  <p style="font-weight:600;color:var(--c1);margin-bottom:4px">Q: 烧录失败怎么排查？</p>
+  <p style="color:var(--t)">A: 1)检查SWD接线(SWDIO/SWCLK/GND/VCC) 2)检查芯片是否锁死(Option Bytes) 3)检查供电电压(3.3V) 4)OpenOCD看输出日志</p>
+</div>
+
+<div style="margin:12px 0;padding:12px 16px;background:var(--bg2);border-left:3px solid var(--a);border-radius:0 8px 8px 0">
+  <p style="font-weight:600;color:var(--c1);margin-bottom:4px">Q: HardFault怎么调试？</p>
+  <p style="color:var(--t)">A: 1)在HardFault_Handler中设断点 2)查看LR寄存器判断是MSP还是PSP 3)从栈中提取PC值 4)用addr2line定位源码行</p>
+</div>
+
+<hr><h2>🔗 相关教程</h2>
+<div style="display:flex;flex-wrap:wrap;gap:8px;margin:12px 0">
+<a href="#" onclick="parent.loadPage && parent.loadPage('arm-gcc')" style="display:inline-block;padding:6px 14px;background:var(--bg3);border:1px solid var(--br);border-radius:6px;color:var(--a);text-decoration:none;font-size:.85em">ARM GCC →</a>
+<a href="#" onclick="parent.loadPage && parent.loadPage('stm32')" style="display:inline-block;padding:6px 14px;background:var(--bg3);border:1px solid var(--br);border-radius:6px;color:var(--a);text-decoration:none;font-size:.85em">STM32开发 →</a>
+<a href="#" onclick="parent.loadPage && parent.loadPage('serial')" style="display:inline-block;padding:6px 14px;background:var(--bg3);border:1px solid var(--br);border-radius:6px;color:var(--a);text-decoration:none;font-size:.85em">串口通信 →</a>
+</div>
+
+</body>
+</html>

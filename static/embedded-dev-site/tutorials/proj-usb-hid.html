@@ -1,0 +1,716 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0"><title>教程18: USB HID键盘鼠标</title><style>:root{--bg:#0d1117;--bg2:#161b22;--bg3:#21262d;--br:#30363d;--t:#c9d1d9;--t2:#8b949e;--a:#58a6ff;--g:#3fb950;--o:#d29922;--r:#f85149;--p:#a371f7;--c1:#39c5cf}body{background:var(--bg);color:var(--t);font-family:system-ui,sans-serif;line-height:1.8;max-width:900px;margin:0 auto;padding:20px}h1{text-align:center;background:linear-gradient(135deg,var(--a),var(--p));-webkit-background-clip:text;-webkit-text-fill-color:transparent}h2{color:var(--a);border-bottom:2px solid var(--br);padding-bottom:6px;margin-top:32px}h3{color:var(--c1);margin-top:22px}pre{background:#1c2128;border:1px solid var(--br);border-radius:8px;padding:14px;overflow-x:auto;font-size:.84em}code{font-family:'Cascadia Code',Consolas,monospace}:not(pre)>code{background:var(--bg3);padding:2px 6px;border-radius:4px;color:var(--c1)}table{width:100%;border-collapse:collapse;margin:12px 0}th{background:var(--bg3);color:var(--a);padding:8px 12px;border:1px solid var(--br);text-align:left}td{padding:8px 12px;border:1px solid var(--br)}.note{background:rgba(88,166,255,.08);border-left:3px solid var(--a);border-radius:8px;padding:12px 16px;margin:12px 0}.warn{background:rgba(248,81,73,.08);border-left:3px solid var(--r);border-radius:8px;padding:12px 16px;margin:12px 0}.tip{background:rgba(63,185,80,.08);border-left:3px solid var(--g);border-radius:8px;padding:12px 16px;margin:12px 0}.step{background:var(--bg2);border:1px solid var(--br);border-radius:8px;padding:12px 16px;margin:10px 0}</style></head><body>
+
+<h1>⌨️ 教程18: USB HID键盘鼠标</h1>
+
+<h2>📋 项目概述</h2>
+<p>本教程将带你实现一个基于STM32 USB HID的键盘鼠标设备。通过按键触发，STM32可以模拟键盘按键输入和鼠标移动操作，插入电脑后自动识别，无需安装任何驱动。</p>
+
+<div class="note">
+<strong>什么是HID？</strong>HID (Human Interface Device) 即人机接口设备，包括键盘、鼠标、游戏手柄等。Windows/Mac/Linux都内置了HID驱动，所以HID设备可以即插即用，无需额外安装驱动程序。
+</div>
+
+<h2>🔧 硬件准备</h2>
+<table>
+<tr><th>元件</th><th>数量</th><th>说明</th></tr>
+<tr><td>STM32F103C8T6 最小系统板</td><td>1</td><td>必须有USB接口(PA11/PA12)</td></tr>
+<tr><td>Micro-USB线</td><td>1</td><td>数据线(不是纯充电线)</td></tr>
+<tr><td>轻触按键</td><td>4</td><td>PA0~PA3，分别映射不同按键</td></tr>
+<tr><td>10KΩ 电阻</td><td>4</td><td>按键上拉电阻</td></tr>
+<tr><td>1.5KΩ 电阻</td><td>1</td><td>USB 1.5K上拉(仅F103需要，部分板载)</td></tr>
+</table>
+
+<div class="warn">
+<strong>⚠️ 关键注意事项：</strong><br>
+1. STM32F103C8T6有USB全速(12Mbps)接口，引脚固定为PA11(DM)和PA12(DP)<br>
+2. 部分开发板(Blue Pill)已经板载了1.5K上拉电阻到PA12，可以省略<br>
+3. 使用USB线必须确认支持数据传输，不是只能充电的线<br>
+4. STM32F407使用USB OTG接口，引脚不同(需要使用CubeMX自动配置)
+</div>
+
+<h2>📐 接线图</h2>
+<pre>
+USB HID键盘鼠标接线：
+┌────────────────────────────────────────────────────┐
+│                                                    │
+│  STM32F103C8T6                                    │
+│  ┌──────────┐                                     │
+│  │ PA11(DM) ├──────────── USB接口D-               │
+│  │ PA12(DP) ├──┤1.5K├──── USB接口D+              │
+│  │          │   (上拉)                            │
+│  │ GND      ├──────────── USB接口GND              │
+│  │ 5V(VBUS) ├──────┤     (检测USB插入)           │
+│  └──────────┘      │                              │
+│                    │                              │
+│  按键映射:         │                              │
+│  VDD ──┤10K├── PA0 ──┤ 按键1 ├── GND  → 'a'键   │
+│  VDD ──┤10K├── PA1 ──┤ 按键2 ├── GND  → 'b'键   │
+│  VDD ──┤10K├── PA2 ──┤ 按键3 ├── GND  → 鼠标左键 │
+│  VDD ──┤10K├── PA3 ──┤ 按键4 ├── GND  → 鼠标右键 │
+│                                                    │
+│  ⚠️ 1.5K上拉电阻连接在PA12和3.3V之间                │
+│     (让主机检测到全速设备)                          │
+│                                                    │
+└────────────────────────────────────────────────────┘
+</pre>
+
+<h2>📖 知识讲解</h2>
+
+<h3>USB HID协议栈架构</h3>
+<pre>
+┌─────────────────────────────┐
+│        应用层               │
+│  (按键检测 → 发送HID报表)   │
+├─────────────────────────────┤
+│     USB HID Class           │
+│  (报表描述符, 端点管理)     │
+├─────────────────────────────┤
+│     USB Device Core         │
+│  (枚举, 描述符, 控制传输)   │
+├─────────────────────────────┤
+│     USB PHY (硬件)          │
+│  (PA11/PA12, USB收发器)     │
+└─────────────────────────────┘
+
+USB枚举过程:
+1. 主机检测到D+上拉 → 全速设备
+2. 主机发送SETUP包 → 获取设备描述符
+3. 主机获取配置描述符 → 知道有几个接口和端点
+4. 主机获取HID报表描述符 → 知道数据格式
+5. 枚举完成，设备可用
+</pre>
+
+<h3>HID报表格式</h3>
+<table>
+<tr><th>类型</th><th>大小</th><th>说明</th></tr>
+<tr><td>键盘报表</td><td>8字节</td><td>Modifier(1B)+Reserved(1B)+Keys(6B)</td></tr>
+<tr><td>鼠标报表</td><td>4字节</td><td>Buttons(1B)+X(1B)+Y(1B)+Wheel(1B)</td></tr>
+</table>
+<pre>
+键盘报表格式(8字节):
+┌────────┬──────────┬──┬──┬──┬──┬──┬──┐
+│ 修饰键 │  保留    │K1│K2│K3│K4│K5│K6│
+└────────┴──────────┴──┴──┴──┴──┴──┴──┘
+  Modifier: 0x00=无, 0x02=Shift, 0x04=Ctrl, 0x01=Left Ctrl...
+
+鼠标报表格式(4字节):
+┌────────┬─────┬─────┬──────┐
+│ Buttons │  X  │  Y  │Wheel │
+└────────┴─────┴─────┴──────┘
+  Buttons: Bit0=左键, Bit1=右键, Bit2=中键
+  X/Y: 相对移动量(-127~127)
+</pre>
+
+<h2>💻 完整代码</h2>
+
+<h3>USB HID键盘鼠标 (main.c)</h3>
+<pre>
+/* ============================================
+ * USB HID 键盘鼠标 - 完整示例
+ * MCU: STM32F103C8T6
+ * 功能: 按键模拟键盘输入 + 鼠标移动
+ * 使用: CubeMX USB_DEVICE HID配置
+ * ============================================ */
+
+#include "main.h"
+#include "usb_device.h"
+#include "usbd_core.h"
+#include "usbd_desc.h"
+#include "usbd_hid.h"
+
+extern USBD_HandleTypeDef hUsbDeviceFS;
+extern PCD_HandleTypeDef hpcd_USB_FS;
+
+/* HID报表缓冲区 */
+uint8_t keyboard_report[8] = {0};
+uint8_t mouse_report[4] = {0};
+
+/* 按键状态 */
+volatile uint8_t last_key_state = 0xFF;
+
+/* USB HID键盘Key Code定义(HID Usage Table) */
+#define KEY_A           0x04
+#define KEY_B           0x05
+#define KEY_C           0x06
+#define KEY_ENTER       0x28
+#define KEY_SPACE       0x2C
+#define KEY_BACKSPACE   0x2A
+#define KEY_TAB         0x2B
+#define KEY_LEFT_SHIFT  0x00  /* 修饰键在Modifier字节 */
+
+/* Modifier定义 */
+#define MOD_LCTRL       0x01
+#define MOD_LSHIFT      0x02
+#define MOD_LALT        0x04
+#define MOD_LGUI        0x08
+
+/* 函数声明 */
+void SystemClock_Config(void);
+static void MX_GPIO_Init(void);
+static void Check_Buttons(void);
+static void Send_Keyboard(uint8_t key, uint8_t modifier);
+static void Send_Key_Release(void);
+static void Send_Mouse(int8_t x, int8_t y, uint8_t buttons);
+static void Send_Mouse_Release(void);
+
+int main(void)
+{
+    /* HAL初始化 */
+    HAL_Init();
+    SystemClock_Config();
+
+    /* 初始化GPIO(按键) */
+    MX_GPIO_Init();
+
+    /* 初始化USB设备 */
+    MX_USB_DEVICE_Init();
+
+    /* 等待USB枚举完成 */
+    HAL_Delay(2000);
+
+    printf("USB HID Keyboard/Mouse Ready!\r\n"); /* 通过调试串口 */
+
+    while (1)
+    {
+        /* 检测按键状态 */
+        Check_Buttons();
+        HAL_Delay(10); /* 去抖 */
+    }
+}
+
+/* ============ 按键检测 ============ */
+static void Check_Buttons(void)
+{
+    uint8_t current_state = 0;
+    uint8_t changed;
+
+    /* 读取4个按键状态 (0=按下, 1=松开) */
+    if (HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_0) == GPIO_PIN_RESET)
+        current_state |= (1 &lt;&lt; 0);
+    if (HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_1) == GPIO_PIN_RESET)
+        current_state |= (1 &lt;&lt; 1);
+    if (HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_2) == GPIO_PIN_RESET)
+        current_state |= (1 &lt;&lt; 2);
+    if (HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_3) == GPIO_PIN_RESET)
+        current_state |= (1 &lt;&lt; 3);
+
+    changed = current_state ^ last_key_state;
+
+    /* PA0按下 → 输入字母'a' */
+    if (changed &amp; (1 &lt;&lt; 0))
+    {
+        if (current_state &amp; (1 &lt;&lt; 0))
+        {
+            Send_Keyboard(KEY_A, 0);
+        }
+        else
+        {
+            Send_Key_Release();
+        }
+    }
+
+    /* PA1按下 → 输入字母'b'(按Shift大写) */
+    if (changed &amp; (1 &lt;&lt; 1))
+    {
+        if (current_state &amp; (1 &lt;&lt; 1))
+        {
+            Send_Keyboard(KEY_B, MOD_LSHIFT); /* Shift+B = 'B' */
+        }
+        else
+        {
+            Send_Key_Release();
+        }
+    }
+
+    /* PA2按下 → 鼠标左键点击 */
+    if (changed &amp; (1 &lt;&lt; 2))
+    {
+        if (current_state &amp; (1 &lt;&lt; 2))
+        {
+            Send_Mouse(0, 0, 0x01); /* 左键按下 */
+            HAL_Delay(50);
+            Send_Mouse_Release();  /* 左键释放 */
+        }
+    }
+
+    /* PA3按下 → 鼠标右键点击 */
+    if (changed &amp; (1 &lt;&lt; 3))
+    {
+        if (current_state &amp; (1 &lt;&lt; 3))
+        {
+            Send_Mouse(0, 0, 0x02); /* 右键按下 */
+            HAL_Delay(50);
+            Send_Mouse_Release();  /* 右键释放 */
+        }
+    }
+
+    last_key_state = current_state;
+}
+
+/* ============ 发送键盘按键 ============ */
+static void Send_Keyboard(uint8_t key, uint8_t modifier)
+{
+    /* 构建键盘报表 */
+    memset(keyboard_report, 0, sizeof(keyboard_report));
+    keyboard_report[0] = modifier;  /* 修饰键 */
+    keyboard_report[1] = 0;           /* 保留 */
+    keyboard_report[2] = key;         /* 第一个按键 */
+    /* keyboard_report[3~7]可以放其他同时按下的键 */
+
+    /* 通过USB发送 */
+    USBD_HID_SendReport(&amp;hUsbDeviceFS, keyboard_report, sizeof(keyboard_report));
+
+    HAL_Delay(10); /* 短暂延时，模拟真实按键节奏 */
+}
+
+/* ============ 释放所有按键 ============ */
+static void Send_Key_Release(void)
+{
+    memset(keyboard_report, 0, sizeof(keyboard_report));
+    USBD_HID_SendReport(&amp;hUsbDeviceFS, keyboard_report, sizeof(keyboard_report));
+}
+
+/* ============ 发送鼠标移动/按键 ============ */
+static void Send_Mouse(int8_t x, int8_t y, uint8_t buttons)
+{
+    mouse_report[0] = buttons;  /* 按钮 */
+    mouse_report[1] = (uint8_t)x;  /* X轴移动 */
+    mouse_report[2] = (uint8_t)y;  /* Y轴移动 */
+    mouse_report[3] = 0;           /* 滚轮 */
+
+    USBD_HID_SendReport(&amp;hUsbDeviceFS, mouse_report, sizeof(mouse_report));
+}
+
+/* ============ 释放鼠标按键 ============ */
+static void Send_Mouse_Release(void)
+{
+    memset(mouse_report, 0, sizeof(mouse_report));
+    USBD_HID_SendReport(&amp;hUsbDeviceFS, mouse_report, sizeof(mouse_report));
+}
+
+/* ============ 自动输入示例(可选) ============ */
+void Auto_Type_Demo(void)
+{
+    /* 自动输入"Hello World!" */
+    const char *str = "Hello World!";
+    uint8_t i;
+
+    for (i = 0; str[i] != '\0'; i++)
+    {
+        uint8_t key = 0;
+        uint8_t mod = 0;
+
+        /* 简单映射: a-z直接用KEY_A~KEY_Z */
+        if (str[i] >= 'a' &amp;&amp; str[i] &lt;= 'z')
+            key = KEY_A + (str[i] - 'a');
+        else if (str[i] >= 'A' &amp;&amp; str[i] &lt;= 'Z')
+        {
+            key = KEY_A + (str[i] - 'A');
+            mod = MOD_LSHIFT; /* 大写需要Shift */
+        }
+        else if (str[i] == ' ')
+            key = KEY_SPACE;
+
+        if (key)
+        {
+            Send_Keyboard(key, mod);
+            HAL_Delay(50);   /* 按键按下到释放的间隔 */
+            Send_Key_Release();
+            HAL_Delay(50);   /* 两次按键之间的间隔 */
+        }
+    }
+}
+
+/* ============ 鼠标自动移动示例 ============ */
+void Auto_Mouse_Move_Demo(void)
+{
+    int8_t i;
+
+    /* 画一个小正方形 */
+    for (i = 0; i &lt; 50; i++) Send_Mouse( 5,  0, 0); /* 右移 */
+    HAL_Delay(10);
+    for (i = 0; i &lt; 50; i++) Send_Mouse( 0,  5, 0); /* 下移 */
+    HAL_Delay(10);
+    for (i = 0; i &lt; 50; i++) Send_Mouse(-5,  0, 0); /* 左移 */
+    HAL_Delay(10);
+    for (i = 0; i &lt; 50; i++) Send_Mouse( 0, -5, 0); /* 上移 */
+    HAL_Delay(10);
+}
+
+/* ============ GPIO初始化 ============ */
+static void MX_GPIO_Init(void)
+{
+    GPIO_InitTypeDef GPIO_InitStruct = {0};
+
+    __HAL_RCC_GPIOA_CLK_ENABLE();
+
+    /* PA0~PA3: 按键输入，内部上拉 */
+    GPIO_InitStruct.Pin = GPIO_PIN_0 | GPIO_PIN_1 | GPIO_PIN_2 | GPIO_PIN_3;
+    GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+    GPIO_InitStruct.Pull = GPIO_PULLUP;
+    HAL_GPIO_Init(GPIOA, &amp;GPIO_InitStruct);
+}
+
+/* ============ 系统时钟 ============ */
+void SystemClock_Config(void)
+{
+    RCC_OscInitTypeDef RCC_OscInitStruct = {0};
+    RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
+
+    /* USB需要48MHz时钟(PLL × 1.5) */
+    RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSE;
+    RCC_OscInitStruct.HSEState = RCC_HSE_ON;
+    RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
+    RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
+    RCC_OscInitStruct.PLL.PLLMUL = RCC_PLLMUL_9;    /* 72MHz */
+    RCC_OscInitStruct.PLL.PREDIV1 = RCC_PREDIV_DIV1;
+    if (HAL_RCC_OscConfig(&amp;RCC_OscInitStruct) != HAL_OK) Error_Handler();
+
+    RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK | RCC_CLOCKTYPE_SYSCLK |
+                                  RCC_CLOCKTYPE_PCLK1 | RCC_CLOCKTYPE_PCLK2;
+    RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
+    RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
+    RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV2;   /* 36MHz */
+    RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1;   /* 72MHz */
+    if (HAL_RCC_ClockConfig(&amp;RCC_ClkInitStruct, FLASH_LATENCY_2) != HAL_OK)
+        Error_Handler();
+
+    /* USB时钟: 必须为48MHz */
+    /* F103: USB时钟 = 72MHz / 1.5 = 48MHz (硬件自动) */
+}
+</pre>
+
+<h3>CubeMX USB HID配置</h3>
+<pre>
+CubeMX配置步骤:
+1. 选择STM32F103C8T6
+2. USB_OTG_FS (或USB):
+   - Mode: Device (Full Speed)
+3. USB_DEVICE:
+   - Class for FS IP: Human Interface Device (HID)
+   - (如果是复合设备，选Composite Device)
+4. 在Middlewares/USB_DEVICE/HID中:
+   - IN Endpoint: EP1 IN
+   - Packet Size: 8 bytes (HID默认)
+5. GPIO:
+   - PA0~PA3: GPIO_Input, Pull-Up
+   - PA11/PA12: USB DP/DM (自动配置)
+6. Clock:
+   - 确保48MHz USB时钟
+7. NVIC:
+   - USB中断: Enabled
+8. 生成代码
+</pre>
+
+<h3>修改报表描述符(复合设备: 键盘+鼠标)</h3>
+<pre>
+/* 如果要同时支持键盘和鼠标(复合设备),
+ * 需要修改 usbd_hid.c 中的 HID 报表描述符 */
+
+/* 复合HID报表描述符示例:
+ * 包含3个顶级集合:
+ * 1. 键盘 (8字节报表)
+ * 2. 鼠标 (4字节报表)
+ * 3. 消费者控制 (可选, 音量等) */
+
+/* 关键修改点:
+ * 1. 增加IN端点大小到最大报表+1
+ * 2. 在报表描述符中定义多个Collection
+ * 3. 通过Report ID区分不同设备 */
+
+/* 简化版: 只用键盘描述符(8字节)
+ * 如果需要鼠标，可以用第二个端点或Report ID */
+</pre>
+
+<h2>📝 分步操作指引</h2>
+
+<div class="step">
+<strong>第1步：CubeMX创建USB HID工程</strong><br>
+1. 选择STM32F103C8T6<br>
+2. 在USB_OTG_FS中选择Device(FS)模式<br>
+3. 在USB_DEVICE中选择HID类<br>
+4. 配置GPIO(PA0~PA3)为输入上拉<br>
+5. 确认时钟树中USB时钟为48MHz<br>
+6. 生成代码
+</div>
+
+<div class="step">
+<strong>第2步：编写按键检测代码</strong><br>
+1. 在main.c中添加按键检测逻辑<br>
+2. 添加<code>Send_Keyboard()</code>和<code>Send_Mouse()</code>函数<br>
+3. 编译确认无错误
+</div>
+
+<div class="step">
+<strong>第3步：首次测试</strong><br>
+1. 用ST-Link烧录<br>
+2. 拔掉ST-Link，通过USB线连接电脑<br>
+3. 电脑应该识别到"HID Keyboard Device"<br>
+4. 打开记事本，按下PA0按键，应该输入字母'a'<br>
+5. 按下PA2按键，应该触发鼠标左键点击
+</div>
+
+<div class="step">
+<strong>第4步：调试</strong><br>
+1. 如果设备未识别，检查1.5K上拉电阻<br>
+2. 使用USB Tree工具(如USBView)查看枚举过程<br>
+3. 在代码中加入LED指示，按键按下时点亮LED<br>
+4. 逐步排查每个功能
+</div>
+
+<h2>❓ 常见问题排查</h2>
+
+<h3>问题1：电脑不识别USB设备</h3>
+<div class="warn">
+<strong>最常见原因：</strong><br>
+1. 缺少1.5K上拉电阻(让主机检测到全速设备)<br>
+2. USB时钟不是48MHz<br>
+3. USB线不支持数据传输(充电线)<br>
+4. USB描述符有错误
+</div>
+<p><strong>排查步骤：</strong></p>
+<ol>
+<li>用万用表确认PA12和3.3V之间有1.5K电阻</li>
+<li>Windows设备管理器中应该看到"未知USB设备"或"HID设备"</li>
+<li. 如果完全无反应，用USBView工具查看是否有任何USB活动</li>
+</ol>
+
+<h3>问题2：识别了但按键无反应</h3>
+<div class="note">
+<strong>原因排查：</strong><br>
+1. 报表格式不对 — 键盘报表必须8字节<br>
+2. Key Code错误 — 检查是否使用了正确的HID Usage Table键码<br>
+3. 按键检测逻辑错误 — 确认GPIO读取正常<br>
+4. USB发送间隔太短 — 部分系统需要最小间隔
+</div>
+<p><strong>常用键码速查：</strong></p>
+<pre>
+HID Key Codes (部分):
+a-z: 0x04-0x1D
+1-0: 0x1E-0x27 (与数字键位置对应)
+Enter: 0x28
+Esc: 0x29
+Backspace: 0x2A
+Tab: 0x2B
+Space: 0x2C
+'-': 0x2D, '=': 0x2E, '[': 0x2F, ']': 0x30
+';': 0x33, "'": 0x34, '`': 0x35
+'\': 0x31, ',': 0x36, '.': 0x37, '/': 0x38
+Caps Lock: 0x39
+F1-F12: 0x3A-0x45
+</pre>
+
+<h3>问题3：复合设备(键盘+鼠标)</h3>
+<pre>
+/* 如果需要同时支持键盘和鼠标，有两种方案: */
+
+/* 方案1: Report ID区分 (推荐) */
+/* 一个端点，通过报表ID区分不同设备 */
+/* 键盘报表: [ReportID=0x01][Modifier][Reserved][Keys×6] = 9字节 */
+/* 鼠标报表: [ReportID=0x02][Buttons][X][Y][Wheel] = 5字节 */
+
+/* 方案2: 多端点 */
+/* 使用两个IN端点，一个给键盘，一个给鼠标 */
+/* CubeMX中添加第二个端点 */
+
+/* 推荐方案1，因为大多数USB HID实现都支持Report ID */
+</pre>
+
+<h3>问题4：Windows/Linux驱动兼容性</h3>
+<table>
+<tr><th>系统</th><th>识别结果</th><th>注意事项</th></tr>
+<tr><td>Windows 10/11</td><td>"HID Keyboard" 或 "HID-compliant device"</td><td>系统会显示"USB输入设备"</td></tr>
+<tr><td>macOS</td><td>自动识别</td><td>可能需要在"安全性与隐私"中允许</td></tr>
+<tr><td>Linux</td><td>/dev/hidraw0 或 /dev/usb/hiddev0</td><td>某些发行版需要udev规则</td></tr>
+<tr><td>Android</td><td>自动识别</td><td>OTG模式需要确认支持</td></tr>
+</table>
+
+<h3>问题5：USB断开重连</h3>
+<div class="tip">
+<strong>测试技巧：</strong><br>
+1. 在代码中加入<code>USBD_LL_SetSpeed()</code>确认USB速度<br>
+2. 按键按下时点亮一个LED，确认GPIO检测正常<br>
+3. 用USB逻辑分析仪(如Saleae)抓包分析枚举过程<br>
+4. 注意：STM32的USB只支持全速(12Mbps)，不支持高速(480Mbps)
+</div>
+
+<div class="note">
+<strong>💡 进阶应用：</strong><br>
+1. 宏键盘：录制一系列按键序列，一键执行<br>
+2. 游戏**：模拟特定按键组合<br>
+3. 自定义媒体键：音量控制、播放/暂停、截图<br>
+4. USB转串口/并口：虚拟COM口(CDC类) + HID<br>
+5. BadUSB：安全研究用途(注意合法使用)
+</div>
+
+
+
+<h2>📋 HID报告描述符深度解析</h2>
+<p>HID报告描述符是USB设备与主机之间最关键的"契约"，定义了数据包格式。错误的描述符会导致设备无法识别。</p>
+
+<pre><code>// 自定义复合HID设备描述符（键盘+多媒体键+鼠标）
+// 使用HID Descriptor Tool (USB-IF官方工具)可视化编辑
+
+__ALIGN_BEGIN static const uint8_t HID_Composite_ReportDesc[] __ALIGN_END = {
+    // === 键盘部分 (Report ID 1) ===
+    0x05, 0x01,        // USAGE_PAGE (Generic Desktop)
+    0x09, 0x06,        // USAGE (Keyboard)
+    0xa1, 0x01,        // COLLECTION (Application)
+    0x85, 0x01,        //   REPORT_ID (1) ← 键盘
+    
+    // 修饰键位图(8bit): Ctrl/Shift/Alt/GUI
+    0x05, 0x07,        //   USAGE_PAGE (Keyboard/Keypad)
+    0x19, 0xe0,        //   USAGE_MINIMUM (Left Control)
+    0x29, 0xe7,        //   USAGE_MAXIMUM (Right GUI)
+    0x15, 0x00,        //   LOGICAL_MINIMUM (0)
+    0x25, 0x01,        //   LOGICAL_MAXIMUM (1)
+    0x75, 0x01,        //   REPORT_SIZE (1)
+    0x95, 0x08,        //   REPORT_COUNT (8)
+    0x81, 0x02,        //   INPUT (Data,Var,Abs)
+    
+    // 保留字节
+    0x95, 0x01,        //   REPORT_COUNT (1)
+    0x75, 0x08,        //   REPORT_SIZE (8)
+    0x81, 0x01,        //   INPUT (Cnst,Ary,Abs)
+    
+    // 按键数组(6个同时按下)
+    0x95, 0x06,        //   REPORT_COUNT (6)
+    0x75, 0x08,        //   REPORT_SIZE (8)
+    0x15, 0x00,        //   LOGICAL_MINIMUM (0)
+    0x25, 0x65,        //   LOGICAL_MAXIMUM (101)
+    0x05, 0x07,        //   USAGE_PAGE (Keyboard)
+    0x19, 0x00,        //   USAGE_MINIMUM (Reserved)
+    0x29, 0x65,        //   USAGE_MAXIMUM (Keyboard Application)
+    0x81, 0x00,        //   INPUT (Data,Ary,Abs)
+    
+    // LED输出(大小写锁定等)
+    0x95, 0x05,        //   REPORT_COUNT (5)
+    0x75, 0x01,        //   REPORT_SIZE (1)
+    0x05, 0x08,        //   USAGE_PAGE (LEDs)
+    0x19, 0x01,        //   USAGE_MINIMUM (Num Lock)
+    0x29, 0x05,        //   USAGE_MAXIMUM (Kana)
+    0x91, 0x02,        //   OUTPUT (Data,Var,Abs)
+    0x95, 0x01,        //   REPORT_COUNT (1)
+    0x75, 0x03,        //   REPORT_SIZE (3)  // padding
+    0x91, 0x01,        //   OUTPUT (Cnst,Ary,Abs)
+    0xc0,              // END_COLLECTION
+    
+    // === 鼠标部分 (Report ID 2) ===
+    0x05, 0x01,        // USAGE_PAGE (Generic Desktop)
+    0x09, 0x02,        // USAGE (Mouse)
+    0xa1, 0x01,        // COLLECTION (Application)
+    0x85, 0x02,        //   REPORT_ID (2) ← 鼠标
+    0x09, 0x01,        //   USAGE (Pointer)
+    0xa1, 0x00,        //   COLLECTION (Physical)
+    
+    // 按键(3个)
+    0x05, 0x09,        //     USAGE_PAGE (Button)
+    0x19, 0x01,        //     USAGE_MINIMUM (Button 1)
+    0x29, 0x03,        //     USAGE_MAXIMUM (Button 3)
+    0x15, 0x00,        //     LOGICAL_MINIMUM (0)
+    0x25, 0x01,        //     LOGICAL_MAXIMUM (1)
+    0x95, 0x03,        //     REPORT_COUNT (3)
+    0x75, 0x01,        //     REPORT_SIZE (1)
+    0x81, 0x02,        //     INPUT (Data,Var,Abs)
+    
+    // 填充
+    0x95, 0x01,        //     REPORT_COUNT (1)
+    0x75, 0x05,        //     REPORT_SIZE (5)
+    0x81, 0x01,        //     INPUT (Cnst)
+    
+    // X, Y, 滚轮 (相对值)
+    0x05, 0x01,        //     USAGE_PAGE (Generic Desktop)
+    0x09, 0x30,        //     USAGE (X)
+    0x09, 0x31,        //     USAGE (Y)
+    0x09, 0x38,        //     USAGE (Wheel)
+    0x15, 0x81,        //     LOGICAL_MINIMUM (-127)
+    0x25, 0x7f,        //     LOGICAL_MAXIMUM (127)
+    0x75, 0x08,        //     REPORT_SIZE (8)
+    0x95, 0x03,        //     REPORT_COUNT (3)
+    0x81, 0x06,        //     INPUT (Data,Var,Rel)
+    0xc0,              //   END_COLLECTION
+    0xc0,              // END_COLLECTION
+};
+
+// 发送键盘报告
+typedef struct __packed {
+    uint8_t report_id;   // = 1
+    uint8_t modifiers;
+    uint8_t reserved;
+    uint8_t keys[6];
+} KeyboardReport;
+
+// 发送鼠标报告
+typedef struct __packed {
+    uint8_t report_id;   // = 2
+    uint8_t buttons;
+    int8_t  x;
+    int8_t  y;
+    int8_t  wheel;
+} MouseReport;</code></pre>
+
+<h2>🔄 USB复合设备配置</h2>
+<pre><code>// 一个USB设备提供多个HID功能 - 配置描述符结构
+// 设备描述符 → 配置描述符 → 接口0(HID键盘) → 接口1(HID鼠标) → 接口2(HID游戏手柄)
+
+// 关键：每个HID接口需要独立的端点(或共享端点用Report ID区分)
+// 端点资源有限(STM32F103: 8个端点), 需要合理分配:
+
+// 端点配置策略:
+// EP1 IN:  键盘报告 → 主机 (中断传输, 10ms轮询)
+// EP2 IN:  鼠标报告 → 主机 (中断传输, 1ms轮询, 更高优先级)
+// EP3 OUT: 键盘LED → 设备 (中断传输)
+
+// 描述符总大小限制: FS设备配置描述符+接口+端点+报告 ≤ 64字节
+// 如果超限 → 使用字符串描述符或报告描述符单独获取</code></pre>
+
+<div class="warn">
+<strong>USB HID常见坑：</strong>
+<ol>
+<li>报告描述符中REPORT_COUNT和REPORT_SIZE必须与实际发送数据长度匹配（差1bit都不行）</li>
+<li>Windows对HID键盘有特殊处理：即使你不发送按键，也必须定期发送空报告（否则系统认为设备断开）</li>
+<li>复合设备的接口描述符中bInterfaceClass=0x03 (HID)，但IAD描述符的bFunctionClass可以是0x00或0x03</li>
+<li>Linux的usbhid驱动对report descriptor语法更严格，一些Windows接受的错误在Linux上报错</li>
+</ol>
+</div>
+
+<h2>🎮 HID游戏手柄实现</h2>
+<pre><code>// 标准游戏手柄报告描述符要点:
+// Usage Page: 0x01 (Generic Desktop)
+// Usage: 0x05 (Game Pad)
+// 常见轴: X, Y, Z, Rx, Ry, Rz, Hat Switch, Slider
+// 按钮: Usage Page 0x09 (Button), 最多32个
+
+// 最小化游戏手柄报告 (8轴 + 16按键 = 12字节)
+typedef struct __packed {
+    uint8_t report_id;   // 默认0
+    // 轴 (每个2字节, 范围-32768~32767, 但游戏通常用0~65535)
+    int16_t x, y;        // 左摇杆
+    int16_t z, rz;       // 右摇杆 (Z=左扳机, Rz=右扳机)
+    int16_t rx, ry;      // 可选轴
+    uint8_t hat;         // 方向键 (0-7 = N→NW, 8=居中)
+    // 按钮位图
+    uint16_t buttons;    // 16个按钮
+} GamepadReport;
+
+// 注意: 使用HID Gamepad需要报告描述符声明Physical Descriptor
+// Set Physical Descriptor Set (0x330-0x33F) 定义轴的物理含义
+// 游戏通常不严格校验, 但XInput兼容需要特定映射</code></pre><hr><h2>❓ 常见问题 FAQ</h2>
+
+<div style="margin:12px 0;padding:12px 16px;background:var(--bg2);border-left:3px solid var(--a);border-radius:0 8px 8px 0">
+  <p style="font-weight:600;color:var(--c1);margin-bottom:4px">Q: 电脑识别不到USB设备？</p>
+  <p style="color:var(--t)">A: 1)USB DP需要1.5kΩ上拉到3.3V（全速设备） 2)描述符格式必须严格符合USB规范 3)VBus检测引脚配置 4)时钟精度要求±0.25%</p>
+</div>
+
+<div style="margin:12px 0;padding:12px 16px;background:var(--bg2);border-left:3px solid var(--a);border-radius:0 8px 8px 0">
+  <p style="font-weight:600;color:var(--c1);margin-bottom:4px">Q: HID报表描述符怎么写？</p>
+  <p style="color:var(--t)">A: 用USB HID Descriptor Tool生成。初学参考STM32 CubeMX自动生成的模板，不要手写。</p>
+</div>
+
+<hr><h2>🔗 相关教程</h2>
+<div style="display:flex;flex-wrap:wrap;gap:8px;margin:12px 0">
+<a href="#" onclick="parent.loadPage && parent.loadPage('stm32')" style="display:inline-block;padding:6px 14px;background:var(--bg3);border:1px solid var(--br);border-radius:6px;color:var(--a);text-decoration:none;font-size:.85em">STM32开发 →</a>
+<a href="#" onclick="parent.loadPage && parent.loadPage('freertos')" style="display:inline-block;padding:6px 14px;background:var(--bg3);border:1px solid var(--br);border-radius:6px;color:var(--a);text-decoration:none;font-size:.85em">FreeRTOS →</a>
+</div>
+
+</body></html>

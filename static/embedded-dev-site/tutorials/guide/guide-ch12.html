@@ -1,0 +1,879 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第12章：传感器应用实战 - 嵌入式小白完全指南</title>
+<style>
+:root{--bg:#0d1117;--bg2:#161b22;--bg3:#21262d;--br:#30363d;--t:#c9d1d9;--t2:#8b949e;--a:#58a6ff;--g:#3fb950;--o:#d2991d;--r:#f85149;--p:#a371f7;--c1:#39c5cf}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--t);line-height:1.8;max-width:880px;margin:0 auto;padding:14px}
+h1{font-size:1.55em;text-align:center;padding:16px 0;background:linear-gradient(135deg,var(--a),var(--p));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+h2{font-size:1.15em;color:var(--a);margin:30px 0 10px;padding-bottom:6px;border-bottom:2px solid var(--br)}
+h3{font-size:1.02em;color:var(--g);margin:18px 0 7px}
+h4{font-size:.95em;color:var(--o);margin:12px 0 5px}
+pre{background:#1c2128;border:1px solid var(--br);border-radius:8px;padding:12px 14px;overflow-x:auto;margin:8px 0 12px;font-size:.82em;line-height:1.6;white-space:pre-wrap;word-break:break-all;position:relative}
+code{font-family:'SF Mono','Fira Code',monospace}
+pre code{color:#e6edf3}
+.note{background:rgba(210,153,29,.08);border:1px solid rgba(210,153,29,.3);border-radius:8px;padding:10px 14px;margin:10px 0;font-size:.83em;color:var(--o)}
+.warn{background:rgba(248,81,73,.08);border:1px solid rgba(248,81,73,.3);border-radius:8px;padding:10px 14px;margin:10px 0;font-size:.83em;color:var(--r)}
+.tip{background:rgba(63,185,80,.06);border:1px solid rgba(63,185,80,.25);border-radius:8px;padding:10px 14px;margin:10px 0;font-size:.83em;color:var(--g)}
+.example{background:rgba(88,166,255,.06);border:1px solid rgba(88,166,255,.25);border-radius:8px;padding:10px 14px;margin:8px 0;font-size:.82em;color:var(--a)}
+.example b{color:var(--g)}
+.trouble{background:rgba(163,113,247,.06);border:1px solid rgba(163,113,247,.3);border-radius:8px;padding:10px 14px;margin:8px 0;font-size:.82em;color:var(--p)}
+.trouble b{color:var(--p)}
+.card{background:var(--bg2);border:1px solid var(--br);border-radius:10px;margin:14px 0;overflow:hidden}
+.card>.h{padding:10px 14px;background:var(--bg3);display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.card>.h>.name{font-weight:700;font-size:.9em;color:var(--t);font-family:monospace}
+.card>.h>.tag{font-size:.65em;padding:2px 8px;border-radius:8px;white-space:nowrap;border:1px solid var(--br);color:var(--t2)}
+.card>.h>.tag.g{background:rgba(63,185,80,.15);border-color:var(--g);color:var(--g)}
+.card>.h>.tag.y{background:rgba(210,153,29,.15);border-color:var(--o);color:var(--o)}
+.card>.h>.tag.r{background:rgba(248,81,73,.15);border-color:var(--r);color:var(--r)}
+.card>.h>.tag.b{background:rgba(88,166,255,.15);border-color:var(--a);color:var(--a)}
+.card>.h>.tag.p{background:rgba(163,113,247,.15);border-color:var(--p);color:var(--p)}
+.card>.b{padding:10px 14px;font-size:.87em}
+.card>.b>.desc{font-size:.92em;color:var(--t2);margin-bottom:8px}
+table{width:100%;border-collapse:collapse;margin:10px 0;font-size:.81em;background:var(--bg2);border-radius:8px;overflow:hidden;border:1px solid var(--br)}
+td,th{padding:8px 12px;border-bottom:1px solid var(--br);text-align:left}
+th{background:var(--bg3);color:var(--a);font-weight:600}
+tr:last-child td{border-bottom:none}
+.step{background:var(--bg3);border-radius:6px;padding:8px 13px;margin:6px 0;font-size:.83em}
+.step b{color:var(--a)}
+.summary{background:linear-gradient(135deg,rgba(88,166,255,.1),rgba(163,113,247,.1));border:1px solid var(--br);border-radius:10px;padding:12px 16px;margin:18px 0;font-size:.88em;color:var(--t)}
+.summary b{color:var(--a)}
+.analogy{background:rgba(57,197,207,.07);border-left:3px solid var(--c1);padding:8px 13px;margin:8px 0;font-size:.82em;color:var(--c1);border-radius:0 6px 6px 0}
+.analogy b{color:var(--c1)}
+.chnav{display:flex;justify-content:space-between;margin:30px 0 10px;gap:12px;border-top:1px solid var(--br);padding-top:16px;flex-wrap:wrap}
+.chnav a{flex:1;text-align:center;padding:10px 14px;background:var(--bg2);border:1px solid var(--br);border-radius:8px;color:var(--a);text-decoration:none;font-size:.85em;transition:all .2s;min-width:120px;cursor:pointer}
+.chnav a:hover{background:var(--bg3);border-color:var(--a)}
+.chnav .toc-link{flex:0;min-width:80px;background:var(--bg3);color:var(--t2)}
+.chnav .toc-link:hover{color:var(--a)}
+.copy-btn{position:absolute;top:4px;right:4px;padding:3px 10px;background:var(--bg3);border:1px solid var(--br);border-radius:5px;color:var(--t2);font-size:.72em;cursor:pointer;opacity:0;transition:opacity .2s}
+pre:hover .copy-btn{opacity:1}
+.copy-btn:hover{background:var(--a);color:var(--bg)}
+.copy-btn.copied{background:var(--g);color:var(--bg);border-color:var(--g)}
+@media(max-width:480px){body{padding:10px}h1{font-size:1.3em}h2{font-size:1.05em}pre{font-size:.75em}}
+</style>
+</head>
+<body>
+
+<h1>第12章：传感器应用实战</h1>
+<div class="summary"><b>📖 小白完全指南 · 12/14</b> | 阅读时间约14分钟</div>
+
+<p>做一个<strong>完整可运行</strong>的项目：DHT11温湿度传感器 → STM32读取 → 串口输出 → OLED显示屏显示。再加装超声波测距、MPU6050姿态传感器，一个多传感器环境监测站就成型了。</p>
+
+<div class="analogy">💡 <b>类比：</b>传感器就像人体的<b>感官系统</b>——温度传感器=皮肤，超声波=眼睛(测距)，加速度计=前庭(平衡)，GPS=方向感。MCU就是大脑，处理这些感官信息并作出决策。</div>
+
+<h2>📐 传感器通信协议选型</h2>
+
+<div class="card">
+<div class="h"><span class="name">嵌入式三大传感器接口</span><span class="tag g">基础</span></div>
+<div class="b">
+<div class="desc">
+<table>
+<tr><th>接口</th><th>线数</th><th>速度</th><th>最大距离</th><th>设备上限</th><th>典型传感器</th></tr>
+<tr><td>I2C</td><td>2线(SCL/SDA)</td><td>100k/400k/1M/3.4M</td><td><1m</td><td>128</td><td>BMP280, MPU6050, OLED, BH1750</td></tr>
+<tr><td>SPI</td><td>4线(SCK/MOSI/MISO/CS)</td><td>1-80MHz</td><td><0.5m</td><td>受CS引脚数限制</td><td>BME680, ICM-20948, SD卡, Flash</td></tr>
+<tr><td>UART</td><td>2线(TX/RX) + GND</td><td>9600-1Mbps</td><td><15m</td><td>1对1</td><td>GPS模块, 指纹模块, 语音模块</td></tr>
+<tr><td>OneWire</td><td>1线+DATA+GND</td><td>16.3kbps</td><td><300m</td><td>总线扫描</td><td>DS18B20, DHT11/22</td></tr>
+<tr><td>Analog</td><td>1线</td><td>受ADC限制</td><td><1m</td><td>受ADC通道数限制</td><td>光敏/气敏/土壤湿度</td></tr>
+</table>
+</div></div></div>
+
+<h2>🌡 项目一：DHT11温湿度监测站</h2>
+
+<div class="note">⚠️ <b>重要：</b>下面的代码依赖STM32 HAL库。你需要先创建一个HAL库项目（CubeMX或EIDE），以下是完整步骤。</div>
+
+<h3>🛠️ 项目创建（二选一）</h3>
+
+<div class="card">
+<div class="h"><span class="name">方式1：STM32CubeMX（推荐）</span><span class="tag g">自动生成</span></div>
+<div class="b">
+<div class="desc">CubeMX自动生成初始化代码，你只需写业务逻辑。</div>
+<div class="step"><b>步骤1：</b>打开STM32CubeMX → New Project → 搜索 <code>STM32F103C8</code> → 双击选择</div>
+<div class="step"><b>步骤2：</b>配置引脚：PA1=GPIO_Output（DHT11）、PB6=I2C1_SCL、PB7=I2C1_SDA、PA9=USART1_TX、PA10=USART1_RX</div>
+<div class="step"><b>步骤3：</b>左侧配置：Connectivity → USART1 → Mode: Asynchronous → Baud: 115200</div>
+<div class="step"><b>步骤4：</b>Connectivity → I2C1 → 勾选 Enabled → Speed: Standard(100K)</div>
+<div class="step"><b>步骤5：</b>Project Manager → Toolchain: CMake → Generate Code</div>
+<div class="step"><b>步骤6：</b>生成的工程中，在 <code>/* USER CODE BEGIN */</code> 区域内写你的代码</div>
+</div></div>
+
+<div class="card">
+<div class="h"><span class="name">方式2：EIDE/PlatformIO插件（免CubeMX）</span><span class="tag b">VS Code内</span></div>
+<div class="b">
+<div class="desc">已安装的VS Code插件，可以在VS Code内直接创建STM32项目。</div>
+<pre><code>// EIDE方式（推荐）
+// 1. VS Code → Ctrl+Shift+P → "EIDE: New Project"
+// 2. 选择 "Cortex-M Project" → STM32F103C8
+// 3. 项目自动包含HAL库和启动文件
+
+// PlatformIO方式
+// 1. VS Code → PlatformIO → New Project
+// 2. Board: BluePill F103C8 → Framework: STM32Cube
+// 3. 自动下载HAL库和编译工具链</code></pre>
+</div></div>
+
+<h3>硬件连接</h3>
+
+<table>
+<tr><th>DHT11引脚</th><th>STM32引脚</th><th>说明</th></tr>
+<tr><td>VCC</td><td>3.3V</td><td>供电(3.3-5V均可)</td></tr>
+<tr><td>GND</td><td>GND</td><td>地</td></tr>
+<tr><td>DATA</td><td>PA1</td><td>数据线（需4.7KΩ上拉到VCC）</td></tr>
+</table>
+
+<table>
+<tr><th>OLED(SSD1306)</th><th>STM32引脚</th><th>说明</th></tr>
+<tr><td>VCC</td><td>3.3V</td><td>供电</td></tr>
+<tr><td>GND</td><td>GND</td><td>地</td></tr>
+<tr><td>SCL</td><td>PB6(I2C1_SCL)</td><td>I2C时钟（需接4.7K上拉）</td></tr>
+<tr><td>SDA</td><td>PB7(I2C1_SDA)</td><td>I2C数据（需接4.7K上拉）</td></tr>
+</table>
+
+<div class="tip">💡 <b>关于上拉电阻：</b>DHT11的DATA线需要4.7KΩ上拉到VCC。I2C的SCL/SDA如果模块上没有上拉电阻也要加。大部分现成的模块(Mini MPU6050、OLED模块)已经焊接了上拉电阻。</div>
+
+<h3>DHT11驱动代码（完整版）</h3>
+
+<pre><code>// dht11.h —— 简洁接口
+#ifndef DHT11_H
+#define DHT11_H
+#include "stm32f1xx_hal.h"
+
+typedef struct {
+    uint8_t humidity_int;    // 湿度整数部分 (%)
+    uint8_t humidity_dec;    // 湿度小数部分
+    uint8_t temp_int;        // 温度整数部分 (°C)
+    uint8_t temp_dec;        // 温度小数部分
+    uint8_t checksum;        // 校验和
+} DHT11_Data_t;
+
+typedef enum {
+    DHT11_OK = 0,
+    DHT11_ERR_TIMEOUT,       // 传感器无响应
+    DHT11_ERR_CHECKSUM,      // 校验失败
+    DHT11_ERR_BUSY           // 距上次读取不足2秒
+} DHT11_Status_t;
+
+DHT11_Status_t DHT11_Read(DHT11_Data_t *data, GPIO_TypeDef *port, uint16_t pin);
+
+#endif</code></pre>
+
+<pre><code>// dht11.c —— 完整实现
+#include "dht11.h"
+
+static uint32_t last_read_tick = 0;
+
+// 微秒级延时（基于系统时钟72MHz估算）
+static void delay_us(uint32_t us) {
+    uint32_t ticks = us * (SystemCoreClock / 1000000UL) / 5;
+    while (ticks--) __NOP();
+}
+
+DHT11_Status_t DHT11_Read(DHT11_Data_t *data, GPIO_TypeDef *port, uint16_t pin) {
+    uint8_t buf[5] = {0};
+    uint32_t timeout;
+    GPIO_InitTypeDef GPIO_InitStruct = {0};
+    
+    // 防止读取间隔过短（DHT11要求>1秒，保守取2秒）
+    if (HAL_GetTick() - last_read_tick < 2000) {
+        return DHT11_ERR_BUSY;
+    }
+    last_read_tick = HAL_GetTick();
+    
+    // === 步骤1：主机发送起始信号（拉低18ms） ===
+    GPIO_InitStruct.Pin = pin;
+    GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_OD;  // 开漏输出（兼容5V）
+    GPIO_InitStruct.Pull = GPIO_NOPULL;
+    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
+    HAL_GPIO_Init(port, &GPIO_InitStruct);
+    
+    // 拉低至少18ms
+    HAL_GPIO_WritePin(port, pin, GPIO_PIN_RESET);
+    HAL_Delay(18);
+    
+    // 拉高20-40μs，通知DHT11"我准备好了"
+    HAL_GPIO_WritePin(port, pin, GPIO_PIN_SET);
+    delay_us(30);
+    
+    // === 步骤2：切换为输入，等待DHT11响应 ===
+    GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+    GPIO_InitStruct.Pull = GPIO_PULLUP;
+    HAL_GPIO_Init(port, &GPIO_InitStruct);
+    delay_us(5);  // 让IO稳定
+    
+    // DHT11应该拉低80μs再拉高80μs作为响应
+    // 等待DHT11拉低
+    timeout = 100;
+    while (HAL_GPIO_ReadPin(port, pin) == GPIO_PIN_SET) {
+        if (--timeout == 0) return DHT11_ERR_TIMEOUT;
+        delay_us(1);
+    }
+    
+    // 等待DHT11拉高
+    timeout = 100;
+    while (HAL_GPIO_ReadPin(port, pin) == GPIO_PIN_RESET) {
+        if (--timeout == 0) return DHT11_ERR_TIMEOUT;
+        delay_us(1);
+    }
+    // 等待DHT11再次拉低（准备发送数据）
+    timeout = 100;
+    while (HAL_GPIO_ReadPin(port, pin) == GPIO_PIN_SET) {
+        if (--timeout == 0) return DHT11_ERR_TIMEOUT;
+        delay_us(1);
+    }
+    
+    // === 步骤3：读取40位数据 ===
+    for (int i = 0; i < 5; i++) {
+        for (int j = 0; j < 8; j++) {
+            // 等待低电平结束
+            timeout = 100;
+            while (HAL_GPIO_ReadPin(port, pin) == GPIO_PIN_RESET) {
+                if (--timeout == 0) return DHT11_ERR_TIMEOUT;
+                delay_us(1);
+            }
+            
+            // 测量高电平持续时间：26-28μs=0, 70μs=1
+            delay_us(35);  // 延时到关键判断点
+            if (HAL_GPIO_ReadPin(port, pin) == GPIO_PIN_SET) {
+                buf[i] |= (1 << (7 - j));  // MSB先发
+            }
+            
+            // 等待高电平结束
+            timeout = 100;
+            while (HAL_GPIO_ReadPin(port, pin) == GPIO_PIN_SET) {
+                if (--timeout == 0) return DHT11_ERR_TIMEOUT;
+                delay_us(1);
+            }
+        }
+    }
+    
+    // === 步骤4：校验 ===
+    if (buf[4] != (uint8_t)(buf[0] + buf[1] + buf[2] + buf[3])) {
+        return DHT11_ERR_CHECKSUM;
+    }
+    
+    // 填充数据
+    data->humidity_int = buf[0];
+    data->humidity_dec = buf[1];
+    data->temp_int     = buf[2];
+    data->temp_dec     = buf[3];
+    data->checksum     = buf[4];
+    
+    return DHT11_OK;
+}</code></pre>
+
+<pre><code>// main.c —— 主程序（串口输出 + OLED显示）
+#include "stm32f1xx_hal.h"
+#include "dht11.h"
+#include <stdio.h>
+
+DHT11_Data_t dht;
+extern UART_HandleTypeDef huart1;
+extern I2C_HandleTypeDef hi2c1;
+
+// printf重定向到UART1
+int fputc(int ch, FILE *f) {
+    HAL_UART_Transmit(&huart1, (uint8_t *)&ch, 1, HAL_MAX_DELAY);
+    return ch;
+}
+
+int main(void) {
+    HAL_Init();
+    SystemClock_Config();
+    MX_GPIO_Init();
+    MX_USART1_UART_Init();
+    MX_I2C1_Init();
+    
+    // 初始化OLED
+    ssd1306_Init();
+    ssd1306_Fill(Black);
+    ssd1306_UpdateScreen(&hi2c1);
+    
+    printf("\r\n=== DHT11 Environment Monitor ===\r\n");
+    
+    while (1) {
+        DHT11_Status_t ret = DHT11_Read(&dht, GPIOA, GPIO_PIN_1);
+        
+        if (ret == DHT11_OK) {
+            // 串口输出
+            printf("Temp: %d.%d°C  Humi: %d.%d%%\r\n",
+                   dht.temp_int, dht.temp_dec,
+                   dht.humidity_int, dht.humidity_dec);
+            
+            // OLED显示
+            char buf[32];
+            ssd1306_Fill(Black);
+            ssd1306_SetCursor(0, 0);
+            ssd1306_WriteString("=== ENV MONITOR ===", Font_6x8, White);
+            
+            snprintf(buf, sizeof(buf), "Temp: %d.%d C", dht.temp_int, dht.temp_dec);
+            ssd1306_SetCursor(0, 16);
+            ssd1306_WriteString(buf, Font_7x10, White);
+            
+            snprintf(buf, sizeof(buf), "Humi: %d.%d %%", dht.humidity_int, dht.humidity_dec);
+            ssd1306_SetCursor(0, 36);
+            ssd1306_WriteString(buf, Font_7x10, White);
+            
+            ssd1306_UpdateScreen(&hi2c1);
+            
+        } else if (ret == DHT11_ERR_TIMEOUT) {
+            printf("DHT11 Error: No response!\r\n");
+        } else if (ret == DHT11_ERR_CHECKSUM) {
+            printf("DHT11 Error: Checksum failed!\r\n");
+        }
+        
+        HAL_Delay(2000);  // DHT11最小间隔2秒
+    }
+}</code></pre>
+
+<h3>CMakeLists.txt 完整版</h3>
+
+<pre><code>cmake_minimum_required(VERSION 3.20)
+project(env_monitor C ASM)
+
+set(SOURCES
+    src/main.c src/dht11.c src/stm32f1xx_it.c
+    src/system_stm32f1xx.c
+    # 启用OLED显示：
+    src/ssd1306.c src/ssd1306_fonts.c
+)
+
+include_directories(inc CMSIS)
+
+add_compile_options(
+    -mcpu=cortex-m3 -mthumb -Wall -O2 -g3
+    -ffunction-sections -fdata-sections -DSTM32F103C8T6
+)
+
+add_link_options(
+    -mcpu=cortex-m3 -mthumb -Wl,--gc-sections
+    -T${CMAKE_SOURCE_DIR}/STM32F103C8Tx.ld
+    -Wl,-Map=${PROJECT_NAME}.map
+    --specs=nano.specs --specs=nosys.specs
+)
+
+add_executable(${PROJECT_NAME}.elf ${SOURCES})
+
+add_custom_command(TARGET ${PROJECT_NAME}.elf POST_BUILD
+    COMMAND ${CMAKE_OBJCOPY} -O binary ${PROJECT_NAME}.elf ${PROJECT_NAME}.bin
+    COMMAND ${CMAKE_OBJCOPY} -O ihex ${PROJECT_NAME}.elf ${PROJECT_NAME}.hex
+    COMMAND ${CMAKE_SIZE} ${PROJECT_NAME}.elf
+    COMMAND echo "Flash: st-flash write ${PROJECT_NAME}.bin 0x08000000"
+)</code></pre>
+
+<h2>📡 项目二：HC-SR04超声波测距</h2>
+
+<div class="analogy">💡 <b>原理：</b>超声波像<b>蝙蝠回声定位</b>——发射40KHz超声波脉冲，遇到障碍物反射回来，测量往返时间，乘以声速÷2就得到距离。</div>
+
+<pre><code>// 超声波测距 - 基于定时器输入捕获
+// HC-SR04引脚：VCC(5V)、GND、TRIG(触发)、ECHO(回响)
+
+#define TRIG_PORT GPIOB
+#define TRIG_PIN  GPIO_PIN_0
+#define ECHO_PORT GPIOB
+#define ECHO_PIN  GPIO_PIN_1
+#define SOUND_SPEED_CM_US 0.0343f  // 声速 = 343m/s = 0.0343cm/μs
+
+// 发送10μs触发脉冲
+void hcsr04_trigger(void) {
+    HAL_GPIO_WritePin(TRIG_PORT, TRIG_PIN, GPIO_PIN_RESET);
+    delay_us(2);
+    HAL_GPIO_WritePin(TRIG_PORT, TRIG_PIN, GPIO_PIN_SET);
+    delay_us(10);  // 至少10μs
+    HAL_GPIO_WritePin(TRIG_PORT, TRIG_PIN, GPIO_PIN_RESET);
+}
+
+// 使用输入捕获测量ECHO高电平时间
+float hcsr04_get_distance_cm(void) {
+    uint32_t pulse_width_us = 0;
+    uint32_t timeout;
+    
+    // 发送触发脉冲
+    hcsr04_trigger();
+    
+    // 等待ECHO变高（超时=无回波）
+    timeout = 100000;  // ~100ms超时
+    while (HAL_GPIO_ReadPin(ECHO_PORT, ECHO_PIN) == GPIO_PIN_RESET) {
+        if (--timeout == 0) return -1.0f;  // 超时=超出范围
+    }
+    
+    // 测量高电平宽度（μs级精度）
+    uint32_t start = DWT->CYCCNT;  // DWT计数器（需先使能）
+    timeout = 100000;
+    while (HAL_GPIO_ReadPin(ECHO_PORT, ECHO_PIN) == GPIO_PIN_SET) {
+        if (--timeout == 0) return -1.0f;
+    }
+    uint32_t end = DWT->CYCCNT;
+    
+    // 计算时间（假设72MHz）
+    pulse_width_us = (end - start) / (SystemCoreClock / 1000000);
+    
+    // 距离 = 声速 × 时间 / 2（往返）
+    return pulse_width_us * SOUND_SPEED_CM_US / 2.0f;
+}
+
+// 使能DWT周期计数器（用于精确计时）
+void dwt_enable(void) {
+    CoreDebug->DEMCR |= CoreDebug_DEMCR_TRCENA_Msk;
+    DWT->CYCCNT = 0;
+    DWT->CTRL |= DWT_CTRL_CYCCNTENA_Msk;
+}
+
+// 更稳定的版本：TIM输入捕获+中断（推荐）
+// 配置TIM2_CH1为输入捕获，检测ECHO引脚
+volatile uint32_t ic_val1 = 0, ic_val2 = 0;
+volatile uint8_t ic_captured = 0;
+
+void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim) {
+    if (htim->Instance == TIM2 && htim->Channel == HAL_TIM_ACTIVE_CHANNEL_1) {
+        if (ic_captured == 0) {
+            ic_val1 = HAL_TIM_ReadCapturedValue(htim, TIM_CHANNEL_1);
+            __HAL_TIM_SET_CAPTUREPOLARITY(htim, TIM_CHANNEL_1, TIM_INPUTCHANNELPOLARITY_FALLING);
+            ic_captured = 1;
+        } else {
+            ic_val2 = HAL_TIM_ReadCapturedValue(htim, TIM_CHANNEL_1);
+            __HAL_TIM_SET_CAPTUREPOLARITY(htim, TIM_CHANNEL_1, TIM_INPUTCHANNELPOLARITY_RISING);
+            ic_captured = 2;
+            __HAL_TIM_DISABLE_IT(htim, TIM_IT_CC1);  // 停止捕获
+        }
+    }
+}
+
+float hcsr04_get_distance_tim(void) {
+    // 1. 发送触发脉冲
+    hcsr04_trigger();
+    
+    // 2. 启动输入捕获，等待中断处理
+    ic_captured = 0;
+    __HAL_TIM_SET_COUNTER(&htim2, 0);
+    HAL_TIM_IC_Start_IT(&htim2, TIM_CHANNEL_1);
+    
+    // 3. 等待捕获完成（最多100ms）
+    uint32_t timeout = 100000;
+    while (ic_captured < 2 && timeout--) {
+        delay_us(1);
+    }
+    HAL_TIM_IC_Stop_IT(&htim2, TIM_CHANNEL_1);
+    
+    if (timeout == 0) return -1.0f;
+    
+    // 4. 计算距离
+    uint32_t pulse = (ic_val2 > ic_val1) ? (ic_val2 - ic_val1) 
+        : (0xFFFF - ic_val1 + ic_val2);
+    float time_us = pulse * (1000000.0f / (float)(HAL_RCC_GetPCLK1Freq() * 2 / (htim2.Init.Prescaler + 1)));
+    
+    return time_us * SOUND_SPEED_CM_US / 2.0f;
+}
+// HC-SR04测量范围：2cm ~ 400cm，精度~3mm</code></pre>
+
+<h2>🔬 项目三：MPU6050姿态传感器</h2>
+
+<p>MPU6050集成了3轴加速度计+3轴陀螺仪，是姿态检测的首选传感器。</p>
+
+<pre><code>// MPU6050 6轴传感器 I2C驱动
+#define MPU6050_ADDR    0x68  // AD0接地=0x68，接VCC=0x69
+#define MPU6050_WHO_AM_I 0x75
+#define MPU6050_PWR_MGMT1 0x6B
+#define MPU6050_ACCEL_XOUT_H 0x3B
+
+typedef struct {
+    int16_t ax, ay, az;   // 加速度原始值
+    int16_t gx, gy, gz;   // 陀螺仪原始值
+    int16_t temp;         // 温度原始值
+} MPU6050_Raw_t;
+
+typedef struct {
+    float ax, ay, az;     // 加速度(g)
+    float gx, gy, gz;     // 角速度(°/s)
+    float pitch, roll;    // 姿态角(°)
+    float temp;           // 温度(°C)
+} MPU6050_Data_t;
+
+// 初始化
+uint8_t mpu6050_init(void) {
+    uint8_t whoami;
+    HAL_I2C_Mem_Read(&hi2c1, MPU6050_ADDR<<1, MPU6050_WHO_AM_I, 1, &whoami, 1, 100);
+    if (whoami != 0x68) return 0;  // MPU6050 ID恒为0x68
+    
+    // 唤醒MPU6050（清除睡眠位）
+    uint8_t wake_cmd = 0x00;
+    HAL_I2C_Mem_Write(&hi2c1, MPU6050_ADDR<<1, MPU6050_PWR_MGMT1, 1, &wake_cmd, 1, 100);
+    
+    // 配置量程：加速度±2g, 陀螺仪±250°/s
+    uint8_t accel_cfg = 0x00;  // ±2g
+    uint8_t gyro_cfg  = 0x00;  // ±250°/s
+    HAL_I2C_Mem_Write(&hi2c1, MPU6050_ADDR<<1, 0x1C, 1, &accel_cfg, 1, 100);
+    HAL_I2C_Mem_Write(&hi2c1, MPU6050_ADDR<<1, 0x1B, 1, &gyro_cfg, 1, 100);
+    
+    return 1;
+}
+
+// 读取原始数据
+void mpu6050_read_raw(MPU6050_Raw_t *raw) {
+    uint8_t buf[14];
+    HAL_I2C_Mem_Read(&hi2c1, MPU6050_ADDR<<1, MPU6050_ACCEL_XOUT_H, 1, buf, 14, 100);
+    
+    raw->ax = (int16_t)((buf[0] << 8) | buf[1]);
+    raw->ay = (int16_t)((buf[2] << 8) | buf[3]);
+    raw->az = (int16_t)((buf[4] << 8) | buf[5]);
+    raw->temp = (int16_t)((buf[6] << 8) | buf[7]);
+    raw->gx = (int16_t)((buf[8] << 8) | buf[9]);
+    raw->gy = (int16_t)((buf[10] << 8) | buf[11]);
+    raw->gz = (int16_t)((buf[12] << 8) | buf[13]);
+}
+
+// 转换为工程单位
+void mpu6050_convert(MPU6050_Raw_t *raw, MPU6050_Data_t *data) {
+    // ±2g量程 → 16384 LSB/g
+    data->ax = raw->ax / 16384.0f;
+    data->ay = raw->ay / 16384.0f;
+    data->az = raw->az / 16384.0f;
+    
+    // ±250°/s量程 → 131 LSB/(°/s)
+    data->gx = raw->gx / 131.0f;
+    data->gy = raw->gy / 131.0f;
+    data->gz = raw->gz / 131.0f;
+    
+    // 温度
+    data->temp = raw->temp / 340.0f + 36.53f;
+    
+    // 加速度计计算初始姿态角
+    data->pitch = atan2(data->ay, sqrt(data->ax*data->ax + data->az*data->az)) * 180/M_PI;
+    data->roll  = atan2(-data->ax, data->az) * 180/M_PI;
+}</code></pre>
+
+<h2>🎯 传感器融合：互补滤波器</h2>
+
+<p>单个传感器有局限——加速度计有重力干扰和高频振动噪声，陀螺仪有零漂。融合两者才能得到稳定姿态。</p>
+
+<pre><code>// 互补滤波：陀螺仪积分(短期准) + 加速度计(长期准)
+// angle = α × (angle + gyro×dt) + (1-α) × accel_angle
+// α典型值 0.96~0.98
+
+#define ALPHA 0.98f
+float pitch = 0.0f, roll = 0.0f;
+float last_time = 0.0f;
+
+void complementary_filter(MPU6050_Data_t *data, float dt) {
+    // 加速度计计算角度（低频准，高频不准）
+    float acc_pitch = atan2(data->ay, sqrt(data->ax*data->ax + data->az*data->az)) * 180/M_PI;
+    float acc_roll  = atan2(-data->ax, data->az) * 180/M_PI;
+    
+    // 首次初始化
+    if (pitch == 0.0f && roll == 0.0f) {
+        pitch = acc_pitch;
+        roll  = acc_roll;
+        return;
+    }
+    
+    // 互补滤波融合
+    pitch = ALPHA * (pitch + data->gx * dt) + (1.0f - ALPHA) * acc_pitch;
+    roll  = ALPHA * (roll  + data->gy * dt) + (1.0f - ALPHA) * acc_roll;
+    
+    data->pitch = pitch;
+    data->roll  = roll;
+}</code></pre>
+
+<h2>📐 I2C总线扫描器</h2>
+
+<p>不确定I2C设备地址？先用扫描器排查。这是嵌入式开发最常用的调试工具之一。</p>
+
+<pre><code>// I2C总线扫描器 —— 必备调试工具
+void i2c_scan(I2C_HandleTypeDef *hi2c) {
+    printf("\r\n=== I2C Bus Scan ===\r\n");
+    printf("    ");
+    for (int col = 0; col < 16; col++) {
+        printf(" %01X ", col);
+    }
+    printf("\r\n");
+    
+    uint8_t found = 0;
+    for (uint8_t addr = 1; addr < 128; addr++) {
+        if (addr % 16 == 0) printf("%02X: ", addr);
+        
+        if (HAL_I2C_IsDeviceReady(hi2c, addr << 1, 2, 5) == HAL_OK) {
+            uint8_t reg0;
+            // 尝试读寄存器0确认设备确实存在
+            if (HAL_I2C_Mem_Read(hi2c, addr << 1, 0x00, 1, &reg0, 1, 10) == HAL_OK ||
+                HAL_I2C_Master_Receive(hi2c, addr << 1, &reg0, 1, 10) == HAL_OK) {
+                printf("%02X ", addr);
+                found++;
+            } else {
+                printf("?? ");
+            }
+        } else {
+            printf("-- ");
+        }
+        
+        if ((addr + 1) % 16 == 0) printf("\r\n");
+    }
+    
+    printf("Found %d device(s) on I2C bus\r\n\r\n", found);
+}
+
+// 常见I2C地址速查（7位地址）
+// BMP280:    0x76/0x77 (SDO接GND/VCC)
+// MPU6050:   0x68/0x69 (AD0接GND/VCC)
+// SSD1306:   0x3C/0x3D (SA0接GND/VCC)
+// BH1750:    0x23/0x5C (ADDR接GND/VCC)
+// SHT30:     0x44/0x45 (ADDR接GND/VCC)
+// VL53L0X:   0x29 (固定)
+// MAX17048:  0x36 (固定)
+// AT24C02:   0x50-0x57 (A0/A1/A2)</code></pre>
+
+<h2>🎛 卡尔曼滤波器实战</h2>
+
+<pre><code>// 一维卡尔曼滤波：传感器数据平滑
+// 适用于：温度、气压、距离等单一测量值
+
+typedef struct {
+    float x;  // 状态估计值
+    float P;  // 估计误差协方差
+    float Q;  // 过程噪声协方差（调大→更信任预测/平滑）
+    float R;  // 测量噪声协方差（调大→更不信任传感器）
+    float K;  // 卡尔曼增益（自动计算）
+} Kalman1D_t;
+
+// 初始化
+void kalman_init(Kalman1D_t *kf, float initial_value, float Q, float R) {
+    kf->x = initial_value;
+    kf->P = 1.0f;
+    kf->Q = Q;
+    kf->R = R;
+    kf->K = 0.0f;
+}
+
+// 每次新测量值到来时调用
+float kalman_update(Kalman1D_t *kf, float measurement) {
+    // 预测步骤
+    kf->P = kf->P + kf->Q;
+    
+    // 更新步骤
+    kf->K = kf->P / (kf->P + kf->R);
+    kf->x = kf->x + kf->K * (measurement - kf->x);
+    kf->P = (1.0f - kf->K) * kf->P;
+    
+    return kf->x;
+}
+
+// 使用示例
+Kalman1D_t temp_kf;
+kalman_init(&temp_kf, 25.0f, 0.01f, 1.0f);
+
+// 在循环中使用
+for (;;) {
+    float raw_temp = read_temperature();  // 带噪声的原始值
+    float smooth_temp = kalman_update(&temp_kf, raw_temp);
+    printf("Raw: %.2f → Smooth: %.2f\r\n", raw_temp, smooth_temp);
+    HAL_Delay(100);
+}
+
+// 参数调优指南：
+// Q小(0.001) + R大(10) → 超平滑但响应慢（适合温度气压）
+// Q大(0.1) + R小(0.1) → 响应快但噪声多（适合快速变化量）
+// 典型起点：Q=0.01, R=1.0，然后根据效果微调</code></pre>
+
+<h2>🪡 滑动平均滤波器</h2>
+
+<p>比卡尔曼更简单直观，适合资源受限的场景。</p>
+
+<pre><code>// 滑动平均滤波器（Moving Average）
+// 适合：ADC噪声平滑、传感器稳定读数
+
+#define MA_WINDOW 10
+
+typedef struct {
+    float buffer[MA_WINDOW];
+    uint8_t index;
+    uint8_t count;
+    float sum;
+} MovingAvg_t;
+
+void ma_init(MovingAvg_t *ma) {
+    memset(ma->buffer, 0, sizeof(ma->buffer));
+    ma->index = 0;
+    ma->count = 0;
+    ma->sum   = 0;
+}
+
+float ma_filter(MovingAvg_t *ma, float new_val) {
+    // 减去最旧值
+    ma->sum -= ma->buffer[ma->index];
+    // 加入新值
+    ma->buffer[ma->index] = new_val;
+    ma->sum += new_val;
+    // 移动指针
+    ma->index = (ma->index + 1) % MA_WINDOW;
+    if (ma->count < MA_WINDOW) ma->count++;
+    // 返回平均值
+    return ma->sum / (float)ma->count;
+}
+
+// 使用
+MovingAvg_t adc_filter;
+ma_init(&adc_filter);
+float stable_adc = ma_filter(&adc_filter, raw_adc_value);</code></pre>
+
+<h2>🛠 常见问题排查</h2>
+
+<div class="trouble"><b>🔍 问题1：DHT11一直读出错/返回TIMEOUT</b><br>
+❌ <b>症状：</b>串口一直输出"DHT11 Error: No response!"<br>
+✅ <b>排查：</b><br>
+1. 接线不对：VCC/GND/DATA三线缺一不可<br>
+2. DATA线没接上拉电阻：DHT11 DATA需要4.7KΩ上拉到VCC<br>
+3. GPIO配置错误：初始化为输出推挽(OUTPUT_PP)发送信号，再切为输入(INPUT)接收<br>
+4. 延时时间不准：delay_us基于的SystemCoreClock不对<br>
+✅ <b>修复：</b><br>
+1. 用万用表测VCC-GND电压是否为3.3V<br>
+2. 加4.7KΩ上拉电阻<br>
+3. 确保时序正确：拉低18ms→拉高30μs→等响应<br>
+4. 用逻辑分析仪看DATA线波形最直观</div>
+
+<div class="trouble"><b>🔍 问题2：DHT11读数全是0或255</b><br>
+❌ <b>症状：</b>读取成功(返回OK)，但温度和湿度全是0或255。<br>
+✅ <b>排查：</b><br>
+1. 读取间隔太短：DHT11要求≥1秒（安全取2秒）<br>
+2. 位读取逻辑有误：DHT11的"0"是高电平26-28μs，"1"是70μs<br>
+3. 校验和计算有误：checksum = hum_int + hum_dec + temp_int + temp_dec<br>
+4. 干扰导致数据跳变<br>
+✅ <b>修复：</b><br>
+1. 加读取间隔检查<br>
+2. 在拉高后延时30-40μs再判断MCU引脚电平<br>
+3. 连续读3次取中位数</div>
+
+<div class="trouble"><b>🔍 问题3：I2C通信失败(HAL_TIMEOUT)</b><br>
+❌ <b>症状：</b>HAL_I2C_Master_Transmit返回HAL_TIMEOUT。<br>
+✅ <b>排查：</b><br>
+1. 用i2c_scan()确认设备地址是否正确（7位地址 << 1）<br>
+2. SCL/SDA没有上拉电阻：I2C是开漏输出，必须外接上拉（一般4.7KΩ）<br>
+3. 设备没上电：检查VCC和GND<br>
+4. 总线冲突：多个设备地址相同？<br>
+✅ <b>修复：</b><br>
+1. 扫描总线确认地址<br>
+2. 加4.7KΩ上拉电阻到3.3V<br>
+3. 降低I2C频率：从400K降到100K<br>
+4. 用逻辑分析仪看SCL/SDA波形</div>
+
+<div class="trouble"><b>🔍 问题4：HC-SR04测距不准/跳动大</b><br>
+❌ <b>症状：</b>距离读数忽大忽小，或固定值不变。<br>
+✅ <b>排查：</b><br>
+1. 供电不足：HC-SR04需要5V，3.3V供电会不稳定<br>
+2. 测量表面：软质/倾斜表面回波弱<br>
+3. 最小盲区：HC-SR04有2cm盲区，<2cm的测量不准<br>
+4. Echo引脚电平：5V输出直接接3.3V容忍的MCU引脚（STM32大部分5V容忍）<br>
+✅ <b>修复：</b><br>
+1. 用5V供电（注意MCU的Echo引脚是否5V容忍）<br>
+2. 多次测量取中位数（如测5次排序取中间值）<br>
+3. 加滑动平均滤波<br>
+4. 测量间隔>60ms（超声波脉冲衰减时间）</div>
+
+<div class="trouble"><b>🔍 问题5：MPU6050静止时角度漂移</b><br>
+❌ <b>症状：</b>传感器不动但角度缓慢漂移(几秒就偏了10°)。<br>
+✅ <b>排查：</b><br>
+1. 只用陀螺仪积分？陀螺仪有零偏(Zero-G offset)，随时间积分会漂<br>
+2. 互补滤波系数不对：ALPHA太小(太信加速度计)或有震动干扰<br>
+3. 采样率太低<br>
+✅ <b>修复：</b><br>
+1. 用互补滤波或Mahony/Madgwick融合算法<br>
+2. 上电后先静止0.5s测陀螺仪零偏，后续减去零偏<br>
+3. 提高采样率到100Hz以上<br>
+4. Yaw角(航向)必须加磁力计才能长期稳定</div>
+
+<h2>🛡 工业级传感器调试技巧</h2>
+
+<div class="card">
+<div class="h"><span class="name">传感器调试工具链</span><span class="tag y">进阶</span></div>
+<div class="b">
+<div class="desc">
+<b>通信抓包：</b><br>
+• <b>逻辑分析仪(Saleae Logic 8)：</b>同时抓I2C/SPI/UART，看时序是否对<br>
+• <b>示波器：</b>看信号质量和电平，确认上拉电阻是否正确<br>
+• <b>I2C Scanner：</b>先确认设备地址再写驱动<br><br>
+<b>数据处理：</b><br>
+• <b>SerialPlot/Arduino串口绘图器：</b>串口发送数据，实时显示波形<br>
+• <b>Python + matplotlib：</b>离线分析传感器数据<br>
+• <b>SWO/ITM：</b>高速数据输出（见第10章）<br><br>
+<b>数据格式（方便上位机解析）：</b><br>
+<code>printf("DATA:%d,%d,%d\r\n", temp, hum, dist);</code><br>
+上位机按 "DATA:" 前缀过滤，","分隔字段
+</div></div></div>
+
+<h2>🌐 传感器数据格式标准化</h2>
+
+<pre><code>// 标准化数据输出格式（方便上位机/ChatGPT解析）
+// 格式：$TYPE,val1,val2,val3*CK\r\n
+
+void send_nmea_style_data(float temp, float hum, float pressure) {
+    uint8_t checksum = 0;
+    char buf[100];
+    
+    // 构造消息
+    snprintf(buf, sizeof(buf), "$ENV,%.1f,%.1f,%.1f", temp, hum, pressure);
+    
+    // 计算校验和（$和*之间所有字节的异或）
+    for (char *p = buf + 1; *p != '\0'; p++) {
+        checksum ^= (uint8_t)*p;
+    }
+    
+    // 发送（注意\r\n不是\n！）
+    printf("%s*%02X\r\n", buf, checksum);
+}
+// 输出示例：$ENV,25.3,68.5,1013.2*5A</code></pre>
+
+<h2>🎯 实战练习</h2>
+
+<div class="tip">📝 <b>练习1：温湿度监测站（入门）</b><br>
+DHT11 + STM32 + 串口打印。先跑通最基本的数据读取。加LED指示：温度>30°C红灯闪烁。<br><br>
+📝 <b>练习2：多传感器融合站（进阶）</b><br>
+DHT11 + BMP280 + OLED + STM32。I2C总线上挂2个传感器+1个OLED。用互斥量保护I2C。对比卡尔曼滤波前后的数据稳定性。<br><br>
+📝 <b>练习3：超声波倒车雷达（实战）</b><br>
+HC-SR04 + 蜂鸣器 + LED。距离<50cm→蜂鸣器慢响，<20cm→快速响，<10cm→长响。用状态机管理。<br><br>
+📝 <b>练习4：姿态显示仪（进阶）</b><br>
+MPU6050互补滤波 → 串口100Hz输出pitch/roll → 上位机绘图。加分：OLED实时显示角度+水平仪图标。<br><br>
+📝 <b>练习5：I2C总线多设备联调</b><br>
+一跟I2C总线上挂BMP280+MPU6050+OLED，I2C Scan确认地址后，3个设备轮询读取。用逻辑分析仪抓I2C通信波形。</div>
+
+<h2>📋 知识点回顾</h2>
+<div class="summary">
+<b>✅ 传感器开发核心技能：</b><br>
+• <b>I2C共享总线：</b>最多128个设备，靠7位地址区分。先扫描再写驱动<br>
+• <b>传感器融合：</b>互补滤波(简单α=0.98) → Mahony(中等) → Madgwick(精度高)<br>
+• <b>卡尔曼滤波：</b>数学最优估计，核心是调Q(过程噪声)和R(测量噪声)<br>
+• <b>滑动平均：</b>最简单去噪，窗口大小=平滑度vs响应速度的权衡<br>
+• <b>校准参数：</b>传感器出厂预存的修正系数，必须读取并用于补偿计算<br>
+<b>🛠 调试技巧：</b><br>
+• 先用I2C Scanner确认设备地址<br>
+• 用逻辑分析仪/示波器看通信波形（比猜代码快100倍）<br>
+• 串口以固定频率输出，用SerialPlot看波形<br>
+• 传感器读数跳变 → 检查电源去耦电容(100nF+10μF紧贴VCC-GND)<br>
+• 通信超时 → 检查上拉电阻(4.7KΩ)和地址(7位<<1)<br>
+<b>📏 性能优化：</b><br>
+• DHT11: ≥2秒间隔，~20ms读取时间<br>
+• HC-SR04: ≥60ms间隔，2cm-400cm量程<br>
+• MPU6050: ≥100Hz采样率做姿态融合，≤400KHz I2C总线<br>
+• 卡尔曼: Q=0.01, R=1.0起步，根据响应/噪声权衡调参
+</div>
+
+<div class="chnav">
+<a onclick="window.parent.loadPage('guide-ch11')">← 第11章</a>
+<a class="toc-link" onclick="window.parent.loadPage('guide')">📑 目录</a>
+<a onclick="window.parent.loadPage('guide-ch13')">第13章 →</a>
+</div>
+
+<script>
+document.querySelectorAll('pre').forEach(pre => {
+  const btn = document.createElement('button');
+  btn.className = 'copy-btn';
+  btn.textContent = 'Copy';
+  btn.onclick = () => {
+    navigator.clipboard.writeText(pre.textContent).then(() => {
+      btn.textContent = 'Copied!';
+      btn.classList.add('copied');
+      setTimeout(() => { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 1500);
+    });
+  };
+  pre.appendChild(btn);
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,769 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0"><title>教程16: Bootloader串口升级IAP</title><style>:root{--bg:#0d1117;--bg2:#161b22;--bg3:#21262d;--br:#30363d;--t:#c9d1d9;--t2:#8b949e;--a:#58a6ff;--g:#3fb950;--o:#d29922;--r:#f85149;--p:#a371f7;--c1:#39c5cf}body{background:var(--bg);color:var(--t);font-family:system-ui,sans-serif;line-height:1.8;max-width:900px;margin:0 auto;padding:20px}h1{text-align:center;background:linear-gradient(135deg,var(--a),var(--p));-webkit-background-clip:text;-webkit-text-fill-color:transparent}h2{color:var(--a);border-bottom:2px solid var(--br);padding-bottom:6px;margin-top:32px}h3{color:var(--c1);margin-top:22px}pre{background:#1c2128;border:1px solid var(--br);border-radius:8px;padding:14px;overflow-x:auto;font-size:.84em}code{font-family:'Cascadia Code',Consolas,monospace}:not(pre)>code{background:var(--bg3);padding:2px 6px;border-radius:4px;color:var(--c1)}table{width:100%;border-collapse:collapse;margin:12px 0}th{background:var(--bg3);color:var(--a);padding:8px 12px;border:1px solid var(--br);text-align:left}td{padding:8px 12px;border:1px solid var(--br)}.note{background:rgba(88,166,255,.08);border-left:3px solid var(--a);border-radius:8px;padding:12px 16px;margin:12px 0}.warn{background:rgba(248,81,73,.08);border-left:3px solid var(--r);border-radius:8px;padding:12px 16px;margin:12px 0}.tip{background:rgba(63,185,80,.08);border-left:3px solid var(--g);border-radius:8px;padding:12px 16px;margin:12px 0}.step{background:var(--bg2);border:1px solid var(--br);border-radius:8px;padding:12px 16px;margin:10px 0}</style></head><body>
+
+<h1>🚀 教程16: Bootloader串口升级IAP</h1>
+
+<h2>📋 项目概述</h2>
+<p>本教程将带你实现STM32的串口IAP(In-Application Programming) bootloader，支持通过串口接收bin文件并写入Flash，实现固件空中升级。</p>
+
+<div class="note">
+<strong>什么是IAP？</strong>IAP即"应用内编程"，允许在应用程序运行时更新固件。相比于通过ST-Link烧录，IAP可以实现远程无线升级，是物联网设备的标准功能。
+</div>
+
+<h2>🔧 硬件准备</h2>
+<table>
+<tr><th>元件</th><th>数量</th><th>说明</th></tr>
+<tr><td>STM32F103C8T6 最小系统板</td><td>1</td><td>64KB Flash，分区后Bootloader 16KB，APP 48KB</td></tr>
+<tr><td>USB转TTL串口模块</td><td>1</td><td>CH340/FT232，用于连接电脑</td></tr>
+<tr><td>杜邦线</td><td>若干</td><td>PA9(TX) ↔ USB转TTL RX, PA10(RX) ↔ USB转TTL TX</td></tr>
+<tr><td>跳线帽</td><td>1</td><td>BOOT0跳帽（升级时可选置高）</td></tr>
+</table>
+
+<h2>📐 接线图</h2>
+<pre>
+Bootloader 串口接线：
+┌─────────────────────────────────────────────────┐
+│                                                 │
+│  STM32F103C8T6         USB转TTL模块             │
+│  ┌──────────┐          ┌──────────┐            │
+│  │  PA9(TX)  │───杜邦线──│  RXD    │            │
+│  │  PA10(RX) │───杜邦线──│  TXD    │            │
+│  │  GND      │───杜邦线──│  GND    │            │
+│  │  3.3V    │───杜邦线──│  3.3V   │            │
+│  └──────────┘          └──────────┘            │
+│                                                 │
+│  BOOT0跳帽:                                    │
+│  升级模式: BOOT0 → 3.3V (进入System Memory)    │
+│  正常模式: BOOT0 → GND   (进入Flash)           │
+│                                                 │
+│  ⚠️ 注意: 本教程的Bootloader工作在Flash，        │
+│           BOOT0保持接地即可                     │
+│                                                 │
+│  升级操作流程:                                  │
+│  1. 电脑端: 打开串口助手，发送bin文件          │
+│  2. MCU端: Bootloader接收并写入Flash           │
+│  3. 完成后自动跳转APP                          │
+│                                                 │
+└─────────────────────────────────────────────────┘
+</pre>
+
+<div class="warn">
+<strong>⚠️ Flash分区说明：</strong><br>
+STM32F103C8T6有64KB Flash(0x08000000~0x0800FFFF)<br>
+| 区域 | 地址范围 | 大小 | 说明 |<br>
+| Bootloader | 0x08000000~0x08003FFF | 16KB | 串口升级程序 |<br>
+| APP | 0x08004000~0x0800FFFF | 48KB | 用户应用程序 |<br>
+⚠️ APP工程必须将链接起始地址改为0x08004000！
+</div>
+
+<h2>📖 知识讲解</h2>
+
+<h3>Bootloader工作流程</h3>
+<pre>
+┌──────────────────┐
+│  系统上电        │
+└────────┬─────────┘
+         │
+         ▼
+┌──────────────────┐
+│ Bootloader启动   │
+│ (0x08000000)     │
+└────────┬─────────┘
+         │
+         ▼
+┌──────────────────┐
+│ 检查升级条件     │
+│ 1. 等待串口命令  │
+│ 2. 或Flash标志位 │
+│ 3. 或特定引脚    │
+└────────┬─────────┘
+         │
+    ┌────┴────┐
+    │ 收到升级│
+    │ 命令？  │
+    └────┬────┘
+    是   │   否
+    ▼    │    ▼
+┌────────┐   ┌────────┐
+│ 进入   │   │ 跳转   │
+│ 升级   │   │ 到APP  │
+│ 模式   │   │ 0x08004│
+└────────┘   └────────┘
+    │             │
+    ▼             ▼
+┌────────┐   ┌────────┐
+│ 串口   │   │ 运行   │
+│ 接收   │   │ 用户   │
+│ bin文件│   │ 程序   │
+└────────┘   └────────┘
+    │
+    ▼
+┌────────┐
+│ 写入  │
+│ Flash │
+└────────┘
+    │
+    ▼
+┌────────┐
+│ 校验   │
+│ CRC    │
+└────────┘
+    │
+    ▼
+┌────────┐
+│ 跳转   │
+│ APP    │
+└────────┘
+</pre>
+
+<h3>中断向量表重定位原理</h3>
+<div class="note">
+<strong>为什么要重定位中断向量表？</strong><br>
+ARM Cortex-M的中断向量表默认在Flash起始地址(0x08000000)。当Bootloader和APP分别位于不同地址时，APP的中断向量表需要重定位到自己的起始地址(0x08004000)，否则中断将跳转到Bootloader的中断处理函数。
+</div>
+<pre>
+SCB->VTOR = 0x08004000;  // 告诉CPU，APP的中断向量表在这里
+
+// APP的中断向量表现在从0x08004000开始:
+// 0x08004000: 初始SP
+// 0x08004004: 复位向量 → main()
+// 0x08004008: 硬fault
+// ...
+</pre>
+
+<h3>跳转函数原理</h3>
+<pre>
+typedef void (*pFunction)(void);
+
+pFunction Jump_To_Application;
+uint32_t JumpAddress;
+
+JumpAddress = *(__IO uint32_t*)(APP_ADDR + 4);  // 获取复位向量地址
+Jump_To_Application = (pFunction)JumpAddress;
+
+__set_MSP(*(__IO uint32_t*)APP_ADDR);  // 设置主堆栈指针
+
+Jump_To_Application();  // 跳转到APP的复位向量 → 执行main()
+</pre>
+
+<h2>💻 完整代码</h2>
+
+<h3>Bootloader工程 (main.c)</h3>
+<pre>
+/* ============================================
+ * Bootloader - 串口IAP升级程序
+ * MCU: STM32F103C8T6
+ * Flash: 64KB, 分区: Bootloader 16KB(0x08000000), APP 48KB(0x08004000)
+ * 通信: USART1 (PA9/PA10), 115200bps
+ * 协议: YMODEM (简单版)
+ * ============================================ */
+
+#include "main.h"
+#include &lt;string.h&gt;
+#include &lt;stdio.h&gt;
+
+/* 定义常量 */
+#define APP_ADDR         0x08004000   /* APP起始地址 */
+#define APP_SIZE_MAX     0xC000      /* APP最大48KB */
+#define BOOTLOADER_SIZE  0x4000      /* Bootloader 16KB */
+#define PAGE_SIZE        0x400       /* Flash页2KB */
+#define BAUD_RATE        115200
+
+/* 私有变量 */
+UART_HandleTypeDef huart1;
+uint8_t uart_rx_buf[1024];
+uint8_t uart_tx_buf[128];
+volatile uint8_t rx_done = 0;
+volatile uint16_t rx_len = 0;
+
+/* YMODEM协议定义 */
+#define SOH              0x01        /* 128字节数据块 */
+#define STX              0x02        /* 1024字节数据块 */
+#define EOT              0x04        /* 传输结束 */
+#define ACK              0x06        /* 确认 */
+#define NAK              0x15        /* 否定应答 */
+#define CAN              0x18        /* 取消 */
+#define CRC16            0x43        /* 'C'，请求CRC */
+
+/* 函数声明 */
+static void MX_GPIO_Init(void);
+static void MX_USART1_UART_Init(void);
+static void SystemClock_Config(void);
+static void JumpToApp(void);
+static void Flash_Erase(uint32_t addr, uint32_t len);
+static void Flash_Write(uint32_t addr, uint8_t *data, uint32_t len);
+static uint16_t CRC16_Calc(uint8_t *data, uint32_t len);
+static void Send_Response(uint8_t c);
+static void Ymodem_Receive(void);
+static void Bootloader_Init(void);
+
+int main(void)
+{
+    HAL_Init();
+    SystemClock_Config();
+    MX_GPIO_Init();
+    MX_USART1_UART_Init();
+
+    /* 打印启动信息 */
+    printf("\r\n\r\n========== STM32 IAP Bootloader ==========\r\n");
+    printf("Bootloader Version: 1.0\r\n");
+    printf("Build Date: %s %s\r\n", __DATE__, __TIME__);
+    printf("Flash Size: %lu KB\r\n", *(uint16_t*)0x1FFFF7E0);
+    printf("==========================================\r\n\r\n");
+
+    /* 初始化外设(如果需要) */
+    Bootloader_Init();
+
+    /* 等待用户选择：进入升级模式 或 跳转APP */
+    printf("请选择模式:\r\n");
+    printf("  1. 按 'U' 进入升级模式\r\n");
+    printf("  2. 按 'G' 跳转到APP\r\n");
+    printf("  3. 5秒后自动跳转APP\r\n");
+    printf("> ");
+
+    /* 等待串口输入，最多5秒 */
+    uint8_t mode_select = 0;
+    uint32_t start_tick = HAL_GetTick();
+    while ((HAL_GetTick() - start_tick) < 5000)
+    {
+        if (rx_done)
+        {
+            rx_done = 0;
+            if (uart_rx_buf[0] == 'U' || uart_rx_buf[0] == 'u')
+            {
+                mode_select = 1; /* 进入升级模式 */
+                break;
+            }
+            else if (uart_rx_buf[0] == 'G' || uart_rx_buf[0] == 'g')
+            {
+                mode_select = 2; /* 跳转APP */
+                break;
+            }
+        }
+    }
+
+    if (mode_select == 1)
+    {
+        /* 进入YMODEM升级模式 */
+        printf("\r\n进入升级模式，准备接收固件...\r\n");
+        Ymodem_Receive();
+    }
+    else
+    {
+        /* 跳转APP或超时自动跳转 */
+        printf("\r\n准备跳转APP...\r\n");
+        JumpToApp();
+    }
+
+    /* 如果JumpToApp失败(没有有效APP)，停在这里 */
+    while (1)
+    {
+        HAL_Delay(1000);
+        printf("No valid APP found. Please upload firmware.\r\n");
+    }
+}
+
+/* ============ Bootloader初始化 ============ */
+static void Bootloader_Init(void)
+{
+    /* 关闭所有可能影响Bootloader的外设 */
+    /* 根据需要添加初始化代码 */
+}
+
+/* ============ 跳转到APP ============ */
+static void JumpToApp(void)
+{
+    uint32_t app_reset_handler;
+
+    /* 检查APP地址是否有有效程序(检查栈指针和复位向量) */
+    if ((*(volatile uint32_t*)APP_ADDR) != 0xFFFFFFFF)
+    {
+        /* 读取APP的复位向量地址(向量表第2项) */
+        app_reset_handler = *(volatile uint32_t*)(APP_ADDR + 4);
+
+        printf("APP Reset Handler: 0x%08lX\r\n", app_reset_handler);
+
+        /* 检查是否是有效的Thumb指令地址 */
+        if (((*(volatile uint32_t*)APP_ADDR) &amp; 0x2FFE0000) == 0x20000000)
+        {
+            /* 关闭所有外设 */
+            HAL_UART_DeInit(&amp;huart1);
+            __HAL_RCC_USART1_CLK_DISABLE();
+
+            /* 禁用在Bootloader中使能的中断 */
+            /* SysTick中断 */
+            HAL_NVIC_DisableIRQ(SysTick_IRQn);
+
+            /* 重置所有外设时钟(可选) */
+            __HAL_RCC_APB1_FORCE_RESET();
+            __HAL_RCC_APB2_FORCE_RESET();
+            HAL_Delay(10);
+
+            /* 设置APP的中断向量表地址 */
+            SCB->VTOR = APP_ADDR;
+
+            /* 设置主堆栈指针(MSP) */
+            __asm volatile("msr msp, %0" : : "r"(*(volatile uint32_t*)APP_ADDR));
+
+            /* 跳转到APP的复位向量 */
+            typedef void (*pFunction)(void);
+            pFunction Jump_To_App = (pFunction)app_reset_handler;
+            Jump_To_App();
+
+            /* 不应该执行到这里 */
+        }
+        else
+        {
+            printf("ERROR: Invalid APP reset handler\r\n");
+        }
+    }
+    else
+    {
+        printf("ERROR: APP address not programmed\r\n");
+    }
+}
+
+/* ============ YMODEM接收(简化版) ============ */
+static void Ymodem_Receive(void)
+{
+    uint32_t firmware_size = 0;
+    uint32_t flash_addr = APP_ADDR;
+    uint8_t block_num = 1;
+    uint8_t received;
+    uint16_t crc;
+    uint8_t *rx_buf = uart_rx_buf;
+
+    /* 发送'C'请求第一次传输 */
+    Send_Response(CRC16);
+    rx_done = 0;
+
+    while (1)
+    {
+        /* 等待接收数据 */
+        uint32_t tick_start = HAL_GetTick();
+        while (!rx_done)
+        {
+            if (HAL_GetTick() - tick_start > 30000) /* 30秒超时 */
+            {
+                printf("\r\nTimeout! Upgrade cancelled.\r\n");
+                return;
+            }
+        }
+
+        rx_done = 0;
+        received = uart_rx_buf[0];
+
+        if (received == SOH || received == STX)
+        {
+            /* 数据块开始 */
+            uint8_t block = uart_rx_buf[1];
+            uint8_t block_neg = uart_rx_buf[2];
+            uint8_t data_len = (received == SOH) ? 128 : 1024;
+
+            /* 简单校验 */
+            if (block + block_neg != 0xFF)
+            {
+                Send_Response(NAK);
+                continue;
+            }
+
+            /* 计算CRC16(最后2字节是CRC) */
+            crc = CRC16_Calc(&amp;uart_rx_buf[3], data_len);
+            uint16_t recv_crc = (uart_rx_buf[3 + data_len] << 8) | uart_rx_buf[3 + data_len + 1];
+
+            if (crc != recv_crc)
+            {
+                printf("CRC Error! Block %d\r\n", block);
+                Send_Response(NAK);
+                continue;
+            }
+
+            /* 第一块：文件名信息 */
+            if (block_num == 1)
+            {
+                /* 解析文件名和文件大小 */
+                char filename[128] = {0};
+                sscanf((char*)&amp;uart_rx_buf[3], "%s %lu", filename, &amp;firmware_size);
+
+                printf("Receiving: %s, Size: %lu bytes\r\n", filename, firmware_size);
+
+                if (firmware_size == 0 || firmware_size > APP_SIZE_MAX)
+                {
+                    printf("Invalid firmware size!\r\n");
+                    Send_Response(CAN);
+                    return;
+                }
+
+                /* 擦除Flash */
+                printf("Erasing flash...\r\n");
+                Flash_Erase(APP_ADDR, firmware_size);
+                printf("Flash erased.\r\n");
+
+                block_num = 2;
+                flash_addr = APP_ADDR;
+                Send_Response(ACK);
+                Send_Response(CRC16); /* 请求下一个块 */
+            }
+            else if (block == (block_num &amp; 0xFF))
+            {
+                /* 数据块 */
+                uint8_t *data = &amp;uart_rx_buf[3];
+
+                /* 写入Flash */
+                Flash_Write(flash_addr, data, data_len);
+                flash_addr += data_len;
+
+                block_num++;
+                Send_Response(ACK);
+            }
+            else if (block == 0) /* 结束块 */
+            {
+                Send_Response(ACK);
+
+                /* 校验整个固件 */
+                printf("Firmware received. Size: %lu bytes\r\n", firmware_size);
+
+                /* 跳转APP */
+                printf("Jumping to APP...\r\n");
+                HAL_Delay(100);
+                JumpToApp();
+                return;
+            }
+        }
+        else if (received == EOT)
+        {
+            /* 传输结束 */
+            Send_Response(ACK);
+            printf("Transfer complete!\r\n");
+            JumpToApp();
+            return;
+        }
+        else if (received == CAN)
+        {
+            printf("Transfer cancelled by sender.\r\n");
+            return;
+        }
+        else
+        {
+            printf("Unknown: 0x%02X\r\n", received);
+        }
+    }
+}
+
+/* ============ 发送响应 ============ */
+static void Send_Response(uint8_t c)
+{
+    HAL_UART_Transmit(&amp;huart1, &amp;c, 1, 100);
+}
+
+/* ============ Flash擦除 ============ */
+static void Flash_Erase(uint32_t addr, uint32_t len)
+{
+    FLASH_EraseInitTypeDef erase;
+    uint32_t page_error;
+
+    /* 解锁Flash */
+    HAL_FLASH_Unlock();
+
+    erase.TypeErase = FLASH_TYPEERASE_PAGES;
+    erase.PageAddress = addr;
+    erase.NbPages = (len + PAGE_SIZE - 1) / PAGE_SIZE;
+
+    HAL_FLASH_Erase(&amp;erase, &amp;page_error);
+
+    HAL_FLASH_Lock();
+}
+
+/* ============ Flash写入 ============ */
+static void Flash_Write(uint32_t addr, uint8_t *data, uint32_t len)
+{
+    uint32_t i;
+
+    HAL_FLASH_Unlock();
+
+    for (i = 0; i &lt; len; i += 4)
+    {
+        uint32_t word = data[i] | (data[i+1] << 8) | (data[i+2] &lt;&lt; 16) | (data[i+3] &lt;&lt; 24);
+        HAL_FLASH_Program(FLASH_TYPEPROGRAM_WORD, addr + i, word);
+    }
+
+    HAL_FLASH_Lock();
+}
+
+/* ============ CRC16计算 ============ */
+static uint16_t CRC16_Calc(uint8_t *data, uint32_t len)
+{
+    uint16_t crc = 0;
+    uint32_t i, j;
+
+    for (i = 0; i &lt; len; i++)
+    {
+        crc ^= data[i];
+        for (j = 0; j &lt; 8; j++)
+        {
+            if (crc &amp; 0x0001)
+                crc = (crc >> 1) ^ 0xA001;
+            else
+                crc = crc >> 1;
+        }
+    }
+    return crc;
+}
+
+/* ============ USART回调 ============ */
+void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
+{
+    static uint16_t pos = 0;
+
+    if (huart->Instance == USART1)
+    {
+        rx_buf[pos++] = uart_rx_buf[0];
+
+        if (uart_rx_buf[0] == '\n' || pos >= sizeof(uart_rx_buf))
+        {
+            rx_len = pos;
+            pos = 0;
+            rx_done = 1;
+        }
+
+        /* 继续接收 */
+        HAL_UART_Receive_IT(&amp;huart1, uart_rx_buf, 1);
+    }
+}
+
+/* ============ 外设初始化 ============ */
+static void MX_USART1_UART_Init(void)
+{
+    huart1.Instance = USART1;
+    huart1.Init.BaudRate = BAUD_RATE;
+    huart1.Init.WordLength = UART_WORDLENGTH_8B;
+    huart1.Init.StopBits = UART_STOPBITS_1;
+    huart1.Init.Parity = UART_PARITY_NONE;
+    huart1.Init.Mode = UART_MODE_TX_RX;
+    huart1.Init.HwFlowCtl = UART_HWCONTROL_NONE;
+
+    if (HAL_UART_Init(&amp;huart1) != HAL_OK)
+    {
+        Error_Handler();
+    }
+
+    /* 启动接收中断 */
+    HAL_UART_Receive_IT(&amp;huart1, uart_rx_buf, 1);
+}
+
+static void MX_GPIO_Init(void)
+{
+    __HAL_RCC_GPIOA_CLK_ENABLE();
+    /* PA9/PA10已由CubeMX配置为USART1 */
+}
+
+static void SystemClock_Config(void)
+{
+    RCC_OscInitTypeDef RCC_OscInitStruct = {0};
+    RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
+
+    RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSE;
+    RCC_OscInitStruct.HSEState = RCC_HSE_ON;
+    RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
+    RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
+    RCC_OscInitStruct.PLL.PLLMUL = RCC_PLLMUL_9; /* 8MHz × 9 = 72MHz */
+    if (HAL_RCC_OscConfig(&amp;RCC_OscInitStruct) != HAL_OK)
+    {
+        Error_Handler();
+    }
+
+    RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK | RCC_CLOCKTYPE_SYSCLK |
+                                  RCC_CLOCKTYPE_PCLK1 | RCC_CLOCKTYPE_PCLK2;
+    RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
+    RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
+    RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV2;
+    RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1;
+    if (HAL_RCC_ClockConfig(&amp;RCC_ClkInitStruct, FLASH_LATENCY_2) != HAL_OK)
+    {
+        Error_Handler();
+    }
+}
+
+/* printf重定向 */
+#ifdef __GNUC__
+int __io_putchar(int ch)
+{
+    HAL_UART_Transmit(&amp;huart1, (uint8_t*)&amp;ch, 1, HAL_MAX_DELAY);
+    return ch;
+}
+#endif
+</pre>
+
+<h3>APP工程关键配置</h3>
+<pre>
+APP工程必须修改链接脚本(.ld文件)：
+
+/* 找到FLASH区域的定义，修改起始地址和大小 */
+/* 原来: */
+FLASH (rx) : ORIGIN = 0x08000000, LENGTH = 64K
+
+/* 改为: */
+FLASH (rx) : ORIGIN = 0x08004000, LENGTH = 48K
+
+/* 同时在代码中添加中断向量表重定位(在SystemInit或main开头): */
+void SystemInit(void)
+{
+    /* 重定位中断向量表到APP起始地址 */
+    SCB->VTOR = 0x08004000;
+    
+    /* 原有代码... */
+}
+
+/* 或者在main函数开头: */
+int main(void)
+{
+    /* 重定位中断向量表 */
+    SCB->VTOR = 0x08004000;
+    
+    /* 初始化... */
+    while (1) { }
+}
+</pre>
+
+<h2>📝 分步操作指引</h2>
+
+<div class="step">
+<strong>第1步：创建Bootloader工程</strong><br>
+1. 打开CubeMX，选择STM32F103C8T6<br>
+2. 配置USART1(PA9/PA10)，115200bps，8N1<br>
+3. 开启USART1中断<br>
+4. Project → Code Generator → 单独生成外设初始化<br>
+5. 生成代码，Keil打开
+</div>
+
+<div class="step">
+<strong>第2步：创建APP工程</strong><br>
+1. 复制整个Bootloader工程，重命名为APP工程<br>
+2. 修改.ld链接脚本：ORIGIN = 0x08004000, LENGTH = 48K<br>
+3. 在SystemInit或main开头添加：<code>SCB->VTOR = 0x08004000;</code><br>
+4. 编译确认无错误<br>
+5. 输出为bin文件：Keil Options → Output → 勾选"Create HEX file"和"Run #1: fromelf --bin..."<br>
+   <code>fromelf --bin -o "$L@L.bin" "#L"</code>
+</div>
+
+<div class="step">
+<strong>第3步：烧录Bootloader</strong><br>
+1. 连接ST-Link，烧录Bootloader.hex到0x08000000<br>
+2. 串口助手打开Bootloader对应的串口，波特率115200<br>
+3. 复位开发板，观察串口输出<br>
+4. 按'G'确认可以跳转(虽然还没有APP)
+</div>
+
+<div class="step">
+<strong>第4步：烧录APP</strong><br>
+1. 用Keil打开APP工程，编译生成hex/bin文件<br>
+2. 通过ST-Link烧录APP.hex到0x08004000<br>
+3. 复位运行，确认APP功能正常<br>
+4. 测试GPIO、中断等功能是否正常
+</div>
+
+<div class="step">
+<strong>第5步：测试IAP升级</strong><br>
+1. 复位开发板，Bootloader启动<br>
+2. 按'U'进入升级模式，或等待5秒自动跳转APP<br>
+3. 在APP运行时，通过串口发送升级命令触发Bootloader<br>
+4. 用YMODEM工具发送APP的bin文件<br>
+5. 等待传输完成，Bootloader自动跳转新固件
+</div>
+
+<h2>❓ 常见问题排查</h2>
+
+<h3>问题1：跳转后APP不运行</h3>
+<div class="warn">
+<strong>最常见原因：中断向量表未重定位。</strong><br>
+Bootloader位于0x08000000时，CPU默认中断向量表也在0x08000000。<br>
+APP位于0x08004000，如果APP中没有重定位向量表，则中断发生后CPU会到0x08000000+offset处查找中断向量，那里是Bootloader的中断处理函数，而Bootloader已经跑完了，所以程序就跑飞了。
+</div>
+<p><strong>解决：</strong>在APP的SystemInit()或main()开头添加：<code>SCB->VTOR = 0x08004000;</code></p>
+
+<h3>问题2：Flash写入失败</h3>
+<div class="note">
+<strong>原因：</strong>STM32的Flash写入前必须先解锁，否则写操作被忽略。<br>
+写入前：<code>HAL_FLASH_Unlock();</code><br>
+写入后：<code>HAL_FLASH_Lock();</code>
+</div>
+<p>另外，每次写入必须是4字节对齐(Word)，不能单字节写入。</p>
+
+<h3>问题3：APP链接脚本地址错误</h3>
+<pre>
+/* 错误示例 - Keil的.sct文件配置错误 */
+LR_IROM1  0x08000000  0x00010000  {    ; 应该是0x08004000
+  ER_IROM1  0x08000000  0x00010000  {
+   *.o (RESET, +First)
+   *(InRoot$$Sections)
+   .ANY (+RO)
+  }
+  RW_IRAM1  0x20000000  0x00005000  {
+   .ANY (+RW +ZI)
+  }
+}
+</pre>
+<p>修改为：<code>LR_IROM1  0x08004000  0x0000C000</code></p>
+
+<h3>问题4：YMODEM传输失败</h3>
+<table>
+<tr><th>现象</th><th>原因</th><th>解决</th></tr>
+<tr><td>一直发送'C'但无响应</td><td>MCU未收到数据</td><td>检查串口接线，确认波特率一致</td></tr>
+<tr><td>CRC错误</td><td>串口缓冲区溢出</td><td>降低波特率，或使用流控</td></tr>
+<tr><td>超时退出</td><td>传输太慢</td><td>增加超时时间，使用1024字节块</td></tr>
+<tr><td>块号不匹配</td><td>丢包</td><td>检查USB转TTL质量，换更好的线</td></tr>
+</table>
+
+<h3>问题5：Bootloader跳转函数出错</h3>
+<pre>
+/* 常见错误1: 没有设置正确的栈指针 */
+typedef void (*pFunction)(void);
+pFunction Jump_To_App = (pFunction)app_reset_handler;
+Jump_To_App();  // 错误！应该先设置MSP
+
+/* 正确做法: */
+__asm volatile("msr msp, %0" : : "r"(*(volatile uint32_t*)APP_ADDR));
+pFunction Jump_To_App = (pFunction)app_reset_handler;
+Jump_To_App();
+
+/* 常见错误2: 检查条件太宽松 */
+if (*(volatile uint32_t*)APP_ADDR != 0xFFFFFFFF)  // 只检查了Flash未空
+    // 但这不够，还应该检查是否是有效的栈地址
+
+/* 更好的检查: */
+uint32_t sp = *(volatile uint32_t*)APP_ADDR;
+uint32_t reset_vec = *(volatile uint32_t*)(APP_ADDR + 4);
+if ((sp &amp; 0x2FFE0000) == 0x20000000 &amp;&amp;   // 栈在SRAM范围内
+    (reset_vec &amp; 0xFF000001) == 0x1)          // Thumb指令
+</pre>
+
+<div class="note">
+<strong>💡 进阶技巧：</strong><br>
+1. 在Flash中保存APP版本号，Bootloader可以显示当前版本<br>
+2. 保存OTA状态标志位，支持"双区备份"防止升级失败<br>
+3. 使用XMODEM替代YMODEM，协议更简单<br>
+4. 支持OTA断点续传：记录已接收块数，超时重传从断点继续<br>
+5. 使用双Bank Flash：F103高容量版本支持双Bank，可实现无缝升级
+</div>
+
+
+<hr><h2>❓ 常见问题 FAQ</h2>
+
+<div style="margin:12px 0;padding:12px 16px;background:var(--bg2);border-left:3px solid var(--a);border-radius:0 8px 8px 0">
+  <p style="font-weight:600;color:var(--c1);margin-bottom:4px">Q: 升级后程序跑飞？</p>
+  <p style="color:var(--t)">A: 1)向量表偏移未修改(VTOR) 2)bin文件偏移地址错误 3)Flash写入未对齐(64位) 4)升级过程中断电→需双分区方案</p>
+</div>
+
+<div style="margin:12px 0;padding:12px 16px;background:var(--bg2);border-left:3px solid var(--a);border-radius:0 8px 8px 0">
+  <p style="font-weight:600;color:var(--c1);margin-bottom:4px">Q: 如何防变砖？</p>
+  <p style="color:var(--t)">A: 1)A/B双分区方案 2)升级前校验CRC 3)Bootloader永不更新 4)保留串口回退升级通道</p>
+</div>
+
+<hr><h2>🔗 相关教程</h2>
+<div style="display:flex;flex-wrap:wrap;gap:8px;margin:12px 0">
+<a href="#" onclick="parent.loadPage && parent.loadPage('proj-sd-logger')" style="display:inline-block;padding:6px 14px;background:var(--bg3);border:1px solid var(--br);border-radius:6px;color:var(--a);text-decoration:none;font-size:.85em">SD卡记录 →</a>
+<a href="#" onclick="parent.loadPage && parent.loadPage('proj-esp32-iot')" style="display:inline-block;padding:6px 14px;background:var(--bg3);border:1px solid var(--br);border-radius:6px;color:var(--a);text-decoration:none;font-size:.85em">ESP32 IoT →</a>
+<a href="#" onclick="parent.loadPage && parent.loadPage('flash-debug')" style="display:inline-block;padding:6px 14px;background:var(--bg3);border:1px solid var(--br);border-radius:6px;color:var(--a);text-decoration:none;font-size:.85em">烧录与调试 →</a>
+</div>
+
+</body></html>

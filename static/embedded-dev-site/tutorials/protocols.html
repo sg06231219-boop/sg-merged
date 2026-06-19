@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>通信协议详解 细致教程</title>
+<style>
+:root{--bg:#0d1117;--bg2:#161b22;--bg3:#21262d;--br:#30363d;--t:#c9d1d9;--t2:#8b949e;--a:#58a6ff;--g:#3fb950;--o:#d2991d;--r:#f85149;--p:#a371f7;--c1:#39c5cf}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--t);line-height:1.9;max-width:880px;margin:0 auto;padding:18px}
+h1{font-size:1.6em;text-align:center;padding:18px 0;background:linear-gradient(135deg,var(--c1),var(--g));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:16px}
+h2{font-size:1.25em;color:var(--a);margin:32px 0 12px;padding-bottom:6px;border-bottom:1px solid var(--br)}
+h3{font-size:1.1em;color:var(--c1);margin:22px 0 8px}
+h4{font-size:1em;color:var(--o);margin:16px 0 6px}
+p{margin:8px 0}
+pre{background:var(--bg2);border:1px solid var(--br);border-radius:8px;padding:14px;margin:10px 0;overflow-x:auto;font-size:.88em;line-height:1.6}
+code{font-family:'Cascadia Code','Fira Code',Consolas,monospace;font-size:.9em}
+:not(pre)>code{background:var(--bg3);padding:2px 6px;border-radius:4px;color:var(--c1)}
+table{width:100%;border-collapse:collapse;margin:12px 0;font-size:.9em}
+th{background:var(--bg3);color:var(--a);padding:8px 12px;text-align:left;border:1px solid var(--br)}
+td{padding:8px 12px;border:1px solid var(--br)}
+tr:nth-child(even){background:var(--bg2)}
+.note{background:rgba(88,166,255,.08);border-left:3px solid var(--a);padding:12px 16px;margin:12px 0;border-radius:0 8px 8px 0}
+.warn{background:rgba(248,81,73,.08);border-left:3px solid var(--r);padding:12px 16px;margin:12px 0;border-radius:0 8px 8px 0}
+.tip{background:rgba(63,185,80,.08);border-left:3px solid var(--g);padding:12px 16px;margin:12px 0;border-radius:0 8px 8px 0}
+.analogy{background:rgba(163,113,247,.08);border-left:3px solid var(--p);padding:12px 16px;margin:12px 0;border-radius:0 8px 8px 0}
+.step{background:var(--bg2);border:1px solid var(--br);border-radius:8px;padding:10px 14px;margin:8px 0}
+.card{background:var(--bg2);border:1px solid var(--br);border-radius:10px;margin:14px 0;overflow:hidden}
+.card .h{background:var(--bg3);padding:10px 14px;display:flex;align-items:center;gap:8px}
+.card .name{font-weight:600;flex:1}
+.card .b{padding:12px 14px}
+.tag{display:inline-block;padding:2px 8px;border-radius:12px;font-size:.75em;font-weight:600}
+.tag.g{background:rgba(63,185,80,.15);color:var(--g)}.tag.b{background:rgba(88,166,255,.15);color:var(--a)}
+.tag.o{background:rgba(210,153,29,.15);color:var(--o)}.tag.r{background:rgba(248,81,73,.15);color:var(--r)}.tag.p{background:rgba(163,113,247,.15);color:var(--p)}
+.nav-top{position:fixed;top:0;left:50%;transform:translateX(-50%);background:var(--bg2);border:1px solid var(--br);border-top:none;border-radius:0 0 10px 10px;padding:6px 16px;z-index:999;font-size:.85em;display:flex;gap:12px;flex-wrap:wrap;justify-content:center}
+.nav-top a{color:var(--t2);text-decoration:none;padding:2px 8px;border-radius:4px;transition:all .2s}
+.nav-top a:hover{color:var(--a);background:var(--bg3)}
+.breadcrumb{color:var(--t2);font-size:.85em;margin-bottom:16px}
+.breadcrumb a{color:var(--a);text-decoration:none}
+.breadcrumb a:hover{text-decoration:underline}
+</style>
+</head>
+<body>
+
+<div class="nav-top">
+<a href="#overview">四大协议对比</a><a href="#uart">UART</a><a href="#i2c">I2C</a><a href="#spi">SPI</a><a href="#can">CAN</a><a href="#logic">逻辑分析仪</a><a href="#troubleshoot">排错</a><a href="#cheatsheet">速查表</a>
+</div>
+
+<div class="breadcrumb">📐 <a href="index.html">工具教程合集</a> / <strong>通信协议详解</strong></div>
+
+<h1>🔌 通信协议详解 细致教程</h1>
+
+<p>嵌入式开发中，芯片和传感器/显示器/存储器之间通过<strong>通信协议</strong>交换数据。掌握UART/I2C/SPI/CAN四大协议是基本功。</p>
+
+<!-- ==================== 四大协议对比 ==================== -->
+<h2 id="overview">📊 四大协议对比</h2>
+
+<table>
+<tr><th>特性</th><th>UART</th><th>I2C</th><th>SPI</th><th>CAN</th></tr>
+<tr><td>线数</td><td>2（TX/RX）</td><td>2（SDA/SCL）</td><td>4+（MOSI/MISO/SCK/CS）</td><td>2（CANH/CANL）</td></tr>
+<tr><td>双工</td><td>全双工</td><td>半双工</td><td>全双工</td><td>半双工</td></tr>
+<tr><td>速率</td><td>最高~5Mbps</td><td>最高3.4Mbps</td><td>最高~80Mbps</td><td>最高1Mbps</td></tr>
+<tr><td>距离</td><td>~15m</td><td>~1m</td><td>~30cm</td><td>~1km</td></tr>
+<tr><td>从机数</td><td>点对点（1对1）</td><td>127个</td><td>理论无限（受CS限制）</td><td>理论无限</td></tr>
+<tr><td>主从</td><td>对等</td><td>主从</td><td>主从</td><td>多主</td></tr>
+<tr><td>典型用途</td><td>调试/蓝牙/GPS</td><td>传感器/OLED/EEPROM</td><td>Flash/屏幕/SD卡</td><td>汽车/工业</td></tr>
+<tr><td>难度</td><td>⭐</td><td>⭐⭐</td><td>⭐⭐</td><td>⭐⭐⭐⭐</td></tr>
+</table>
+
+<div class="analogy">💡 <b>类比：</b><br>
+• <b>UART</b> = 两个人打电话（一对一，同时说听）<br>
+• <b>I2C</b> = 老师点名回答问题（一个老师控制，按地址叫学生）<br>
+• <b>SPI</b> = 老板给多个员工发任务（快，但每人要一根专属线）<br>
+• <b>CAN</b> = 公司广播系统（所有人都能听到，优先级高的先说）</div>
+
+<!-- ==================== UART ==================== -->
+<h2 id="uart">📡 UART 详解</h2>
+
+<p>UART是最基础的串行通信协议，详见<a href="tool-serial.html">串口通信教程</a>，这里补充要点。</p>
+
+<h3>数据帧结构</h3>
+<pre><code> 空闲(高) ┌───┐┌─┐┌─┐┌─┐┌─┐┌─┐┌─┐┌─┐┌─┐┌─────┐
+          │   ││D0││D1││D2││D3││D4││D5││D6││D7││ 停止 │
+ ─────────┘   └┘└┘└┘└┘└┘└┘└┘└┘└┘└───┘
+          ↑起始位    ↑数据位(LSB先发)   ↑校验  ↑停止位
+
+常见配置 "8N1" = 8数据位 + 无校验 + 1停止位</code></pre>
+
+<h3>STM32 HAL UART代码</h3>
+<pre><code>// 初始化（CubeMX自动生成）
+UART_HandleTypeDef huart1;
+huart1.Instance = USART1;
+huart1.Init.BaudRate = 115200;
+huart1.Init.WordLength = UART_WORDLENGTH_8B;
+huart1.Init.StopBits = UART_STOPBITS_1;
+huart1.Init.Parity = UART_PARITY_NONE;
+HAL_UART_Init(&huart1);
+
+// 阻塞发送
+HAL_UART_Transmit(&huart1, (uint8_t*)"Hello", 5, 1000);
+
+// 中断接收
+uint8_t rx_byte;
+HAL_UART_Receive_IT(&huart1, &rx_byte, 1);
+
+// 回调函数
+void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
+    if (huart->Instance == USART1) {
+        // 处理接收到的字节
+        HAL_UART_Receive_IT(huart, &rx_byte, 1);  // 重新开启接收
+    }
+}
+
+// DMA空闲中断接收（推荐，解决粘包问题）
+uint8_t rx_buf[256];
+void UART_StartReceive(void) {
+    HAL_UARTEx_ReceiveToIdle_DMA(&huart1, rx_buf, sizeof(rx_buf));
+}
+
+void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size) {
+    // Size = 实际接收到的字节数
+    process_data(rx_buf, Size);
+    HAL_UARTEx_ReceiveToIdle_DMA(&huart1, rx_buf, sizeof(rx_buf));  // 重启
+}</code></pre>
+
+<!-- ==================== I2C ==================== -->
+<h2 id="i2c">🔗 I2C 详解</h2>
+
+<p>I2C（Inter-Integrated Circuit）用2根线连接多个设备，是传感器/OLED最常用的协议。</p>
+
+<h3>硬件连接</h3>
+<pre><code>          VCC (3.3V)
+           │
+    ┌──────┤──────┐
+    │      │      │
+   [RP]   [RP]   [RP]   ← 上拉电阻（4.7KΩ典型值）
+    │      │      │
+    ├──────┼──────┤──── SDA
+    │      │      │
+    ├──────┼──────┤──── SCL
+    │      │      │
+  [MCU] [传感器] [OLED]
+    │      │      │
+    └──────┴──────┘
+           │
+          GND
+
+关键：SDA和SCL必须各接一个上拉电阻！</code></pre>
+
+<div class="warn">⚠️ <b>没有上拉电阻I2C不工作！</b>I2C是开漏输出，没有上拉总线永远是低电平。有些模块自带上拉，检查原理图。没上的话外接4.7KΩ到VCC。</div>
+
+<h3>I2C通信流程</h3>
+<pre><code>// 写寄存器：MCU → 传感器
+// 主机发送：START → 从机地址(7bit)+W(0) → ACK → 寄存器地址 → ACK → 数据 → ACK → STOP
+
+// 读寄存器：MCU ← 传感器
+// 主机先写后读：
+// START → 从机地址+W → ACK → 寄存器地址 → ACK →
+// RESTART → 从机地址+R(1) → ACK → 数据 → NACK → STOP
+
+// 示例：读取BMP280温度传感器
+// 从机地址 = 0x76（SDO接GND）或0x77（SDO接VCC）
+// 温度寄存器 = 0xFA</code></pre>
+
+<h3>STM32 HAL I2C代码</h3>
+<pre><code>// 写1字节到寄存器
+HAL_I2C_Mem_Write(&hi2c1, 0x76&lt;&lt;1, 0xF4, 1, &data, 1, 100);
+//              句柄   设备地址左移1位  寄存器地址  数据  超时
+
+// 从寄存器读N字节
+uint8_t buf[6];
+HAL_I2C_Mem_Read(&hi2c1, 0x76&lt;&lt;1, 0xFA, 1, buf, 6, 100);
+
+// 检测设备是否在线
+HAL_StatusTypeDef ret = HAL_I2C_IsDeviceReady(&hi2c1, 0x76&lt;&lt;1, 3, 100);
+if (ret == HAL_OK) {
+    printf("BMP280 found at 0x76\n");
+}
+
+// 扫描总线上所有设备（调试利器）
+void i2c_scan(I2C_HandleTypeDef *hi2c) {
+    printf("扫描I2C总线...\n");
+    for (uint8_t addr = 1; addr < 127; addr++) {
+        if (HAL_I2C_IsDeviceReady(hi2c, addr &lt;&lt; 1, 1, 10) == HAL_OK) {
+            printf("  找到设备: 0x%02X\n", addr);
+        }
+    }
+}</code></pre>
+
+<h3>常见I2C设备地址</h3>
+<table>
+<tr><th>设备</th><th>地址（7位）</th><th>说明</th></tr>
+<tr><td>OLED SSD1306</td><td>0x3C / 0x3D</td><td>取决于SA0引脚</td></tr>
+<tr><td>BMP280/BME280</td><td>0x76 / 0x77</td><td>取决于SDO引脚</td></tr>
+<tr><td>MPU6050</td><td>0x68 / 0x69</td><td>加速度计+陀螺仪</td></tr>
+<tr><td>AT24C02 EEPROM</td><td>0x50</td><td>2Kbit存储</td></tr>
+<tr><td>DS3231 RTC</td><td>0x68</td><td>高精度时钟</td></tr>
+<tr><td>PCF8574 IO扩展</td><td>0x20~0x27</td><td>8位I2C转GPIO</td></tr>
+<tr><td>ADS1115 ADC</td><td>0x48~0x4B</td><td>16位4通道ADC</td></tr>
+</table>
+
+<h3>I2C常见问题</h3>
+<div class="card">
+<div class="b">
+<p><b>❌ HAL_I2C_MEM_Read 返回 HAL_TIMEOUT</b></p>
+<p>原因：①设备地址错 ②上拉电阻缺失 ③SCL/SDA接反 ④设备未上电</p>
+<p>排查：用i2c_scan()先看设备在不在</p>
+</div></div>
+
+<!-- ==================== SPI ==================== -->
+<h2 id="spi">⚡ SPI 详解</h2>
+
+<p>SPI（Serial Peripheral Interface）是最快的串行协议，适合高速设备（Flash/屏幕/SD卡）。</p>
+
+<h3>硬件连接（4线SPI）</h3>
+<pre><code>  MCU          从机1        从机2
+  MOSI ──────→ MOSI        MOSI
+  MISO ←────── MISO        MISO
+  SCLK ──────→ SCLK        SCLK
+  CS0  ──────→ CS          │
+  CS1  ──────────────────→ CS
+  
+  每个从机需要一根独立的CS线！</code></pre>
+
+<h3>SPI四根线的作用</h3>
+<table>
+<tr><th>信号</th><th>方向</th><th>作用</th></tr>
+<tr><td><code>MOSI</code></td><td>主→从</td><td>主出从入（Master Out Slave In）</td></tr>
+<tr><td><code>MISO</code></td><td>从→主</td><td>主入从出（Master In Slave Out）</td></tr>
+<tr><td><code>SCLK</code></td><td>主→从</td><td>时钟信号（由主机产生）</td></tr>
+<tr><td><code>CS/SS</code></td><td>主→从</td><td>片选（低有效，选中从机）</td></tr>
+</table>
+
+<h3>SPI极性和相位（CPOL/CPHA）</h3>
+<table>
+<tr><th>模式</th><th>CPOL</th><th>CPHA</th><th>空闲SCK</th><th>采样边沿</th><th>常见设备</th></tr>
+<tr><td>0</td><td>0</td><td>0</td><td>低</td><td>上升沿</td><td>大多数传感器</td></tr>
+<tr><td>1</td><td>0</td><td>1</td><td>低</td><td>下降沿</td><td>部分LCD</td></tr>
+<tr><td>2</td><td>1</td><td>0</td><td>高</td><td>下降沿</td><td>少数设备</td></tr>
+<tr><td>3</td><td>1</td><td>1</td><td>高</td><td>上升沿</td><td>SD卡</td></tr>
+</table>
+
+<div class="note">⚠️ <b>CPOL/CPHA必须匹配！</b>主从双方必须用同一种模式，否则数据全是乱的。查设备数据手册确认。</div>
+
+<h3>STM32 HAL SPI代码</h3>
+<pre><code>// CubeMX配置：SPI1 → Mode: Full-Duplex Master → Prescaler: 8 (9MHz)
+// CPOL=Low, CPHA=1Edge, 8bit, MSB First
+
+// 发送数据
+uint8_t tx_buf[] = {0x9F};  // W25Q Flash: Read JEDEC ID
+uint8_t rx_buf[4] = {0};
+
+HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4, GPIO_PIN_RESET);  // CS拉低
+HAL_SPI_TransmitReceive(&hspi1, tx_buf, rx_buf, 4, 100);
+HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4, GPIO_PIN_SET);    // CS拉高
+
+printf("Flash ID: %02X %02X %02X\n", rx_buf[1], rx_buf[2], rx_buf[3]);
+// W25Q32: EF 40 16
+
+// 阻塞发送（单向，如控制SPI屏幕）
+HAL_SPI_Transmit(&hspi1, pixel_data, len, 100);
+
+// DMA发送（不阻塞CPU，推荐大屏使用）
+HAL_SPI_Transmit_DMA(&hspi1, pixel_data, len);</code></pre>
+
+<h3>软件SPI（任意GPIO模拟）</h3>
+<pre><code>// 当硬件SPI不够用时，可以用GPIO模拟
+#define SOFT_SCK  GPIO_PIN_5
+#define SOFT_MOSI GPIO_PIN_7
+#define SOFT_CS   GPIO_PIN_4
+
+void SPI_Soft_Write(uint8_t data) {
+    HAL_GPIO_WritePin(GPIOA, SOFT_CS, GPIO_PIN_RESET);
+    for (int i = 7; i >= 0; i--) {
+        HAL_GPIO_WritePin(GPIOA, SOFT_SCK, GPIO_PIN_RESET);
+        HAL_GPIO_WritePin(GPIOA, SOFT_MOSI, (data >> i) & 1);
+        HAL_GPIO_WritePin(GPIOA, SOFT_SCK, GPIO_PIN_SET);  // 上升沿采样
+    }
+    HAL_GPIO_WritePin(GPIOA, SOFT_CS, GPIO_PIN_SET);
+}</code></pre>
+
+<!-- ==================== CAN ==================== -->
+<h2 id="can">🚗 CAN 总线详解</h2>
+
+<p>CAN（Controller Area Network）是汽车和工业领域的主流总线，抗干扰极强，支持多主。</p>
+
+<h3>硬件连接</h3>
+<pre><code>  MCU1        MCU2        MCU3
+  TXD→┐       TXD→┐       TXD→┐
+       │            │            │
+  [TJA1050]    [TJA1050]    [TJA1050]   ← CAN收发器
+       │            │            │
+  CANH ├────────────┼────────────┤   ← 差分信号
+  CANL ├────────────┼────────────┤
+       │            │            │
+      [120Ω]                  [120Ω]   ← 终端电阻（两端各一个）
+       │            │            │
+      GND          GND          GND</code></pre>
+
+<div class="warn">⚠️ <b>CAN必须加收发器和终端电阻！</b>MCU的CAN引脚是逻辑电平，不能直接接CANH/CANL。必须通过TJA1050/SN65HVD230等收发器转换。总线两端各需120Ω终端电阻，没有的话信号反射导致通信失败。</div>
+
+<h3>CAN帧结构</h3>
+<pre><code>┌──────┬──────┬────────────┬──────┬──────────────┬─────┬──────┬──────┐
+│ 帧起始│仲裁场│  控制场     │数据场 │   CRC场      │ACK场│帧结束│帧间隔│
+│ 1bit │12bit │  6bit      │0-8B  │  16bit       │2bit │7bit  │3bit  │
+└──────┴──────┴────────────┴──────┴──────────────┴─────┴──────┴──────┘
+仲裁场 = 11位ID + 1位RTR（0=数据帧, 1=远程帧）
+ID越小优先级越高！</code></pre>
+
+<h3>STM32 HAL CAN代码</h3>
+<pre><code>// CAN初始化（STM32F4，500kbps）
+CAN_HandleTypeDef hcan1;
+hcan1.Instance = CAN1;
+hcan1.Init.Prescaler = 8;           // APB1CLK / Prescaler / (1+BS1+BS2)
+hcan1.Init.TimeSeg1 = CAN_BS1_14TQ; // 位时序段1
+hcan1.Init.TimeSeg2 = CAN_BS2_3TQ;  // 位时序段2
+hcan1.Init.SyncJumpWidth = CAN_SJW_1TQ;
+hcan1.Init.Mode = CAN_MODE_NORMAL;
+HAL_CAN_Init(&hcan1);
+
+// 配置过滤器（必须！否则收不到消息）
+CAN_FilterTypeDef filter;
+filter.FilterBank = 0;
+filter.FilterMode = CAN_FILTERMODE_IDMASK;
+filter.FilterScale = CAN_FILTERSCALE_32BIT;
+filter.FilterIdHigh = 0x0000;
+filter.FilterIdLow = 0x0000;
+filter.FilterMaskIdHigh = 0x0000;
+filter.FilterMaskIdLow = 0x0000;  // 全部通过
+filter.FilterFIFOAssignment = CAN_RX_FIFO0;
+filter.FilterActivation = ENABLE;
+HAL_CAN_ConfigFilter(&hcan1, &filter);
+
+// 启动CAN
+HAL_CAN_Start(&hcan1);
+HAL_CAN_ActivateNotification(&hcan1, CAN_IT_RX_FIFO0_MSG_PENDING);
+
+// 发送消息
+CAN_TxHeaderTypeDef tx_header;
+uint8_t tx_data[8] = {0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08};
+uint32_t tx_mailbox;
+
+tx_header.StdId = 0x123;      // 标准ID
+tx_header.ExtId = 0;           // 扩展ID（本例不用）
+tx_header.IDE = CAN_ID_STD;    // 标准帧
+tx_header.RTR = CAN_RTR_DATA;  // 数据帧
+tx_header.DLC = 8;             // 数据长度
+
+HAL_CAN_AddTxMessage(&hcan1, &tx_header, tx_data, &tx_mailbox);
+
+// 接收回调
+void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan) {
+    CAN_RxHeaderTypeDef rx_header;
+    uint8_t rx_data[8];
+    HAL_CAN_GetRxMessage(hcan, CAN_RX_FIFO0, &rx_header, rx_data);
+    printf("CAN ID:0x%03X DLC:%d Data:", rx_header.StdId, rx_header.DLC);
+    for (int i = 0; i < rx_header.DLC; i++) {
+        printf(" %02X", rx_data[i]);
+    }
+    printf("\n");
+}</code></pre>
+
+<h3>CAN波特率计算</h3>
+<pre><code>// CAN波特率 = APB时钟 / Prescaler / (1 + TimeSeg1 + TimeSeg2)
+// 例：APB1 = 42MHz, 500kbps
+// 42MHz / 8 / (1 + 14 + 3) = 42,000,000 / 8 / 18 = 291,666 ≈ 291kbps ❌
+// 改：42MHz / 6 / (1 + 9 + 4) = 42,000,000 / 6 / 14 = 500,000 = 500kbps ✅
+
+// 常用组合：
+// 500kbps: Prescaler=6,  BS1=9,  BS2=4   (APB1=42MHz)
+// 250kbps: Prescaler=12, BS1=9,  BS2=4   (APB1=42MHz)
+// 1Mbps:   Prescaler=3,  BS1=9,  BS2=4   (APB1=42MHz)</code></pre>
+
+<!-- ==================== 逻辑分析仪 ==================== -->
+<h2 id="logic">🔬 逻辑分析仪使用</h2>
+
+<p>逻辑分析仪是通信协议调试的<strong>终极武器</strong>——抓取信号波形，自动解码协议内容。</p>
+
+<h3>推荐设备</h3>
+<table>
+<tr><th>设备</th><th>价格</th><th>通道数</th><th>采样率</th><th>推荐度</th></tr>
+<tr><td>逻辑分析仪8通道（Saleae克隆）</td><td>¥15~30</td><td>8</td><td>24MHz</td><td>⭐⭐⭐⭐⭐</td></tr>
+<tr><td>逻辑分析仪16通道</td><td>¥30~50</td><td>16</td><td>100MHz</td><td>⭐⭐⭐⭐</td></tr>
+<tr><td>Saleae Logic Original</td><td>¥3000+</td><td>8~16</td><td>500MHz</td><td>⭐⭐⭐（贵）</td></tr>
+</table>
+
+<div class="tip">💡 <b>¥15的8通道逻辑分析仪就够用！</b>配合Sigrok/PulseView开源软件，能自动解码UART/I2C/SPI/CAN，比任何串口调试工具都直观。</div>
+
+<h3>PulseView使用步骤</h3>
+<div class="step"><b>步骤1：</b>安装 <code>sigsrok.org</code> → 下载PulseView</div>
+<div class="step"><b>步骤2：</b>连接逻辑分析仪到USB</div>
+<div class="step"><b>步骤3：</b>夹子接信号线（D0=TX, D1=RX, D2=SCL, D3=SDA...）</div>
+<div class="step"><b>步骤4：</b>点"Run"采集</div>
+<div class="step"><b>步骤5：</b>添加协议解码器（UART/I2C/SPI）</div>
+<div class="step"><b>步骤6：</b>看解码后的数据，一眼看出通信内容</div>
+
+<!-- ==================== 排错 ==================== -->
+<h2 id="troubleshoot">🔍 通信协议常见问题</h2>
+
+<h3>UART问题</h3>
+<table>
+<tr><th>症状</th><th>原因</th><th>解决</th></tr>
+<tr><td>乱码/全0xFF</td><td>波特率不匹配</td><td>两端设相同波特率</td></tr>
+<tr><td>偶尔错一个字节</td><td>时钟误差>3%</td><td>换更准的晶振或降低波特率</td></tr>
+<tr><td>只能发不能收</td><td>TX/RX没交叉接</td><td>MCU的TX接对方的RX</td></tr>
+<tr><td>数据粘包</td><td>没有帧定界</td><td>加帧头帧尾+超时判断</td></tr>
+</table>
+
+<h3>I2C问题</h3>
+<table>
+<tr><th>症状</th><th>原因</th><th>解决</th></tr>
+<tr><td>HAL_TIMEOUT</td><td>无上拉电阻</td><td>SDA/SCL各加4.7K上拉</td></tr>
+<tr><td>总线 Busy</td><td>上次通信没正常结束</td><td>发送9个SCL脉冲+STOP复位总线</td></tr>
+<tr><td>设备地址冲突</td><td>两个设备同地址</td><td>改地址引脚或换I2C总线</td></tr>
+<tr><td>读取数据全0</td><td>地址左移问题</td><td>HAL需左移1位：addr&lt;&lt;1</td></tr>
+</table>
+
+<h3>SPI问题</h3>
+<table>
+<tr><th>症状</th><th>原因</th><th>解决</th></tr>
+<tr><td>数据全0xFF</td><td>CS没拉低</td><td>检查GPIO初始化和拉低时序</td></tr>
+<tr><td>数据偏移1bit</td><td>CPOL/CPHA不匹配</td><td>改SPI模式0/1/2/3尝试</td></tr>
+<tr><td>速度太快丢数据</td><td>分频器太小</td><td>增大Prescaler降低速率</td></tr>
+<tr><td>MISO全高</td><td>从机未初始化</td><td>先发初始化命令再读</td></tr>
+</table>
+
+<h3>CAN问题</h3>
+<table>
+<tr><th>症状</th><th>原因</th><th>解决</th></tr>
+<tr><td>完全不通</td><td>无终端电阻</td><td>两端各加120Ω</td></tr>
+<tr><td>发送失败</td><td>波特率不匹配</td><td>确认Prescaler/BS1/BS2</td></tr>
+<tr><td>收不到消息</td><td>过滤器配错</td><td>先设全通过过滤器</td></tr>
+<tr><td>总线错误</td><td>收发器问题</td><td>查TJA1050供电和接线</td></tr>
+</table>
+
+<!-- ==================== 速查表 ==================== -->
+<h2 id="cheatsheet">📋 通信协议速查表</h2>
+
+<h3>接线速查</h3>
+<table>
+<tr><th>协议</th><th>MCU引脚</th><th>接对方</th><th>额外元件</th></tr>
+<tr><td>UART</td><td>TX → 对方RX<br>RX ← 对方TX</td><td>交叉接</td><td>GND共地！</td></tr>
+<tr><td>I2C</td><td>SDA ↔ 对方SDA<br>SCL ↔ 对方SCL</td><td>同名接</td><td>4.7K上拉×2</td></tr>
+<tr><td>SPI</td><td>MOSI→MOSI<br>MISO←MISO<br>SCK→SCK<br>CS→CS</td><td>同名接</td><td>无（CS低有效）</td></tr>
+<tr><td>CAN</td><td>TXD→收发器TXD<br>RXD←收发器RXD</td><td>经收发器</td><td>120Ω终端×2</td></tr>
+</table>
+
+<h3>HAL函数速查</h3>
+<table>
+<tr><th>协议</th><th>发送</th><th>接收</th><th>DMA发送</th><th>DMA接收</th></tr>
+<tr><td>UART</td><td>HAL_UART_Transmit</td><td>HAL_UART_Receive</td><td>HAL_UART_Transmit_DMA</td><td>HAL_UARTEx_ReceiveToIdle_DMA</td></tr>
+<tr><td>I2C</td><td>HAL_I2C_Mem_Write</td><td>HAL_I2C_Mem_Read</td><td>HAL_I2C_Mem_Write_DMA</td><td>HAL_I2C_Mem_Read_DMA</td></tr>
+<tr><td>SPI</td><td>HAL_SPI_Transmit</td><td>HAL_SPI_Receive</td><td>HAL_SPI_Transmit_DMA</td><td>HAL_SPI_Receive_DMA</td></tr>
+<tr><td>CAN</td><td>HAL_CAN_AddTxMessage</td><td>回调HAL_CAN_RxFifo0MsgPendingCallback</td><td>—</td><td>—</td></tr>
+</table>
+
+<h3>选型决策树</h3>
+<pre><code>需要通信？
+├── 只传少量数据/调试？ → UART
+├── 连多个传感器？ → I2C
+├── 需要高速传输？ → SPI
+├── 长距离/抗干扰？ → CAN
+└── 无线？ → WiFi/BLE（ESP32）</code></pre>
+
+<div class="tip">💡 <b>下一步：</b>学习<a href="tool-stm32.html">STM32开发</a>实战通信代码，或用<a href="tool-serial.html">串口工具</a>调试通信。</div>
+
+<div class="breadcrumb">📐 <a href="index.html">返回工具教程合集</a></div>
+
+
+<h2>🔌 逻辑电平转换实战</h2>
+<table>
+<tr><th>方案</th><th>速度</th><th>双向</th><th>通道数</th><th>价格</th><th>适用</th></tr>
+<tr><td>电阻分压(1.8k+3.3k)</td><td>&le;1MHz</td><td>单向</td><td>每路2电阻</td><td>¥0.02</td><td>低速单向</td></tr>
+<tr><td>BSS138 MOSFET</td><td>&le;2MHz</td><td>双向</td><td>1/片</td><td>¥0.15</td><td>I2C/双向</td></tr>
+<tr><td>TXS0108E</td><td>&le;60Mbps</td><td>双向/自动</td><td>8</td><td>¥3</td><td>通用, 推荐!</td></tr>
+<tr><td>74LVC245/4245</td><td>&le;100Mbps</td><td>单向</td><td>8</td><td>¥2</td><td>高速并行</td></tr>
+<tr><td>SN74AVC4T774</td><td>&le;360Mbps</td><td>双向可配</td><td>4</td><td>¥8</td><td>SD卡/SPI高速</td></tr>
+</table>
+
+<pre><code>// 3.3V → 5V 电平转换的"野路子"与正规做法
+// 
+// 野路子1: 很多5V MCU的输入高电平阈值Vih=0.7×Vcc=3.5V
+// 3.3V输出不够? → 错! 查数据手册Vih通常=2.0V左右
+//
+// 野路子2: 用GPIO开漏+上拉电阻
+// 5V设备开漏输出→上拉到3.3V→3.3V MCU接收(安全)
+// 3.3V开漏输出→上拉到5V→5V设备接收(注意!查看引脚是否5V耐受)
+//
+// 正规做法: 使用电平转换芯片TXS0108E
+// 无需方向控制、自动双向、8通道、推挽/开漏自适应</code></pre>
+
+<h2>📡 信号完整性检查清单</h2>
+<div class="warn">
+<strong>排查通信问题的10步checklist：</strong>
+<ol>
+<li>共地了吗？两个设备必须有公共地线！(最常见错误)</li>
+<li>BAUD率误差在允许范围内吗？(标准UART容忍±2%, 内部HSI温度漂移可达±5% → 必须校准或用HSE晶振)</li>
+<li>逻辑电平匹配吗？3.3V↔5V需要转换</li>
+<li>线序对吗？TX↔RX交叉、MOSI↔MOSI直连、SDA/SDA直连</li>
+<li>上拉电阻？I2C必须外接(4.7k&Omega;@3.3V), SPI的CS需要上拉防浮空</li>
+<li>终端电阻？RS485/RS422/CAN需要在总线两端加120&Omega;</li>
+<li>线长？UART≤2m, I2C≤30cm(PCB上), SPI≤10cm, RS485≤1200m</li>
+<li>干扰源？电机/继电器/开关电源与信号线保持5cm以上距离</li>
+<li>共模电压？RS485共模范围-7V~+12V, 超出会永久损坏</li>
+<li>总线冲突？RS485多个发送器同时发送→短路→需要方向控制(DE/RE)</li>
+</ol>
+</div>
+
+<h2>⚡ 用逻辑分析仪查通信问题</h2>
+<pre><code>// Saleae Logic / PulseView 的逻辑分析仪使用技巧
+// 硬件: 8通道/24MHz采样率的CY7C68013A方案(¥25-40)
+
+// 关键设置:
+// 采样率: ≥ 通信速率的 10倍 (如115200 bps → ≥1.15MHz)
+// 触发: UART→下降沿, I2C→起始条件, SPI→CS下降沿
+// 协议解码: 选择对应协议、设置波特率/极性和相位
+
+// 常见问题与波形判断:
+// UART:
+// - 全部为0xFF: 线断了或对方未发送
+// - 偶发错误字节: 波特率偏差(对照波形测量位宽)
+// - 只有0x00: TX/RX接反了(检查交叉)
+//
+// I2C:
+// - SDA始终低: 从设备拉死(地址错误或时钟停)
+// - 有SCK无SDA: 上拉电阻缺失或太大
+// - 前7bit对后8bit不对: 地址左移1位？(有些库已做, 有些未做)
+//
+// SPI:
+// - MISO全0: 从设备未正确响应(检查CS时序)
+// - 数据移位: CPOL/CPHA配置错误
+// - 第一个字节错误: CS建立时间不够(在CS拉低后delay 10&mu;s)</code></pre>
+
+<h2>🔧 通信协议的选择决策树</h2>
+<pre><code>需要通信的两个设备...
+
+├── 都在同一块PCB上?
+│   ├── 需要多从设备? → I2C (2线, 最多127个从设备)
+│   ├── 需要高速? → SPI (4线, 可达50Mbps)
+│   └── 最简单、只有2个设备? → UART (2线, 常用115200bps)
+│
+├── 距离 2-10米?
+│   ├── 抗干扰要求高? → RS485 (差分, 1200m)
+│   └── 简单点对点? → UART + MAX232 (RS232, 15m)
+│
+├── 距离 10-50米?
+│   └── RS485
+│
+├── 工业/汽车场景?
+│   ├── 汽车内部 → CAN (差分, 多主, 无损仲裁)
+│   ├── 简单传感器/执行器 → LIN (单线, 19.2kbps, 便宜)
+│   └── 工业自动化 → RS485 + Modbus RTU
+│
+└── 无线?
+    ├── 10m内 → BLE (nRF52/ESP32)
+    ├── 100m-几km → LoRa (SX1278)
+    └── 需要自组网 → Zigbee</code></pre><hr><h2>❓ 常见问题 FAQ</h2>
+
+<div style="margin:12px 0;padding:12px 16px;background:var(--bg2);border-left:3px solid var(--a);border-radius:0 8px 8px 0">
+  <p style="font-weight:600;color:var(--c1);margin-bottom:4px">Q: I2C和SPI选哪个？</p>
+  <p style="color:var(--t)">A: 速度优先选SPI(可达几十MHz)，引脚少选I2C(只需2根)。传感器多选I2C，Flash/屏选SPI。</p>
+</div>
+
+<div style="margin:12px 0;padding:12px 16px;background:var(--bg2);border-left:3px solid var(--a);border-radius:0 8px 8px 0">
+  <p style="font-weight:600;color:var(--c1);margin-bottom:4px">Q: I2C总线卡死怎么办？</p>
+  <p style="color:var(--t)">A: 从机拉低SDA不释放。解决：1)重新初始化I2C 2)发9个SCL时钟脉冲 3)GPIO模拟I2C复位序列 4)硬件上加拉电阻4.7kΩ</p>
+</div>
+
+<div style="margin:12px 0;padding:12px 16px;background:var(--bg2);border-left:3px solid var(--a);border-radius:0 8px 8px 0">
+  <p style="font-weight:600;color:var(--c1);margin-bottom:4px">Q: CAN和RS485哪个好？</p>
+  <p style="color:var(--t)">A: CAN有仲裁机制和错误处理，适合多主高可靠场景（汽车）；RS485简单便宜，适合主从式长距离通信。</p>
+</div>
+
+<hr><h2>🔗 相关教程</h2>
+<div style="display:flex;flex-wrap:wrap;gap:8px;margin:12px 0">
+<a href="#" onclick="parent.loadPage && parent.loadPage('serial')" style="display:inline-block;padding:6px 14px;background:var(--bg3);border:1px solid var(--br);border-radius:6px;color:var(--a);text-decoration:none;font-size:.85em">串口通信 →</a>
+<a href="#" onclick="parent.loadPage && parent.loadPage('stm32')" style="display:inline-block;padding:6px 14px;background:var(--bg3);border:1px solid var(--br);border-radius:6px;color:var(--a);text-decoration:none;font-size:.85em">STM32开发 →</a>
+<a href="#" onclick="parent.loadPage && parent.loadPage('proj-can-bus')" style="display:inline-block;padding:6px 14px;background:var(--bg3);border:1px solid var(--br);border-radius:6px;color:var(--a);text-decoration:none;font-size:.85em">CAN总线 →</a>
+</div>
+
+</body></html>

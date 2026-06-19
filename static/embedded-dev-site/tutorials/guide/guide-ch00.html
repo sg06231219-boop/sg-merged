@@ -1,0 +1,607 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第0章：环境搭建 — Windows嵌入式开发环境 - 嵌入式小白完全指南</title>
+<style>
+:root{--bg:#0d1117;--bg2:#161b22;--bg3:#21262d;--br:#30363d;--t:#c9d1d9;--t2:#8b949e;--a:#58a6ff;--g:#3fb950;--o:#d2991d;--r:#f85149;--p:#a371f7;--c1:#39c5cf}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--t);line-height:1.8;max-width:880px;margin:0 auto;padding:14px}
+h1{font-size:1.55em;text-align:center;padding:16px 0;background:linear-gradient(135deg,var(--a),var(--p));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+h2{font-size:1.15em;color:var(--a);margin:30px 0 10px;padding-bottom:6px;border-bottom:2px solid var(--br)}
+h3{font-size:1.02em;color:var(--g);margin:18px 0 7px}
+h4{font-size:.95em;color:var(--o);margin:12px 0 5px}
+pre{background:#1c2128;border:1px solid var(--br);border-radius:8px;padding:12px 14px;overflow-x:auto;margin:8px 0 12px;font-size:.82em;line-height:1.6;white-space:pre-wrap;word-break:break-all;position:relative}
+code{font-family:'SF Mono','Fira Code',monospace}
+pre code{color:#e6edf3}
+.note{background:rgba(210,153,29,.08);border:1px solid rgba(210,153,29,.3);border-radius:8px;padding:10px 14px;margin:10px 0;font-size:.83em;color:var(--o)}
+.warn{background:rgba(248,81,73,.08);border:1px solid rgba(248,81,73,.3);border-radius:8px;padding:10px 14px;margin:10px 0;font-size:.83em;color:var(--r)}
+.tip{background:rgba(63,185,80,.06);border:1px solid rgba(63,185,80,.25);border-radius:8px;padding:10px 14px;margin:10px 0;font-size:.83em;color:var(--g)}
+.example{background:rgba(88,166,255,.06);border:1px solid rgba(88,166,255,.25);border-radius:8px;padding:10px 14px;margin:8px 0;font-size:.82em;color:var(--a)}
+.example b{color:var(--g)}
+.trouble{background:rgba(163,113,247,.06);border:1px solid rgba(163,113,247,.3);border-radius:8px;padding:10px 14px;margin:8px 0;font-size:.82em;color:var(--p)}
+.trouble b{color:var(--p)}
+.card{background:var(--bg2);border:1px solid var(--br);border-radius:10px;margin:14px 0;overflow:hidden}
+.card>.h{padding:10px 14px;background:var(--bg3);display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.card>.h>.name{font-weight:700;font-size:.9em;color:var(--t);font-family:monospace}
+.card>.h>.tag{font-size:.65em;padding:2px 8px;border-radius:8px;white-space:nowrap;border:1px solid var(--br);color:var(--t2)}
+.card>.h>.tag.g{background:rgba(63,185,80,.15);border-color:var(--g);color:var(--g)}
+.card>.h>.tag.y{background:rgba(210,153,29,.15);border-color:var(--o);color:var(--o)}
+.card>.h>.tag.r{background:rgba(248,81,73,.15);border-color:var(--r);color:var(--r)}
+.card>.h>.tag.b{background:rgba(88,166,255,.15);border-color:var(--a);color:var(--a)}
+.card>.h>.tag.p{background:rgba(163,113,247,.15);border-color:var(--p);color:var(--p)}
+.card>.b{padding:10px 14px;font-size:.87em}
+.card>.b>.desc{font-size:.92em;color:var(--t2);margin-bottom:8px}
+table{width:100%;border-collapse:collapse;margin:10px 0;font-size:.81em;background:var(--bg2);border-radius:8px;overflow:hidden;border:1px solid var(--br)}
+td,th{padding:8px 12px;border-bottom:1px solid var(--br);text-align:left}
+th{background:var(--bg3);color:var(--a);font-weight:600}
+tr:last-child td{border-bottom:none}
+.step{background:var(--bg3);border-radius:6px;padding:8px 13px;margin:6px 0;font-size:.83em}
+.step b{color:var(--a)}
+.summary{background:linear-gradient(135deg,rgba(88,166,255,.1),rgba(163,113,247,.1));border:1px solid var(--br);border-radius:10px;padding:12px 16px;margin:18px 0;font-size:.88em;color:var(--t)}
+.summary b{color:var(--a)}
+.analogy{background:rgba(57,197,207,.07);border-left:3px solid var(--c1);padding:8px 13px;margin:8px 0;font-size:.82em;color:var(--c1);border-radius:0 6px 6px 0}
+.analogy b{color:var(--c1)}
+.chnav{display:flex;justify-content:space-between;margin:30px 0 10px;gap:12px;border-top:1px solid var(--br);padding-top:16px;flex-wrap:wrap}
+.chnav a{flex:1;text-align:center;padding:10px 14px;background:var(--bg2);border:1px solid var(--br);border-radius:8px;color:var(--a);text-decoration:none;font-size:.85em;transition:all .2s;min-width:120px;cursor:pointer}
+.chnav a:hover{background:var(--bg3);border-color:var(--a)}
+.chnav .toc-link{flex:0;min-width:80px;background:var(--bg3);color:var(--t2)}
+.chnav .toc-link:hover{color:var(--a)}
+.copy-btn{position:absolute;top:4px;right:4px;padding:3px 10px;background:var(--bg3);border:1px solid var(--br);border-radius:5px;color:var(--t2);font-size:.72em;cursor:pointer;opacity:0;transition:opacity .2s}
+pre:hover .copy-btn{opacity:1}
+.copy-btn:hover{background:var(--a);color:var(--bg)}
+.copy-btn.copied{background:var(--g);color:var(--bg);border-color:var(--g)}
+@media(max-width:480px){body{padding:10px}h1{font-size:1.3em}h2{font-size:1.05em}pre{font-size:.75em}}
+</style>
+</head>
+<body>
+
+<h1>第0章：环境搭建 — Windows嵌入式开发环境</h1>
+<div class="summary"><b>📖 小白完全指南 · 0/14</b> | 阅读时间约3分钟</div>
+
+<p>嵌入式开发需要一套<strong>交叉编译工具链</strong>——因为你的电脑是x86架构，单片机是ARM架构，编译器必须在PC上运行、产出ARM机器码。就像在中国用电脑设计美国的零件，需要一套"跨国工具"。</p>
+
+<div class="analogy">💡 <b>类比：</b>嵌入式开发环境就像<strong>厨房</strong>——ARM GCC是菜刀（切菜=编译代码），CMake是菜谱模板（规划做菜流程），Make是自动炒菜机（按菜谱执行），串口工具是对讲机（和芯片对话的唯一方式）。没有这些，你连"hello world"都烧不进芯片。</div>
+
+<h3>✅ 已安装工具清单</h3>
+
+<div class="card">
+<div class="h"><span class="name">ARM GCC 14.2</span><span class="tag g">核心编译器</span><span class="tag b">C:\Program Files (x86)\Arm GNU Toolchain</span></div>
+<div class="b">
+<div class="desc">ARM官方交叉编译器，把C/C++代码编译成ARM机器码。包含gcc/g++/objcopy/objdump/size等全套工具。</div>
+<pre><code># 验证安装
+arm-none-eabi-gcc --version
+# 输出：arm-none-eabi-gcc (Arm GNU Toolchain 14.2.Rel1) 14.2.1 20241119</code></pre>
+</div></div>
+
+<div class="card">
+<div class="h"><span class="name">CMake 4.3.3</span><span class="tag g">构建系统</span><span class="tag b">C:\Program Files\CMake\</span></div>
+<div class="b">
+<div class="desc">现代构建系统，用CMakeLists.txt描述项目结构，自动生成Makefile或Ninja构建文件。</div>
+<pre><code>cmake --version
+# 输出：cmake version 4.3.3</code></pre>
+</div></div>
+
+<div class="card">
+<div class="h"><span class="name">Make 3.81</span><span class="tag g">经典构建</span><span class="tag y">GnuWin32</span></div>
+<div class="b">
+<div class="desc">经典构建工具，读取Makefile规则，按依赖关系自动编译。嵌入式项目最常用的构建方式。</div>
+<pre><code>make --version
+# 输出：GNU Make 3.81</code></pre>
+</div></div>
+
+<div class="card">
+<div class="h"><span class="name">PuTTY 0.84</span><span class="tag g">串口终端</span><span class="tag b">C:\Program Files\PuTTY\</span></div>
+<div class="b">
+<div class="desc">开源终端工具，通过串口（COM口）查看单片机的printf输出和调试信息。支持SSH/Telnet/Serial。</div>
+</div></div>
+
+<div class="card">
+<div class="h"><span class="name">VS Code + 嵌入式插件</span><span class="tag g">代码编辑器</span><span class="tag p">6个插件</span></div>
+<div class="b">
+<div class="desc">已安装插件：C/C++（智能提示+调试）、CMake Tools（构建集成）、Cortex-Debug（ARM调试）、EIDE（嵌入式IDE）、PlatformIO（一站式开发环境）、C++ Extension Pack</div>
+<pre><code># 查看已装插件
+code --list-extensions</code></pre>
+</div></div>
+
+<div class="card">
+<div class="h"><span class="name">Python 3.14 + pyserial/esptool</span><span class="tag g">脚本工具</span></div>
+<div class="b">
+<div class="desc">pyserial提供串口编程接口（命令行miniterm工具），esptool用于ESP32固件烧录。</div>
+<pre><code># 串口终端（超级好用）
+python -m serial.tools.miniterm COM3 115200
+
+# ESP32烧录
+esptool.py --chip esp32 -p COM3 write_flash 0x1000 firmware.bin</code></pre>
+</div></div>
+
+<h3>🔧 PATH环境变量配置</h3>
+
+<p>把工具加到PATH，这样在<strong>任意目录</strong>的命令行里都能直接调用，不用每次输入完整路径。</p>
+
+<div class="step"><b>步骤1：</b>Win + S 搜索"环境变量" → 打开"编辑系统环境变量"</div>
+<div class="step"><b>步骤2：</b>点"环境变量" → 选中用户变量的"Path" → 点"编辑"</div>
+<div class="step"><b>步骤3：</b>点"新建"，加入以下路径（已自动配置的跳过）：</div>
+<pre><code>C:\Program Files (x86)\Arm GNU Toolchain arm-none-eabi\14.2 rel1\bin
+C:\Program Files\CMake\bin
+C:\Program Files (x86)\GnuWin32\bin
+C:\Program Files\PuTTY
+C:\Users\LYS\AppData\Local\Python\pythoncore-3.14-64\Scripts</code></pre>
+
+<div class="tip">💡 <b>小技巧：</b>加完PATH后，<strong>重新打开</strong>所有命令行窗口才会生效。验证：打开新的PowerShell，直接输入 <code>arm-none-eabi-gcc --version</code>，能运行就说明配好了。</div>
+
+<h3>🔍 环境一键验证脚本</h3>
+
+<p>复制下面的脚本到PowerShell运行，自动检测所有工具是否配置正确：</p>
+
+<pre><code># 保存为 check_env.ps1 或直接复制运行
+# 自动检测Python命令（python/python3/python3.14等）
+$pyCmd = $null
+foreach ($cmd in @('python3.14','python3','python')) {
+    try { $null = & $cmd --version 2>&1; $pyCmd = $cmd; break } catch {}
+}
+if (-not $pyCmd) { Write-Host "❌ Python未找到，请确认已安装并加入PATH" -ForegroundColor Red }
+
+$tools = @(
+    @{name='ARM GCC'; cmd='arm-none-eabi-gcc --version'},
+    @{name='CMake'; cmd='cmake --version'},
+    @{name='Make'; cmd='make --version'},
+    @{name='Python'; cmd="$pyCmd --version"},
+    @{name='pyserial'; cmd="$pyCmd -m serial.tools.list_ports -h"},
+    @{name='esptool'; cmd="$pyCmd -m esptool version"}
+)
+
+Write-Host "`n=== 嵌入式环境检测 ===`n" -ForegroundColor Cyan
+foreach ($t in $tools) {
+    Write-Host "检测 $($t.name)... " -NoNewline
+    try {
+        $result = Invoke-Expression $t.cmd 2>&1
+        if ($LASTEXITCODE -eq 0 -or $result -match '\d') {
+            Write-Host "✅ OK" -ForegroundColor Green
+        } else {
+            Write-Host "❌ 失败" -ForegroundColor Red
+        }
+    } catch {
+        Write-Host "❌ 未安装" -ForegroundColor Red
+    }
+}
+Write-Host "`n检测完成！" -ForegroundColor Cyan</code></pre>
+
+<div class="note">⚠️ <b>注意事项：</b><br>
+• 如果Make检测失败，说明GnuWin32的bin目录未加入PATH，手动添加：<code>C:\Program Files (x86)\GnuWin32\bin</code><br>
+• Python Scripts目录也需检查：<code>C:\Users\你的用户名\AppData\Local\Programs\Python\Python3xx\Scripts</code><br>
+• pyserial和esptool装在哪个Python下，那个Scripts目录就要加PATH</div>
+
+<h3>🛒 入门硬件推荐</h3>
+
+<table>
+<tr><th>硬件</th><th>型号</th><th>价格</th><th>用途</th><th>购买</th></tr>
+<tr><td>STM32开发板</td><td>STM32F103C8T6最小系统板</td><td>¥5-10</td><td>入门首选，资源最丰富</td><td><a href="https://s.taobao.com/search?q=STM32F103C8T6+%E6%9C%80%E5%B0%8F%E7%B3%BB%E7%BB%9F%E6%9D%BF" style="color:var(--a)" target="_blank">淘宝搜索</a></td></tr>
+<tr><td>烧录器</td><td>ST-Link V2（仿版）</td><td>¥10-15</td><td>程序烧录+GDB调试</td><td><a href="https://s.taobao.com/search?q=ST-Link+V2+%E4%B8%8B%E8%BD%BD%E5%99%A8" style="color:var(--a)" target="_blank">淘宝搜索</a></td></tr>
+<tr><td>USB转TTL</td><td>CH340G模块</td><td>¥5</td><td>串口通信</td><td><a href="https://s.taobao.com/search?q=CH340+USB%E8%BD%ACTTL" style="color:var(--a)" target="_blank">淘宝搜索</a></td></tr>
+<tr><td>调试器</td><td>DAP-Link (CMSIS-DAP)</td><td>¥20</td><td>更通用，支持多种芯片</td><td><a href="https://s.taobao.com/search?q=DAP-Link+CMSIS-DAP" style="color:var(--a)" target="_blank">淘宝搜索</a></td></tr>
+<tr><td>面包板+杜邦线</td><td>830孔面包板+公对母线</td><td>¥10</td><td>接线实验</td><td><a href="https://s.taobao.com/search?q=%E9%9D%A2%E5%8C%85%E6%9D%BF+%E6%9D%9C%E9%82%A6%E7%BA%BF" style="color:var(--a)" target="_blank">淘宝搜索</a></td></tr>
+</table>
+
+<div class="note">⚠️ <b>购买提示：</b>STM32F103C8T6板 + ST-Link V2 + CH340模块，三件套约¥25，玩转本书所有STM32例子完全够用。</div>
+
+<h3>📐 STM32F103C8T6 最小系统板引脚图</h3>
+
+<p>蓝色小板子是嵌入式入门最常见的开发板，引脚排列如下：</p>
+
+<table>
+<tr><th>左侧排针（自上而下）</th><th>引脚</th><th>右侧排针（自上而下）</th><th>引脚</th></tr>
+<tr><td>3V3</td><td>3.3V输出</td><td>GND</td><td>地</td></tr>
+<tr><td>GND</td><td>地</td><td>GND</td><td>地</td></tr>
+<tr><td>PA0</td><td>ADC/KEY</td><td>5V</td><td>5V输入</td></tr>
+<tr><td>PA1</td><td>ADC</td><td>PB9</td><td>I2C1_SDA</td></tr>
+<tr><td>PA2</td><td>USART2_TX</td><td>PB8</td><td>I2C1_SCL</td></tr>
+<tr><td>PA3</td><td>USART2_RX</td><td>PB7</td><td>I2C1_SDA(重映射)</td></tr>
+<tr><td>PA4</td><td>SPI1_NSS</td><td>PB6</td><td>I2C1_SCL(重映射)</td></tr>
+<tr><td>PA5</td><td>SPI1_SCK</td><td>PB5</tdtd><td>SPI1_MOSI(重映射)</td></tr>
+<tr><td>PA6</td><td>SPI1_MISO</td><td>PB4</td><td>NJTRST</td></tr>
+<tr><td>PA7</td><td>SPI1_MOSI</td><td>PB3</td><td>JTDO</td></tr>
+<tr><td>PB0</td><td>ADC</td><td>PA15</td><td>JTDI</td></tr>
+<tr><td>PB1</td><td>ADC</td><td>PA12</td><td>USB D+</td></tr>
+<tr><td>PB10</td><td>I2C2_SCL</td><td>PA11</td><td>USB D-</td></tr>
+<tr><td>PB11</td><td>I2C2_SDA</td><td>PA10</td><td>USART1_RX</td></tr>
+<tr><td>RST</td><td>复位</td><td>PA9</td><td>USART1_TX</td></tr>
+<tr><td>3V3</td><td>3.3V</td><td>PA8</td><td>MCO</td></tr>
+<tr><td>GND</td><td>地</td><td>PB15</td><td>SPI2_MOSI</td></tr>
+<tr><td>GND</td><td>地</td><td>PB14</td><td>SPI2_MISO</td></tr>
+<tr><td>5V</td><td>5V</td><td>PB13</td><td>SPI2_SCK</td></tr>
+<tr><td>VBAT</td><td>备用电源</td><td>PB12</td><td>SPI2_NSS</td></tr>
+</table>
+
+<div class="note">⚠️ <b>关键引脚速记：</b><br>
+• <strong>PC13</strong>=板载LED（大部分蓝色小板）<br>
+• <strong>PA9/PA10</strong>=USART1（串口通信用这对）<br>
+• <strong>PB6/PB7</strong>=I2C1（OLED/传感器）<br>
+• <strong>PA4-PA7</strong>=SPI1（Flash/屏幕）<br>
+• <strong>BOOT0</strong>=跳线帽，接1进入下载模式，接0正常运行</div>
+
+<h3>❌ 需手动安装的工具</h3>
+
+<table>
+<tr><th>工具</th><th>原因</th><th>下载地址</th></tr>
+<tr><td>Wireshark</td><td>98MB，网络慢时超时</td><td>wireshark.org/download.html</td></tr>
+<tr><td>OpenOCD</td><td>GitHub下载被墙</td><td>github.com/xpack-dev-tools/openocd-xpack/releases</td></tr>
+<tr><td>MobaXterm</td><td>官方服务器慢</td><td>mobaxterm.mobatek.net</td></tr>
+<tr><td>STM32CubeMX</td><td>需注册ST账号</td><td>st.com/en/development-tools/stm32cubemx.html</td></tr>
+</table>
+
+<p><strong>以上4个工具不影响基础学习</strong>，前6章不需要。等基础打好了再装。</p>
+
+<h3>🔧 Windows命令行环境优化</h3>
+
+<p>Windows自带的cmd.exe功能有限，强烈推荐使用<strong>PowerShell</strong>或<strong>Windows Terminal</strong>作为日常终端。以下是几个能让开发效率翻倍的配置技巧：</p>
+
+<h4>PowerShell Profile 配置</h4>
+
+<p>PowerShell的Profile（配置文件）类似Linux的.bashrc——每次启动终端自动加载。把你的常用alias和函数放进去：</p>
+
+<pre><code># 创建/编辑Profile
+notepad $PROFILE
+# 如果文件不存在，先创建：
+New-Item -Path $PROFILE -Type File -Force
+
+# === 以下写入 Profile ===
+# 嵌入式开发快捷键
+function arm-gcc { arm-none-eabi-gcc $args }
+function arm-size { arm-none-eabi-size $args }
+function arm-objcopy { arm-none-eabi-objcopy $args }
+
+# 快速构建函数（保存为 stm32-build）
+function stm32-build {
+    param([string]$target = "all")
+    # 自动检测Makefile/CMakeLists.txt
+    if (Test-Path "Makefile") {
+        & make -j4 $target
+    } elseif (Test-Path "CMakeLists.txt") {
+        if (-not (Test-Path "build")) { mkdir build }
+        cd build
+        cmake -DCMAKE_TOOLCHAIN_FILE=../toolchain-arm.cmake -DCMAKE_BUILD_TYPE=Debug ..
+        cmake --build . -j4
+        cd ..
+    } else {
+        Write-Host "未找到Makefile或CMakeLists.txt" -ForegroundColor Red
+    }
+}
+
+# 快速列出串口
+function com-list {
+    [System.IO.Ports.SerialPort]::GetPortNames()
+    # 或者用 pyserial:
+    # python -m serial.tools.list_ports
+}
+
+# 串口终端快捷函数
+function com-term($port="COM3", $baud=115200) {
+    python -m serial.tools.miniterm $port $baud
+}</code></pre>
+
+<div class="tip">💡 <b>PowerShell执行策略问题：</b>如果运行脚本报"禁止运行脚本"，以管理员身份运行：<br><code>Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser</code></div>
+
+<h4>Windows Terminal 推荐配置</h4>
+
+<p>微软商店搜索"Windows Terminal"安装。建议在设置中配置：</p>
+
+<pre><code>// settings.json 关键配置项
+{
+  "profiles": {
+    "defaults": {
+      "fontFace": "Cascadia Code",     // 编程专用等宽字体
+      "fontSize": 12,
+      "cursorShape": "filledBox",       // 块状光标（更显眼）
+      "colorScheme": "One Half Dark"    // 暗色主题
+    },
+    "list": [
+      {
+        "guid": "{你的PowerShell GUID}",
+        "name": "嵌入式开发",
+        "startingDirectory": "C:\\Users\\LYS\\projects\\stm32",
+        "commandline": "powershell.exe -NoLogo",
+        "tabTitle": "STM32 Dev"
+      }
+    ]
+  }
+}</code></pre>
+
+<h3>📦 Git版本控制基础</h3>
+
+<p>嵌入式项目也需要版本管理！代码改乱了能回退，多人协作必备。如果你还没装Git，去 <a href="https://git-scm.com/download/win" style="color:var(--a)" target="_blank">git-scm.com</a> 下载安装（一路默认即可）。</p>
+
+<h4>Git最小配置</h4>
+
+<pre><code># 安装后首先配置身份（必须，否则无法提交）
+git config --global user.name "你的名字"
+git config --global user.email "your@email.com"
+
+# 避免中文文件名乱码
+git config --global core.quotepath false
+git config --global gui.encoding utf-8
+git config --global i18n.commit.encoding utf-8
+
+# 验证配置
+git config --list</code></pre>
+
+<h4>嵌入式项目 .gitignore 模板</h4>
+
+<pre><code># .gitignore - 嵌入式开发专用
+# 编译产物——这些文件每次编译都重新生成，完全不需要提交
+*.o
+*.obj
+*.elf
+*.bin
+*.hex
+*.map
+*.lst
+*.out
+*.d
+*.dep
+
+# IDE / 编辑器临时文件
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# CMake构建输出
+build/
+cmake-build-*/
+
+# 操作系统杂项
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# 注意：不要忽略 .c .h .s .ld CMakeLists.txt Makefile！
+# 这些是源代码和构建配置，必须提交</code></pre>
+
+<div class="tip">💡 <b>经验法则：</b>只提交<strong>源文件+构建配置</strong>（.c/.h/.s/.ld/Makefile/CMakeLists.txt），<strong>绝不提交编译产物</strong>（.o/.elf/.bin）。git是存源码的，不是存编译结果的。</div>
+
+<h4>嵌入式项目常用Git命令</h4>
+
+<pre><code># 初始化仓库（在项目根目录执行一次）
+git init
+
+# 查看状态（最常用命令，每天用无数次）
+git status
+
+# 添加文件到暂存区
+git add .                    # 添加所有修改
+git add src/main.c           # 只添加指定文件
+
+# 提交（保存当前状态快照）
+git commit -m "feat: 初始化LED闪烁程序"
+
+# 查看提交历史
+git log --oneline --graph   # 图形化展示，清爽
+
+# 回退（改坏了想回去）
+git checkout -- src/main.c   # 回退单个文件到最后一次提交
+git reset --soft HEAD~1      # 撤销最后一次commit，改动保留
+git reset --hard HEAD~1      # 撤销最后一次commit，改动全丢（慎用！）
+
+# 查看改动细节
+git diff                     # 看未暂存的改动
+git diff --staged           # 看已暂存的改动
+git show HEAD               # 看最后一次commit改了啥</code></pre>
+
+<h3>🐛 常见环境安装错误排解</h3>
+
+<div class="trouble">🔍 <b>错误1：arm-none-eabi-gcc 不是内部或外部命令</b><br>
+<strong>原因：</strong>ARM GCC的bin目录没有加入PATH，或加了PATH但没有重新打开命令行窗口。<br>
+<strong>解决步骤：</strong><br>
+① 确认安装路径正确，打开文件管理器找到：<code>C:\Program Files (x86)\Arm GNU Toolchain arm-none-eabi\14.2 rel1\bin</code><br>
+② 检查这个目录下是否有 <code>arm-none-eabi-gcc.exe</code><br>
+③ 按Win+S搜索"环境变量" → 编辑用户PATH → 添加上面的bin路径<br>
+④ <strong>关闭所有命令行窗口，重新打开</strong>（这步90%的人会漏掉！）<br>
+⑤ 新的命令行里运行 <code>arm-none-eabi-gcc --version</code> 验证</div>
+
+<div class="trouble">🔍 <b>错误2：make --version 正常，但 make 命令报"make: *** No targets specified and no makefile found. Stop."</b><br>
+<strong>原因：</strong>这不是错误！这说明make找到了但没有Makefile。你需要在一个有Makefile的目录里运行make，或者创建一个Makefile。</div>
+
+<div class="trouble">🔍 <b>错误3：cmake 报 "The C compiler identification is unknown"</b><br>
+<strong>原因：</strong>交叉编译器不在PATH中，CMake没法自动检测。<br>
+<strong>解决：</strong><br>
+① 确保 <code>arm-none-eabi-gcc --version</code> 能正常执行<br>
+② 在CMake构建时显式指定工具链文件：<br><code>cmake -DCMAKE_TOOLCHAIN_FILE=../toolchain-arm.cmake ..</code><br>
+③ 确保toolchain-arm.cmake中的 <code>CMAKE_C_COMPILER</code> 路径正确</div>
+
+<div class="trouble">🔍 <b>错误4：python -m serial.tools.miniterm 报"No module named serial"</b><br>
+<strong>原因：</strong>pyserial没有安装，或装在了其他Python版本下。<br>
+<strong>解决：</strong><br>
+① <code>python --version</code> 确认是哪个Python<br>
+② <code>pip install pyserial</code> 重新安装<br>
+③ 如果装了多个Python，指定pip路径：<br><code>C:\Users\LYS\AppData\Local\Python\pythoncore-3.14-64\Scripts\pip install pyserial</code></div>
+
+<div class="trouble">🔍 <b>错误5：Windows 终端中文乱码</b><br>
+<strong>解决：</strong>
+PowerShell中输入：<br><code>[System.Console]::OutputEncoding = [System.Text.Encoding]::UTF8</code><br>
+或在PowerShell Profile中加入：<br><code>$OutputEncoding = [Console]::OutputEncoding = [Text.Encoding]::UTF8</code><br>
+如果还不行，换用Windows Terminal——它对UTF-8支持比旧cmd好得多。</div>
+
+<h3>🏋️ 实战练习：验证你的开发环境</h3>
+
+<div class="tip">💡 <b>练习1：编译器自检</b><br>
+打开PowerShell，依次运行以下命令，把输出截图保存：<br><br>
+① <code>arm-none-eabi-gcc --version</code>  → 应显示版本号14.2以上<br>
+② <code>cmake --version</code>              → 应显示版本号3.20以上<br>
+③ <code>make --version</code>               → 应显示GNU Make 3.81以上<br>
+④ <code>python --version</code>             → 应显示3.13以上<br>
+⑤ <code>python -c "import serial; print('pyserial OK')"</code> → 应打印 pyserial OK<br><br>
+如果5项全部通过，你的环境已经就绪，可以开始写嵌入式代码了！</div>
+
+<div class="tip">💡 <b>练习2：最小编译测试</b><br>
+创建一个空目录，写入一个最简单的C文件，用ARM GCC编译一下看看工具链是否正常工作：<br><br>
+<pre><code>mkdir C:\test-arm-gcc
+cd C:\test-arm-gcc
+# 创建测试文件
+@"
+int main(void) {
+    volatile int x = 42;
+    while(1) { x++; }
+    return 0;
+}
+"@ | Out-File -Encoding utf8 test.c
+# 编译（只编译不链接，-c参数）
+arm-none-eabi-gcc -mcpu=cortex-m3 -mthumb -c test.c -o test.o
+# 查看文件信息
+arm-none-eabi-objdump -h test.o
+# 输出中包含 .text 段信息 = 编译成功！</code></pre>
+如果看到 <code>.text</code> 段信息，说明编译器工作正常。</div>
+
+<div class="tip">💡 <b>练习3：烧录工具预检</b><br>
+插上ST-Link或DAP-Link后，运行：<br>
+<pre><code># 检查ST-Link（需要安装ST-Link驱动）
+python -m stlink.stlink --help 2>&1
+# 或者检查OpenOCD（如果已安装）
+# openocd --version
+
+# 检查串口设备
+python -m serial.tools.list_ports
+# 输出类似：COM3 - STMicroelectronics STLink Virtual COM Port (COM3)</code></pre>
+如果能看到设备列表，说明烧录器和串口模块都已被系统识别。</div>
+
+<h3>🚀 进阶话题：多版本工具链共存</h3>
+
+<div class="card">
+<div class="h"><span class="name">多版本ARM GCC管理</span><span class="tag p">进阶</span></div>
+<div class="b">
+<div class="desc">实际开发中你可能需要同时使用不同版本的ARM GCC——比如老项目用10.x，新项目用14.x。以下是在Windows上管理多版本的最佳实践：</div>
+<pre><code># 方案1：在PATH中只保留一个默认版本，其他用绝对路径
+# 默认版本（PATH中）：14.2
+arm-none-eabi-gcc --version  # → 14.2
+
+# 其他版本用完整路径：
+"C:\Program Files (x86)\Arm GNU Toolchain arm-none-eabi\10.3 rel1\bin\arm-none-eabi-gcc" --version
+
+# 方案2：创建版本切换函数（放入PowerShell Profile）
+function use-arm-gcc-10 {
+    $env:PATH = "C:\tools\arm-gcc-10\bin;$([Environment]::GetEnvironmentVariable('PATH','User'));$([Environment]::GetEnvironmentVariable('PATH','Machine'))"
+    arm-none-eabi-gcc --version
+}
+
+# 方案3：在Makefile/CMake中显式指定编译器路径
+# Makefile:
+CC := C:/tools/arm-gcc-10/bin/arm-none-eabi-gcc
+
+# CMake toolchain file:
+set(CMAKE_C_COMPILER "C:/tools/arm-gcc-10/bin/arm-none-eabi-gcc.exe")</code></pre>
+<div class="note">⚠️ <b>注意：</b>不同版本的ARM GCC编译出来的库不兼容！如果项目依赖了预编译库（.a文件），必须使用同一版本编译。遇到链接报"undefined reference"时，优先怀疑版本不匹配。</div>
+</div></div>
+
+<div class="card">
+<div class="h"><span class="name">WSL2嵌入式开发环境</span><span class="tag p">进阶</span></div>
+<div class="b">
+<div class="desc">Windows Subsystem for Linux (WSL2) 让你在Windows里跑真正的Linux环境。有些开源嵌入式工具在Linux下更好用（比如一些脚本工具、DFU烧录工具等）。</div>
+<pre><code># 安装WSL2（管理员PowerShell运行一次）
+wsl --install -d Ubuntu-24.04
+
+# WSL2里的嵌入式工具链安装
+sudo apt update
+sudo apt install gcc-arm-none-eabi   # ARM GCC编译器
+sudo apt install cmake                # CMake
+sudo apt install make                 # GNU Make
+sudo apt install python3-pip          # Python包管理
+pip3 install pyserial stlink-tools   # 串口和ST-Link工具
+
+# USB设备直通（在WSL2里操作物理硬件）
+# 需要安装 usbipd-win（Windows侧）
+# winget install usbipd
+# usbipd wsl list        # 列出USB设备
+# usbipd wsl attach -b 1-2  # 把设备附到WSL2</code></pre>
+<div class="note">💡 <b>何时用WSL2：</b>如果你主要在Windows工作，WSL2作补充就够了——大部分嵌入式工具Windows版都可用。只有在需要某些Linux专属工具链或脚本的时候再切过去。日常开发用Windows原生工具效率更高。</div>
+</div></div>
+
+<div class="card">
+<div class="h"><span class="name">包管理器一键装环境</span><span class="tag p">进阶</span></div>
+<div class="b">
+<div class="desc">厌倦了手动下载安装？用Windows包管理器一行命令搞定全部工具：</div>
+<pre><code># 检查是否已安装 winget（Win11自带）
+winget --version
+
+# 一键安装嵌入式全套工具（管理员终端运行）
+winget install -e --id Arm.GnuArmEmbeddedToolchain   # ARM GCC
+winget install -e --id Kitware.CMake                   # CMake
+winget install -e --id Ezwinports.Make                 # GNU Make
+winget install -e --id GnuWin32.Make                   # 替代版
+winget install -e --id Python.Python.3.14              # Python
+winget install -e --id PuTTY.PuTTY                     # PuTTY
+winget install -e --id Microsoft.VisualStudioCode      # VS Code
+winget install -e --id Git.Git                         # Git
+
+# 装完验证（所有packages列表）
+winget list</code></pre>
+<div class="note">⚠️ winget版本可能滞后，ARM GCC建议还是手动去官网下载最新版。但对于CMake/Python/Git等工具，winget的版本足够用。</div>
+</div></div>
+
+<h3>📋 知识点回顾</h3>
+
+<div class="summary">
+<b>🎯 本章核心要点：</b><br><br>
+<b>1. 工具链必装6件套：</b><br>
+• ARM GCC 14.2 — 交叉编译器（.c → .elf）<br>
+• CMake 4.3 — 现代构建系统<br>
+• Make 3.81 — 经典构建工具<br>
+• PuTTY — 串口终端<br>
+• VS Code + 插件 — 代码编辑与调试<br>
+• Python + pyserial — 脚本工具与串口<br><br>
+<b>2. PATH环境变量：</b><br>
+• 把工具的bin目录加入PATH才能在任意目录调用<br>
+• 修改PATH后必须重新打开命令行窗口才生效<br>
+• 用 check_env.ps1 脚本一键验证所有工具<br><br>
+<b>3. 入门硬件三件套（约¥25）：</b><br>
+• STM32F103C8T6 最小系统板（¥5-10）<br>
+• ST-Link V2 烧录器（¥10-15）<br>
+• CH340G USB转TTL 模块（¥5）<br><br>
+<b>4. 版本管理：</b><br>
+• 装Git，配置 user.name 和 user.email<br>
+• 创建 .gitignore，只提交源码，不提交编译产物<br>
+• git status / git add / git commit 是每日三连<br><br>
+<b>5. 排错思路：</b><br>
+• 命令找不到 → 检查PATH → 重新打开终端<br>
+• CMake找不到编译器 → 指定 toolchain file<br>
+• 串口不识别 → 装驱动（CH340/ST-Link驱动）<br>
+</div>
+
+<!-- ====== 第1章 ====== -->
+<a id="ch1"></a>
+<div class="summary">📖 <b>第1章学完你能干啥：</b>理解ARM GCC工具链中每个工具的作用，知道编译的四个阶段，能手动编译一个.c文件到.bin/.hex，能看懂.map和.lst文件。</div>
+
+<div class="chnav">
+<span></span>
+<a class="toc-link" onclick="window.parent.loadPage('guide')">📑 目录</a>
+<a onclick="window.parent.loadPage('guide-ch01')">第1章 →</a>
+</div>
+
+<script>
+document.querySelectorAll('pre').forEach(pre => {
+  const btn = document.createElement('button');
+  btn.className = 'copy-btn';
+  btn.textContent = 'Copy';
+  btn.onclick = () => {
+    navigator.clipboard.writeText(pre.textContent).then(() => {
+      btn.textContent = 'Copied!';
+      btn.classList.add('copied');
+      setTimeout(() => { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 1500);
+    });
+  };
+  pre.appendChild(btn);
+});
+</script>
+<div class="chnav">
+  <span></span>
+  <a class="toc-link" onclick="window.parent.loadPage('guide')">📑 章节目录</a>
+  <a onclick="window.parent.loadPage('guide-ch01')">ARM GCC ：下一章 ▶</a>
+</div>
+<div class="chnav">
+  <span></span>
+  <a class="toc-link" onclick="window.parent.loadPage('guide')">📑 章节目录</a>
+  <a onclick="window.parent.loadPage('guide-ch01')">ARM GCC ：下一章 ▶</a>
+</div>
+</body>
+</html>

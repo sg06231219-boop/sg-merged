@@ -1,0 +1,723 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第2章：CMake构建系统 - 嵌入式小白完全指南</title>
+<style>
+:root{--bg:#0d1117;--bg2:#161b22;--bg3:#21262d;--br:#30363d;--t:#c9d1d9;--t2:#8b949e;--a:#58a6ff;--g:#3fb950;--o:#d2991d;--r:#f85149;--p:#a371f7;--c1:#39c5cf}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--t);line-height:1.8;max-width:880px;margin:0 auto;padding:14px}
+h1{font-size:1.55em;text-align:center;padding:16px 0;background:linear-gradient(135deg,var(--a),var(--p));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+h2{font-size:1.15em;color:var(--a);margin:30px 0 10px;padding-bottom:6px;border-bottom:2px solid var(--br)}
+h3{font-size:1.02em;color:var(--g);margin:18px 0 7px}
+h4{font-size:.95em;color:var(--o);margin:12px 0 5px}
+pre{background:#1c2128;border:1px solid var(--br);border-radius:8px;padding:12px 14px;overflow-x:auto;margin:8px 0 12px;font-size:.82em;line-height:1.6;white-space:pre-wrap;word-break:break-all;position:relative}
+code{font-family:'SF Mono','Fira Code',monospace}
+pre code{color:#e6edf3}
+.note{background:rgba(210,153,29,.08);border:1px solid rgba(210,153,29,.3);border-radius:8px;padding:10px 14px;margin:10px 0;font-size:.83em;color:var(--o)}
+.warn{background:rgba(248,81,73,.08);border:1px solid rgba(248,81,73,.3);border-radius:8px;padding:10px 14px;margin:10px 0;font-size:.83em;color:var(--r)}
+.tip{background:rgba(63,185,80,.06);border:1px solid rgba(63,185,80,.25);border-radius:8px;padding:10px 14px;margin:10px 0;font-size:.83em;color:var(--g)}
+.example{background:rgba(88,166,255,.06);border:1px solid rgba(88,166,255,.25);border-radius:8px;padding:10px 14px;margin:8px 0;font-size:.82em;color:var(--a)}
+.example b{color:var(--g)}
+.trouble{background:rgba(163,113,247,.06);border:1px solid rgba(163,113,247,.3);border-radius:8px;padding:10px 14px;margin:8px 0;font-size:.82em;color:var(--p)}
+.trouble b{color:var(--p)}
+.card{background:var(--bg2);border:1px solid var(--br);border-radius:10px;margin:14px 0;overflow:hidden}
+.card>.h{padding:10px 14px;background:var(--bg3);display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.card>.h>.name{font-weight:700;font-size:.9em;color:var(--t);font-family:monospace}
+.card>.h>.tag{font-size:.65em;padding:2px 8px;border-radius:8px;white-space:nowrap;border:1px solid var(--br);color:var(--t2)}
+.card>.h>.tag.g{background:rgba(63,185,80,.15);border-color:var(--g);color:var(--g)}
+.card>.h>.tag.y{background:rgba(210,153,29,.15);border-color:var(--o);color:var(--o)}
+.card>.h>.tag.r{background:rgba(248,81,73,.15);border-color:var(--r);color:var(--r)}
+.card>.h>.tag.b{background:rgba(88,166,255,.15);border-color:var(--a);color:var(--a)}
+.card>.h>.tag.p{background:rgba(163,113,247,.15);border-color:var(--p);color:var(--p)}
+.card>.b{padding:10px 14px;font-size:.87em}
+.card>.b>.desc{font-size:.92em;color:var(--t2);margin-bottom:8px}
+table{width:100%;border-collapse:collapse;margin:10px 0;font-size:.81em;background:var(--bg2);border-radius:8px;overflow:hidden;border:1px solid var(--br)}
+td,th{padding:8px 12px;border-bottom:1px solid var(--br);text-align:left}
+th{background:var(--bg3);color:var(--a);font-weight:600}
+tr:last-child td{border-bottom:none}
+.step{background:var(--bg3);border-radius:6px;padding:8px 13px;margin:6px 0;font-size:.83em}
+.step b{color:var(--a)}
+.summary{background:linear-gradient(135deg,rgba(88,166,255,.1),rgba(163,113,247,.1));border:1px solid var(--br);border-radius:10px;padding:12px 16px;margin:18px 0;font-size:.88em;color:var(--t)}
+.summary b{color:var(--a)}
+.analogy{background:rgba(57,197,207,.07);border-left:3px solid var(--c1);padding:8px 13px;margin:8px 0;font-size:.82em;color:var(--c1);border-radius:0 6px 6px 0}
+.analogy b{color:var(--c1)}
+.chnav{display:flex;justify-content:space-between;margin:30px 0 10px;gap:12px;border-top:1px solid var(--br);padding-top:16px;flex-wrap:wrap}
+.chnav a{flex:1;text-align:center;padding:10px 14px;background:var(--bg2);border:1px solid var(--br);border-radius:8px;color:var(--a);text-decoration:none;font-size:.85em;transition:all .2s;min-width:120px;cursor:pointer}
+.chnav a:hover{background:var(--bg3);border-color:var(--a)}
+.chnav .toc-link{flex:0;min-width:80px;background:var(--bg3);color:var(--t2)}
+.chnav .toc-link:hover{color:var(--a)}
+.copy-btn{position:absolute;top:4px;right:4px;padding:3px 10px;background:var(--bg3);border:1px solid var(--br);border-radius:5px;color:var(--t2);font-size:.72em;cursor:pointer;opacity:0;transition:opacity .2s}
+pre:hover .copy-btn{opacity:1}
+.copy-btn:hover{background:var(--a);color:var(--bg)}
+.copy-btn.copied{background:var(--g);color:var(--bg);border-color:var(--g)}
+@media(max-width:480px){body{padding:10px}h1{font-size:1.3em}h2{font-size:1.05em}pre{font-size:.75em}}
+</style>
+</head>
+<body>
+
+<h1>第2章：CMake构建系统</h1>
+<div class="summary"><b>📖 小白完全指南 · 2/14</b> | 阅读时间约4分钟</div>
+
+<p>CMake不直接编译代码——它是<strong>"构建文件生成器"</strong>。你写CMakeLists.txt描述项目结构，CMake帮你生成Makefile，再用make编译。</p>
+
+<div class="analogy">💡 <b>类比：</b>CMake就像<strong>建筑设计师</strong>，你告诉他"我要3层楼、2个卧室"（CMakeLists.txt），他画出施工图纸（Makefile），施工队（make）按图纸盖房子（编译）。</div>
+
+<h3>CMakeLists.txt 最小模板</h3>
+
+<pre><code>cmake_minimum_required(VERSION 3.20)
+project(stm32_blink C ASM)
+
+set(SOURCES src/main.c src/stm32f1xx_it.c src/system_stm32f1xx.c)
+
+include_directories(inc CMSIS)
+
+add_compile_options(-mcpu=cortex-m3 -mthumb -Wall -ffunction-sections -fdata-sections)
+
+add_link_options(-mcpu=cortex-m3 -mthumb -Wl,--gc-sections
+    -T${CMAKE_SOURCE_DIR}/STM32F103C8Tx.ld
+    -Wl,-Map=${PROJECT_NAME}.map)
+
+add_executable(${PROJECT_NAME}.elf ${SOURCES})
+
+add_custom_command(TARGET ${PROJECT_NAME}.elf POST_BUILD
+    COMMAND ${CMAKE_OBJCOPY} -O binary ${PROJECT_NAME}.elf ${PROJECT_NAME}.bin
+    COMMAND ${CMAKE_OBJCOPY} -O ihex ${PROJECT_NAME}.elf ${PROJECT_NAME}.hex
+    COMMAND ${CMAKE_SIZE} ${PROJECT_NAME}.elf)</code></pre>
+
+<h3>交叉编译工具链文件</h3>
+
+<pre><code># toolchain-arm.cmake
+set(CMAKE_SYSTEM_NAME Generic)
+set(CMAKE_SYSTEM_PROCESSOR ARM)
+
+set(TOOLCHAIN_PREFIX arm-none-eabi-)
+set(CMAKE_C_COMPILER ${TOOLCHAIN_PREFIX}gcc)
+set(CMAKE_CXX_COMPILER ${TOOLCHAIN_PREFIX}g++)
+set(CMAKE_ASM_COMPILER ${TOOLCHAIN_PREFIX}gcc)
+set(CMAKE_AR ${TOOLCHAIN_PREFIX}ar)
+set(CMAKE_OBJCOPY ${TOOLCHAIN_PREFIX}objcopy)
+set(CMAKE_OBJDUMP ${TOOLCHAIN_PREFIX}objdump)
+set(CMAKE_SIZE ${TOOLCHAIN_PREFIX}size)
+
+set(CMAKE_TRY_COMPILE_TARGET_TYPE STATIC_LIBRARY)
+set(CMAKE_FIND_ROOT_PATH_MODE_PROGRAM NEVER)
+set(CMAKE_FIND_ROOT_PATH_MODE_LIBRARY ONLY)
+set(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE ONLY)</code></pre>
+
+<h3>构建命令</h3>
+
+<pre><code># 创建build目录（保持源码干净）
+mkdir build &amp;&amp; cd build
+
+# 配置（生成Makefile）
+cmake -DCMAKE_TOOLCHAIN_FILE=../toolchain-arm.cmake -DCMAKE_BUILD_TYPE=Debug ..
+
+# 编译（4线程并行）
+cmake --build . -j4
+
+# 清理
+cmake --build . --target clean
+
+# 列出所有可用的target
+cmake --build . --target help
+
+# 只编译不链接
+cmake --build . --target blink.elf.o</code></pre>
+
+<h3>CMake变量和作用域</h3>
+
+<p>CMake的核心是<strong>变量</strong>——几乎所有构建逻辑都靠变量传递。理解变量作用域是写复杂CMakeLists.txt的基础。</p>
+
+<h4>变量基础操作</h4>
+
+<pre><code># set() —— 设置变量
+set(MY_VAR "hello")              # 普通变量
+set(MY_LIST "a" "b" "c")        # 列表（空格或分号分隔）
+set(MY_LIST a b c)               # 等价写法
+
+# message() —— 打印变量（调试必备）
+message(STATUS "MY_VAR = ${MY_VAR}")    # 状态信息
+message(WARNING "检查这个值: ${MY_VAR}") # 警告（继续执行）
+message(FATAL_ERROR "致命错误！")        # 终止配置
+
+# list() —— 列表操作
+list(APPEND MY_LIST "d" "e")     # 追加元素
+list(LENGTH MY_LIST len)          # 获取长度 ${len}=5
+list(GET MY_LIST 0 first)         # 获取第一个元素
+list(REMOVE_ITEM MY_LIST "c")     # 删除元素
+
+# string() —— 字符串操作
+string(TIMESTAMP TODAY %Y-%m-%d)  # 当前日期
+string(REPLACE "." "_" result ${CMAKE_SYSTEM_VERSION})</code></pre>
+
+<h4>变量作用域陷阱</h4>
+
+<pre><code># CMake变量默认是函数作用域 —— 在函数里set的变量外面看不到！
+function(my_func)
+    set(LOCAL_VAR "只在函数内可见")
+    # ${LOCAL_VAR} 在这里能用
+endfunction()
+my_func()
+message(STATUS "${LOCAL_VAR}")  # ❌ 空的！
+
+# 要让变量"穿透"出去，用 PARENT_SCOPE
+function(my_func_out)
+    set(OUT_VAR "父作用域可见" PARENT_SCOPE)
+endfunction()
+my_func_out()
+message(STATUS "${OUT_VAR}")    # ✅ 能看到了
+
+# macro() 没有独立作用域 —— 跟调用者共享变量
+macro(my_macro)
+    set(MACRO_VAR "随处可用")
+endmacro()
+my_macro()
+message(STATUS "${MACRO_VAR}")  # ✅ macro没有作用域隔离</code></pre>
+
+<div class="warn">⚠️ <b>常见的坑：</b>在 <code>function()</code> 里用 <code>set()</code> 修改变量，外面看不到——这是新手最容易困惑的CMake行为。解决：要么用 <code>macro()</code>，要么用 <code>set(var value PARENT_SCOPE)</code>。</div>
+
+<h3>多目录项目管理</h3>
+
+<p>真实嵌入式项目绝不会只有一个源文件目录。库、驱动、协议栈各有各的文件夹，用 <code>add_subdirectory</code> 组织：</p>
+
+<h4>实战项目结构</h4>
+
+<pre><code># 项目目录树
+stm32-project/
+├── CMakeLists.txt            # 根CMake（总指挥）
+├── toolchain-arm.cmake
+├── STM32F103C8Tx.ld
+├── src/
+│   ├── CMakeLists.txt        # 应用层
+│   └── main.c
+├── drivers/
+│   ├── CMakeLists.txt        # 驱动层
+│   ├── gpio/
+│   │   ├── CMakeLists.txt    # GPIO驱动
+│   │   ├── gpio.c
+│   │   └── gpio.h
+│   └── uart/
+│       ├── CMakeLists.txt    # UART驱动
+│       ├── uart.c
+│       └── uart.h
+└── lib/
+    ├── CMakeLists.txt        # 第三方库
+    └── tinyprintf/
+        ├── CMakeLists.txt
+        └── tinyprintf.c</code></pre>
+
+<h4>各层CMakeLists.txt实现</h4>
+
+<pre><code># ── 根 CMakeLists.txt ──
+cmake_minimum_required(VERSION 3.20)
+project(stm32_demo C)
+
+# 全局编译选项（子目录继承）
+add_compile_options(
+    -mcpu=cortex-m3 -mthumb -Wall -O2 -g3
+    -ffunction-sections -fdata-sections
+    -DSTM32F103C8T6
+)
+
+# 全局头文件路径
+include_directories(inc)
+
+# 递归加载子目录（顺序决定依赖关系）
+add_subdirectory(lib)       # 先编译库
+add_subdirectory(drivers)   # 再编译驱动（可能依赖库）
+add_subdirectory(src)       # 最后编译主程序
+
+
+# ── drivers/gpio/CMakeLists.txt ──
+# 方式1：创建静态库（推荐——复用性强）
+add_library(gpio STATIC
+    gpio.c
+)
+target_include_directories(gpio PUBLIC .)  # gpio.h的路径
+# PUBLIC = 链接gpio的目标也会获得这个头文件路径
+
+
+# ── drivers/CMakeLists.txt ──
+# 递归加载子驱动模块
+add_subdirectory(gpio)
+add_subdirectory(uart)
+
+
+# ── lib/tinyprintf/CMakeLists.txt ──
+add_library(tinyprintf STATIC
+    tinyprintf.c
+)
+target_include_directories(tinyprintf PUBLIC .)
+
+
+# ── lib/CMakeLists.txt ──
+add_subdirectory(tinyprintf)
+
+
+# ── src/CMakeLists.txt ──
+add_executable(${PROJECT_NAME}.elf
+    main.c
+)
+
+# 链接依赖库
+target_link_libraries(${PROJECT_NAME}.elf
+    gpio         # 来自 drivers/gpio
+    uart         # 来自 drivers/uart
+    tinyprintf   # 来自 lib/tinyprintf
+)
+
+# 链接选项（只给可执行文件加，不给库加）
+target_link_options(${PROJECT_NAME}.elf PRIVATE
+    -mcpu=cortex-m3 -mthumb
+    -T${CMAKE_SOURCE_DIR}/STM32F103C8Tx.ld
+    -Wl,--gc-sections
+    -Wl,-Map=${PROJECT_NAME}.map
+    --specs=nano.specs --specs=nosys.specs
+)
+
+# 后处理：生成.bin/.hex并显示大小
+add_custom_command(TARGET ${PROJECT_NAME}.elf POST_BUILD
+    COMMAND ${CMAKE_OBJCOPY} -O binary ${PROJECT_NAME}.elf ${PROJECT_NAME}.bin
+    COMMAND ${CMAKE_OBJCOPY} -O ihex ${PROJECT_NAME}.elf ${PROJECT_NAME}.hex
+    COMMAND ${CMAKE_SIZE} ${PROJECT_NAME}.elf
+)</code></pre>
+
+<div class="note">💡 <b>关键概念：STATIC库 vs OBJECT库</b><br>
+• <code>STATIC</code> — 打包成 .a 文件，链接时只提取用到的符号（推荐）<br>
+• <code>OBJECT</code> — 编译成 .o 但不打包，跟项目一起链接（符号全部保留）<br>
+• <code>INTERFACE</code> — 只有头文件的库（header-only library）<br>
+嵌入式开发中，驱动层和库层用 <code>STATIC</code> 最合适。</div>
+
+<h3>CMake生成器表达式（Generator Expressions）</h3>
+
+<p>生成器表达式在<strong>生成构建文件时</strong>才求值——比普通变量更灵活，特别适合处理多配置场景（Debug/Release）和多平台构建。</p>
+
+<pre><code># 基本语法：$&lt;表达式&gt;
+# $&lt;BOOL:expr&gt;      → expr为真返回1，否则返回0
+# $&lt;IF:cond,true,false&gt; → 条件表达式
+# $&lt;CONFIG&gt;          → 当前构建类型（Debug/Release/MinSizeRel）
+# $&lt;TARGET_FILE:tgt&gt; → 目标文件的完整路径
+
+# === 嵌入式开发中的实际用法 ===
+
+# ① 根据构建类型选择优化等级
+target_compile_options(${TARGET}.elf PRIVATE
+    $&lt;$&lt;CONFIG:Debug&gt;:-O0&gt;          # Debug=不优化
+    $&lt;$&lt;CONFIG:Release&gt;:-O2&gt;        # Release=速度优化
+    $&lt;$&lt;CONFIG:MinSizeRel&gt;:-Os&gt;     # MinSizeRel=体积优化
+)
+
+# ② 只在Debug模式加调试标志
+target_compile_definitions(${TARGET}.elf PRIVATE
+    $&lt;$&lt;CONFIG:Debug&gt;:DEBUG=1&gt;     # Debug时定义DEBUG宏
+    $&lt;$&lt;CONFIG:Debug&gt;:ENABLE_ASSERT&gt; # Debug时开启断言
+)
+
+# ③ 根据目标名动态生成输出路径
+add_custom_command(TARGET ${PROJECT_NAME}.elf POST_BUILD
+    COMMAND ${CMAKE_OBJCOPY} -O binary
+        $&lt;TARGET_FILE:${PROJECT_NAME}.elf&gt;
+        $&lt;TARGET_FILE_DIR:${PROJECT_NAME}.elf&gt;/${PROJECT_NAME}.bin
+)</code></pre>
+
+<h3>自定义函数和宏</h3>
+
+<pre><code># 把重复逻辑封装成函数，提高可维护性
+
+# 嵌入式源文件自动发现函数
+function(collect_sources OUTPUT_VAR search_dir)
+    file(GLOB_RECURSE sources
+        ${search_dir}/*.c
+        ${search_dir}/*.s
+    )
+    set(${OUTPUT_VAR} ${sources} PARENT_SCOPE)
+endfunction()
+
+# 使用
+collect_sources(APP_SOURCES src/)
+collect_sources(DRV_SOURCES drivers/)
+add_executable(app.elf ${APP_SOURCES} ${DRV_SOURCES})
+
+
+# 自动生成编译数据库（compile_commands.json）
+function(enable_compile_commands)
+    set(CMAKE_EXPORT_COMPILE_COMMANDS ON PARENT_SCOPE)
+    message(STATUS "✓ 编译数据库已启用（用于clangd/IDE智能提示）")
+endfunction()
+
+
+# 快速创建嵌入式可执行目标
+function(add_embedded_target name)
+    add_executable(${name}.elf ${ARGN})
+    target_compile_options(${name}.elf PRIVATE
+        -mcpu=cortex-m3 -mthumb -Wall -O2 -g3
+        -ffunction-sections -fdata-sections)
+    target_link_options(${name}.elf PRIVATE
+        -mcpu=cortex-m3 -mthumb
+        -T${CMAKE_SOURCE_DIR}/STM32F103C8Tx.ld
+        -Wl,--gc-sections -Wl,-Map=${name}.map
+        --specs=nano.specs --specs=nosys.specs)
+    add_custom_command(TARGET ${name}.elf POST_BUILD
+        COMMAND ${CMAKE_OBJCOPY} -O binary ${name}.elf ${name}.bin
+        COMMAND ${CMAKE_SIZE} ${name}.elf)
+endfunction()
+
+# 使用——一行代码搞定！（参数通过 ARGN 传入）
+add_embedded_target(blink src/main.c src/stm32f1xx_it.c)</code></pre>
+
+<div class="trouble">🔍 <b>常见问题：cmake找不到arm-none-eabi-gcc</b><br>
+工具链没加PATH。解决：把ARM GCC的bin目录加到PATH，或在toolchain文件写死路径：<br><code>set(CMAKE_C_COMPILER "C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin/arm-none-eabi-gcc.exe")</code></div>
+
+<div class="example-block">
+<div class="ex-title">📝 完整示例：CMake构建STM32项目</div>
+<div class="ex-input">项目结构 + 构建命令：</div>
+<pre><code>stm32-project/
+├── CMakeLists.txt
+├── toolchain-arm.cmake
+├── STM32F103C8Tx.ld
+├── inc/
+└── src/
+    ├── main.c
+    └── stm32f1xx_it.c
+
+# 构建步骤：
+mkdir build &amp;&amp; cd build
+cmake -DCMAKE_TOOLCHAIN_FILE=../toolchain-arm.cmake -DCMAKE_BUILD_TYPE=Debug ..
+cmake --build . -j4</code></pre>
+<div class="ex-output">输出结果：</div>
+<pre><code>-- The C compiler identification is GNU 14.2.1
+-- Configuring done
+-- Generating done
+-- Build files have been written to: /path/build
+[ 33%] Building C object CMakeFiles/stm32_blink.dir/src/main.c.o
+[ 66%] Building C object CMakeFiles/stm32_blink.dir/src/stm32f1xx_it.c.o
+[100%] Linking C executable stm32_blink.elf
+PostBuild: arm-none-eabi-objcopy -O binary stm32_blink.elf stm32_blink.bin
+PostBuild: arm-none-eabi-objcopy -O ihex stm32_blink.elf stm32_blink.hex
+   text    data     bss     dec     hex filename
+   1580      20     256    1856     740 stm32_blink.elf
+
+✅ 构建成功！烧录：st-flash write stm32_blink.bin 0x08000000</pre>
+</div>
+
+<h3>🚀 5分钟快速上手：最小可编译项目</h3>
+
+<p>跟着做，<strong>从零到一个能编译的项目</strong>，只需5分钟：</p>
+
+<div class="step"><b>步骤1：</b>创建项目目录</div>
+<pre><code>mkdir stm32-blink &amp;&amp; cd stm32-blink
+mkdir src inc</code></pre>
+
+<div class="step"><b>步骤2：</b>创建最小main.c（点灯程序，无需任何库）</div>
+<pre><code># src/main.c - 最小STM32程序（纯寄存器，无需HAL库）
+// 定义寄存器地址
+#define RCC_APB2ENR  (*(volatile uint32_t*)0x40021018)
+#define GPIOC_CRH    (*(volatile uint32_t*)0x40011004)
+#define GPIOC_ODR    (*(volatile uint32_t*)0x4001100C)
+
+void delay(volatile uint32_t count) {
+    while(count--);
+}
+
+int main(void) {
+    // 使能GPIOC时钟
+    RCC_APB2ENR |= (1 &lt;&lt; 4);
+    
+    // 配置PC13为推挽输出（50MHz）
+    GPIOC_CRH = (GPIOC_CRH &amp; ~0x00F00000) | 0x00300000;
+    
+    while(1) {
+        GPIOC_ODR ^= (1 &lt;&lt; 13);  // 翻转PC13
+        delay(500000);
+    }
+}</code></pre>
+
+<div class="step"><b>步骤3：</b>创建最小链接脚本</div>
+<pre><code>/* STM32F103C8Tx.ld - 最小版（含向量表） */
+ENTRY(Reset_Handler)
+
+_estack = ORIGIN(RAM) + LENGTH(RAM);  /* 栈顶 = RAM末尾 */
+
+MEMORY {
+  FLASH (rx) : ORIGIN = 0x08000000, LENGTH = 64K
+  RAM (rwx)  : ORIGIN = 0x20000000, LENGTH = 20K
+}
+SECTIONS {
+  .isr_vector : {
+    . = ALIGN(4);
+    KEEP(*(.isr_vector))  /* 中断向量表（必须保留！） */
+    . = ALIGN(4);
+  } > FLASH
+
+  .text : { *(.text*) } > FLASH
+  .rodata : { *(.rodata*) } > FLASH
+  .data : { *(.data*) } > RAM AT > FLASH
+  .bss : { *(.bss*) *(COMMON) } > RAM
+}
+
+/* 最小启动代码（添加到main.c底部） */
+/*
+__attribute__((section(".isr_vector")))
+void (* const g_pfnVectors[])(void) = {
+    (void *)&_estack,     // 初始栈指针
+    Reset_Handler,         // 复位向量
+};
+
+void Reset_Handler(void) {
+    // 复制.data段从Flash到RAM
+    extern uint32_t _sdata, _edata, _sidata;
+    uint32_t *src = &_sidata, *dst = &_sdata;
+    while (dst < &_edata) *dst++ = *src++;
+    // 清零.bss段
+    extern uint32_t _sbss, _ebss;
+    dst = &_sbss;
+    while (dst < &_ebss) *dst++ = 0;
+    // 跳转到main
+    main();
+    while(1);
+}
+*/</code></pre>
+
+<div class="step"><b>步骤4：</b>创建CMakeLists.txt</div>
+<pre><code>cmake_minimum_required(VERSION 3.20)
+project(stm32_blink C)
+add_compile_options(-mcpu=cortex-m3 -mthumb -Wall -O2 -g3 -ffunction-sections -fdata-sections)
+add_link_options(-mcpu=cortex-m3 -mthumb -Wl,--gc-sections -T${CMAKE_SOURCE_DIR}/STM32F103C8Tx.ld --specs=nano.specs --specs=nosys.specs)
+add_executable(blink.elf src/main.c)
+add_custom_command(TARGET blink.elf POST_BUILD
+    COMMAND ${CMAKE_OBJCOPY} -O binary blink.elf blink.bin
+    COMMAND ${CMAKE_SIZE} blink.elf)</code></pre>
+
+<div class="step"><b>步骤4.5：</b>创建工具链文件（保存为 <code>toolchain-arm.cmake</code>，放在项目根目录）</div>
+<pre><code># toolchain-arm.cmake - 告诉CMake用ARM编译器
+set(CMAKE_SYSTEM_NAME Generic)
+set(CMAKE_SYSTEM_PROCESSOR ARM)
+set(TOOLCHAIN_PREFIX arm-none-eabi-)
+set(CMAKE_C_COMPILER ${TOOLCHAIN_PREFIX}gcc)
+set(CMAKE_CXX_COMPILER ${TOOLCHAIN_PREFIX}g++)
+set(CMAKE_ASM_COMPILER ${TOOLCHAIN_PREFIX}gcc)
+set(CMAKE_AR ${TOOLCHAIN_PREFIX}ar)
+set(CMAKE_OBJCOPY ${TOOLCHAIN_PREFIX}objcopy)
+set(CMAKE_OBJDUMP ${TOOLCHAIN_PREFIX}objdump)
+set(CMAKE_SIZE ${TOOLCHAIN_PREFIX}size)
+set(CMAKE_TRY_COMPILE_TARGET_TYPE STATIC_LIBRARY)
+set(CMAKE_FIND_ROOT_PATH_MODE_PROGRAM NEVER)
+set(CMAKE_FIND_ROOT_PATH_MODE_LIBRARY ONLY)
+set(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE ONLY)</code></pre>
+
+<div class="step"><b>步骤5：</b>构建！</div>
+<pre><code>mkdir build &amp;&amp; cd build
+cmake -DCMAKE_TOOLCHAIN_FILE=../toolchain-arm.cmake ..
+cmake --build .</code></pre>
+
+<div class="example-block">
+<div class="ex-title">📝 构建成功输出</div>
+<div class="ex-output">预期结果：</div>
+<pre><code>-- The C compiler identification is GNU 14.2.1
+-- Configuring done
+-- Generating done
+[ 50%] Building C object CMakeFiles/blink.dir/src/main.c.o
+[100%] Linking C executable blink.elf
+PostBuild: arm-none-eabi-objcopy -O binary blink.elf blink.bin
+   text    data     bss     dec     hex filename
+    120       0       0     120     78 blink.elf
+
+✅ 编译成功！blink.bin就是你的固件，可以烧录了！</pre>
+</div>
+
+<div class="tip">💡 <b>为什么用纯寄存器不用HAL库？</b>因为这个项目<strong>不依赖任何外部文件</strong>，你能直接编译通过！等熟悉了流程，再用CubeMX生成HAL库工程（第6章会教）。</div>
+
+<h3>🐛 常见CMake错误排查</h3>
+
+<div class="trouble">🔍 <b>错误1：CMake Error: The source directory "..." does not appear to contain CMakeLists.txt</b><br>
+<strong>你在没有CMakeLists.txt的目录运行了cmake。</strong>确保当前目录（或 <code>..</code> 指向的目录）有CMakeLists.txt。最常发生在你忘记了先 <code>mkdir build && cd build</code>。</div>
+
+<div class="trouble">🔍 <b>错误2：add_library cannot create ALIAS target "xxx" because another target with the same name already exists</b><br>
+<strong>CMake目标名全局唯一。</strong>不同子目录的CMakeLists.txt里不能有同名的 add_library / add_executable。预防：给库名加模块前缀（如 <code>drv_gpio</code> 而非 <code>gpio</code>）。</div>
+
+<div class="trouble">🔍 <b>错误3：Cannot specify link libraries for target "xxx" which is not built by this project</b><br>
+<strong>你在 target_link_libraries 中引用了不存在的target。</strong>检查：①拼写是否正确 ②add_subdirectory是否包含了定义该target的目录 ③顺序：先add_subdirectory再target_link_libraries。</div>
+
+<div class="trouble">🔍 <b>错误4：arm-none-eabi-gcc: error: unrecognized command line option '-mthumb'</b><br>
+<strong>用了x86的gcc而非ARM GCC。</strong>确保：①指定了 toolchain-arm.cmake ②代码中写的是 <code>arm-none-eabi-gcc</code> 而非 <code>gcc</code>。先确认 <code>arm-none-eabi-gcc --version</code> 能执行。</div>
+
+<div class="trouble">🔍 <b>错误5：CMake Warning: Manually-specified variables were not used by the project: CMAKE_TOOLCHAIN_FILE</b><br>
+<strong>CMake缓存中存了旧配置，-D参数被忽略。</strong>解决：清空build目录，从头重新cmake：<br><code>rm -r build && mkdir build && cd build && cmake -DCMAKE_TOOLCHAIN_FILE=../toolchain-arm.cmake ..</code></div>
+
+<h3>🏋️ 实战练习</h3>
+
+<div class="tip">💡 <b>练习1：搭建多级目录CMake项目</b><br>
+创建一个至少3层目录的CMake嵌入式项目，要求：<br>
+① 根目录CMakeLists.txt定义全局编译选项<br>
+② drivers/ 下有至少2个子驱动（gpio, uart），每个编译为静态库<br>
+③ lib/ 下有一个第三方库<br>
+④ src/ 下的可执行文件链接所有库<br>
+⑤ 编译通过并生成 .bin 文件<br>
+<strong>验收标准：</strong>能在build目录下成功运行 <code>cmake --build .</code> 且无警告。</div>
+
+<div class="tip">💡 <b>练习2：CMake变量调试</b><br>
+在已有的CMakeLists.txt中加入 message() 输出以下变量值，确认你理解了每个变量的含义：<br>
+<pre><code>message(STATUS "源码目录: ${CMAKE_SOURCE_DIR}")
+message(STATUS "构建目录: ${CMAKE_BINARY_DIR}")
+message(STATUS "项目名: ${PROJECT_NAME}")
+message(STATUS "C编译器: ${CMAKE_C_COMPILER}")
+message(STATUS "构建类型: ${CMAKE_BUILD_TYPE}")
+message(STATUS "工具链文件: ${CMAKE_TOOLCHAIN_FILE}")</code></pre>
+运行 cmake 配置后观察输出，然后尝试修改 CMAKE_BUILD_TYPE 为 Release/MinSizeRel 看变化。</div>
+
+<div class="tip">💡 <b>练习3：Debug/Release双配置构建</b><br>
+用 CMake 生成器表达式实现：Debug模式编译时定义 <code>DEBUG=1</code> 宏并输出详细日志，Release模式编译时用 <code>-O2</code> 优化且不输出日志。分别构建两种模式并对比生成的 .elf 文件大小。</div>
+
+<h3>🚀 进阶话题</h3>
+
+<div class="card">
+<div class="h"><span class="name">CMake Presets（预设配置）</span><span class="tag p">进阶</span></div>
+<div class="b">
+<div class="desc">CMake 3.20+支持 Presets——把命令行参数写进JSON文件，彻底告别"复制粘贴cmake命令"的痛苦。VS Code的CMake Tools插件原生支持Presets，直接在UI里选配置。</div>
+<pre><code>// CMakePresets.json（放在项目根目录）
+{
+  "version": 6,
+  "configurePresets": [
+    {
+      "name": "arm-debug",
+      "displayName": "STM32F103 Debug",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/debug",
+      "cacheVariables": {
+        "CMAKE_TOOLCHAIN_FILE": "${sourceDir}/toolchain-arm.cmake",
+        "CMAKE_BUILD_TYPE": "Debug"
+      }
+    },
+    {
+      "name": "arm-release",
+      "displayName": "STM32F103 Release",
+      "inherits": "arm-debug",
+      "binaryDir": "${sourceDir}/build/release",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "MinSizeRel"
+      }
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "arm-debug",
+      "configurePreset": "arm-debug",
+      "jobs": 4
+    },
+    {
+      "name": "arm-release",
+      "configurePreset": "arm-release",
+      "jobs": 4
+    }
+  ]
+}</code></pre>
+<pre><code># 使用Presets（不需要 -D 参数了！）
+cmake --preset arm-debug         # 配置（自动用预设的参数）
+cmake --build --preset arm-debug  # 构建
+
+# VS Code中：底部栏直接选 Preset → 点Build按钮</code></pre>
+</div></div>
+
+<div class="card">
+<div class="h"><span class="name">外部依赖管理：FetchContent vs CPM.cmake</span><span class="tag p">进阶</span></div>
+<div class="b">
+<div class="desc">你的项目需要引用第三方库（如 FreeRTOS、LVGL）时，手动拷贝源码又累又难更新。CMake提供了几种自动化方案：</div>
+<pre><code># 方案1：FetchContent（CMake 3.14+内置）
+include(FetchContent)
+FetchContent_Declare(
+    FreeRTOS-Kernel
+    GIT_REPOSITORY https://github.com/FreeRTOS/FreeRTOS-Kernel.git
+    GIT_TAG V11.0.1
+)
+FetchContent_MakeAvailable(FreeRTOS-Kernel)
+# 现在可以直接 target_link_libraries(app.elf FreeRTOS-Kernel)
+
+# 方案2：CPM.cmake（更简洁，一个脚本文件搞定）
+# 下载 CPM.cmake 到项目根目录，然后：
+include(cmake/CPM.cmake)
+CPMAddPackage(
+    NAME tinyprintf
+    GITHUB_REPOSITORY ccochard/tinyprintf
+    VERSION 1.0
+)
+
+# 方案3：手动管理 git submodule（老派做法）
+git submodule add https://github.com/FreeRTOS/FreeRTOS-Kernel.git lib/FreeRTOS
+git submodule update --init --recursive
+# 然后在CMakeLists.txt里 add_subdirectory(lib/FreeRTOS)</code></pre>
+<div class="note">💡 <b>推荐策略：</b>小型项目用 <code>FetchContent</code>（零依赖），团队项目用 <code>git submodule</code>（版本锁定），复杂项目用 <code>CPM.cmake</code>（支持缓存、离线模式）。</div>
+</div></div>
+
+<div class="card">
+<div class="h"><span class="name">CMake与Ninja：更快构建</span><span class="tag p">进阶</span></div>
+<div class="b">
+<div class="desc">Ninja是比Make更快的构建工具——并行度更高、增量编译判断更精确。在Windows上配合CMake使用体验很好。</div>
+<pre><code># 安装 Ninja（三选一）
+winget install Ninja-build.Ninja    # winget
+choco install ninja                  # Chocolatey
+# 或从 github.com/ninja-build/ninja/releases 下载
+
+# 使用 Ninja 构建（指定 -G 生成器）
+cmake -G Ninja -DCMAKE_TOOLCHAIN_FILE=../toolchain-arm.cmake ..
+cmake --build .          # Ninja自动并行，不需要 -j4
+
+# 对比（实测4核8线程Windows PC，stm32-blink项目）
+# Make:    3.2秒  (cmake --build . -j4)
+# Ninja:   1.4秒  (ninja)
+# 原因：Ninja原生并行+精确依赖追踪</code></pre>
+<div class="note">💡 <b>是否值得换Ninja：</b>项目大于20个源文件时Ninja的优势就明显了；10个文件以下Make和Ninja差不多。建议开发期用Ninja，CI/CD用Make（兼容性好）。</div>
+</div></div>
+
+<h3>📋 知识点回顾</h3>
+
+<div class="summary">
+<b>🎯 本章核心要点：</b><br><br>
+<b>1. CMake本质：</b>构建文件生成器——你写CMakeLists.txt，它生成Makefile/Ninja文件。<br><br>
+<b>2. 最小项目三要素：</b><br>
+• <code>cmake_minimum_required(VERSION 3.20)</code> — CMake版本<br>
+• <code>project(xxx)</code> — 项目名<br>
+• <code>add_executable(xxx.elf main.c)</code> — 生成目标<br><br>
+<b>3. 交叉编译关键：</b>必须指定 toolchain-arm.cmake，告诉CMake用 arm-none-eabi-gcc 而非 x86 gcc。<br><br>
+<b>4. 构建命令三步走：</b><br>
+• <code>mkdir build && cd build</code> — 隔离构建产物<br>
+• <code>cmake -DCMAKE_TOOLCHAIN_FILE=../toolchain-arm.cmake ..</code> — 配置<br>
+• <code>cmake --build . -j4</code> — 编译<br><br>
+<b>5. 多目录管理：</b>用 <code>add_subdirectory()</code> 组织代码，驱动层做成 STATIC 库，主程序链接库。<br><br>
+<b>6. 变量作用域：</b>function()有独立作用域 → set()要加PARENT_SCOPE；macro()无独立作用域 → 更灵活但易污染。<br><br>
+<b>7. 生成器表达式：</b><code>$&lt;$&lt;CONFIG:Debug&gt;:-O0&gt;</code> 在生成构建文件时求值，实现Debug/Release双配置。<br>
+</div>
+
+<!-- ====== 第3章 ====== -->
+<a id="ch3"></a>
+<div class="summary">📖 <b>第3章学完你能干啥：</b>能读懂和编写Makefile，理解规则/变量/自动变量/模式规则，能写完整STM32 Makefile。</div>
+
+<div class="chnav">
+<a onclick="window.parent.loadPage('guide-ch01')">← 第1章</a>
+<a class="toc-link" onclick="window.parent.loadPage('guide')">📑 目录</a>
+<a onclick="window.parent.loadPage('guide-ch03')">第3章 →</a>
+</div>
+
+<script>
+document.querySelectorAll('pre').forEach(pre => {
+  const btn = document.createElement('button');
+  btn.className = 'copy-btn';
+  btn.textContent = 'Copy';
+  btn.onclick = () => {
+    navigator.clipboard.writeText(pre.textContent).then(() => {
+      btn.textContent = 'Copied!';
+      btn.classList.add('copied');
+      setTimeout(() => { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 1500);
+    });
+  };
+  pre.appendChild(btn);
+});
+</script>
+<div class="chnav">
+  <a onclick="window.parent.loadPage('guide-ch01')">◀ 上一章：ARM GCC</a>
+  <a class="toc-link" onclick="window.parent.loadPage('guide')">📑 章节目录</a>
+  <a onclick="window.parent.loadPage('guide-ch03')">Makefile ：下一章 ▶</a>
+</div>
+</body>
+</html>

@@ -1,0 +1,1605 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>串口通信 细致教程 | 嵌入式开发指南</title>
+    <style>
+        :root {
+            --bg: #0d1117;
+            --bg2: #161b22;
+            --bg3: #21262d;
+            --fg: #c9d1d9;
+            --fg2: #8b949e;
+            --accent: #58a6ff;
+            --accent2: #1f6feb;
+            --success: #3fb950;
+            --warning: #d29922;
+            --danger: #f85149;
+            --purple: #a371f7;
+            --cyan: #56d4dd;
+            --border: #30363d;
+            --code-bg: #0d1117;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans SC", sans-serif;
+            background: var(--bg);
+            color: var(--fg);
+            line-height: 1.7;
+            padding-top: 60px;
+        }
+
+        /* 固定导航栏 */
+        .nav-top {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 56px;
+            background: var(--bg2);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            padding: 0 24px;
+            z-index: 1000;
+            backdrop-filter: blur(8px);
+        }
+
+        .nav-top .logo {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--accent);
+            margin-right: 32px;
+        }
+
+        .nav-top .nav-links {
+            display: flex;
+            gap: 24px;
+            overflow-x: auto;
+            scrollbar-width: none;
+        }
+
+        .nav-top .nav-links::-webkit-scrollbar {
+            display: none;
+        }
+
+        .nav-top .nav-links a {
+            color: var(--fg2);
+            text-decoration: none;
+            font-size: 14px;
+            white-space: nowrap;
+            transition: color 0.2s;
+        }
+
+        .nav-top .nav-links a:hover {
+            color: var(--accent);
+        }
+
+        .nav-top .nav-links a.active {
+            color: var(--accent);
+        }
+
+        /* 主容器 */
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 40px 24px 80px;
+        }
+
+        /* 标题样式 */
+        h1 {
+            font-size: 36px;
+            font-weight: 700;
+            margin-bottom: 16px;
+            background: linear-gradient(135deg, var(--accent), var(--purple));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        h2 {
+            font-size: 28px;
+            font-weight: 600;
+            margin: 48px 0 24px;
+            padding-bottom: 12px;
+            border-bottom: 2px solid var(--border);
+            color: var(--fg);
+        }
+
+        h3 {
+            font-size: 20px;
+            font-weight: 600;
+            margin: 32px 0 16px;
+            color: var(--accent);
+        }
+
+        h4 {
+            font-size: 16px;
+            font-weight: 600;
+            margin: 24px 0 12px;
+            color: var(--fg);
+        }
+
+        p {
+            margin-bottom: 16px;
+            color: var(--fg);
+        }
+
+        /* 卡片 */
+        .card {
+            background: var(--bg2);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 24px;
+            margin: 24px 0;
+        }
+
+        .card-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 16px;
+            color: var(--fg);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        /* 提示框 */
+        .note, .warn, .tip, .analogy, .step {
+            padding: 16px 20px;
+            border-radius: 8px;
+            margin: 16px 0;
+            border-left: 4px solid;
+        }
+
+        .note {
+            background: rgba(56, 139, 253, 0.1);
+            border-color: var(--accent);
+        }
+
+        .note::before {
+            content: "📝 笔记：";
+            font-weight: 600;
+            color: var(--accent);
+            display: block;
+            margin-bottom: 8px;
+        }
+
+        .warn {
+            background: rgba(248, 81, 73, 0.1);
+            border-color: var(--danger);
+        }
+
+        .warn::before {
+            content: "⚠️ 警告：";
+            font-weight: 600;
+            color: var(--danger);
+            display: block;
+            margin-bottom: 8px;
+        }
+
+        .tip {
+            background: rgba(63, 185, 80, 0.1);
+            border-color: var(--success);
+        }
+
+        .tip::before {
+            content: "💡 提示：";
+            font-weight: 600;
+            color: var(--success);
+            display: block;
+            margin-bottom: 8px;
+        }
+
+        .analogy {
+            background: rgba(163, 113, 247, 0.1);
+            border-color: var(--purple);
+        }
+
+        .analogy::before {
+            content: "🎯 类比：";
+            font-weight: 600;
+            color: var(--purple);
+            display: block;
+            margin-bottom: 8px;
+        }
+
+        .step {
+            background: rgba(86, 212, 221, 0.1);
+            border-color: var(--cyan);
+        }
+
+        .step::before {
+            font-weight: 600;
+            color: var(--cyan);
+            display: block;
+            margin-bottom: 8px;
+        }
+
+        /* 标签 */
+        .tag {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 16px;
+            font-size: 12px;
+            font-weight: 500;
+            margin: 4px 4px 4px 0;
+        }
+
+        .tag-blue { background: var(--accent2); color: white; }
+        .tag-green { background: #238636; color: white; }
+        .tag-purple { background: #6e40c9; color: white; }
+        .tag-orange { background: #bd561d; color: white; }
+        .tag-cyan { background: #1b6e6e; color: white; }
+
+        /* 代码块 */
+        pre {
+            background: var(--code-bg);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 20px;
+            overflow-x: auto;
+            margin: 16px 0;
+            font-family: "JetBrains Mono", "Fira Code", monospace;
+            font-size: 14px;
+        }
+
+        code {
+            font-family: "JetBrains Mono", "Fira Code", monospace;
+            background: var(--bg3);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        pre code {
+            background: transparent;
+            padding: 0;
+        }
+
+        /* 表格 */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+
+        th, td {
+            padding: 12px 16px;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+        }
+
+        th {
+            background: var(--bg3);
+            font-weight: 600;
+            color: var(--fg);
+        }
+
+        td {
+            color: var(--fg2);
+        }
+
+        tr:hover td {
+            background: var(--bg2);
+        }
+
+        /* 列表 */
+        ul, ol {
+            margin: 16px 0;
+            padding-left: 24px;
+        }
+
+        li {
+            margin: 8px 0;
+            color: var(--fg);
+        }
+
+        /* 内联高亮 */
+        .hl {
+            color: var(--accent);
+            font-weight: 500;
+        }
+
+        .key {
+            display: inline-block;
+            background: var(--bg3);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            padding: 2px 8px;
+            font-family: monospace;
+            font-size: 13px;
+        }
+
+        /* 面包屑 */
+        .breadcrumb {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: var(--bg2);
+            border-top: 1px solid var(--border);
+            padding: 12px 24px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+        }
+
+        .breadcrumb a {
+            color: var(--accent);
+            text-decoration: none;
+        }
+
+        .breadcrumb a:hover {
+            text-decoration: underline;
+        }
+
+        .breadcrumb span {
+            color: var(--fg2);
+        }
+
+        /* 响应式 */
+        @media (max-width: 640px) {
+            .container {
+                padding: 24px 16px 100px;
+            }
+            
+            h1 {
+                font-size: 28px;
+            }
+            
+            h2 {
+                font-size: 22px;
+            }
+            
+            .nav-top {
+                padding: 0 16px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- 固定导航栏 -->
+    <nav class="nav-top">
+        <div class="logo">📡 串口通信</div>
+        <div class="nav-links">
+            <a href="#section1">基础概念</a>
+            <a href="#section2">硬件连接</a>
+            <a href="#section3">驱动安装</a>
+            <a href="#section4">PuTTY</a>
+            <a href="#section5">pyserial</a>
+            <a href="#section6">STM32</a>
+            <a href="#section7">调试技巧</a>
+            <a href="#section8">常见问题</a>
+            <a href="#section9">速查表</a>
+        </div>
+    </nav>
+
+    <div class="container">
+        <h1>串口通信 细致教程</h1>
+        <p>串口（Serial Port）是嵌入式开发中最基础、最常用的通信方式。无论是调试单片机、与传感器通信，还是给设备刷固件，串口都是你的得力助手。</p>
+
+        <div class="card">
+            <div class="card-title">📚 你将学到</div>
+            <ul>
+                <li>串口通信的核心概念：波特率、数据位、校验位</li>
+                <li>USB转TTL模块的硬件连接方法</li>
+                <li>PuTTY串口终端的使用</li>
+                <li>Python pyserial编程收发数据</li>
+                <li>STM32 HAL库串口代码实战</li>
+            </ul>
+        </div>
+
+        <!-- 第1节：基础概念 -->
+        <h2 id="section1">1. 串口基础概念</h2>
+
+        <h3>1.1 什么是串口通信？</h3>
+        <p>串口通信是一种<span class="hl">串行通信</span>方式，数据按位（bit）逐个传输，只需要少量的信号线。与之相对的是并行通信，一次传输多个位。</p>
+
+        <div class="analogy">
+            想象一条单车道公路，车辆（数据位）必须一辆接一辆地通过，这就是串行通信。而并行通信就像八车道高速公路，八辆车可以并排同时通过。
+        </div>
+
+        <h3>1.2 UART协议详解</h3>
+        <p><span class="hl">UART</span>（Universal Asynchronous Receiver Transmitter，通用异步收发器）是串口通信的核心协议。</p>
+
+        <div class="card">
+            <div class="card-title">异步 vs 同步</div>
+            <ul>
+                <li><strong>异步通信</strong>：不需要时钟线同步，双方约定好波特率即可。UART就是异步的。</li>
+                <li><strong>同步通信</strong>：需要一根时钟线（如SCL）同步数据，如SPI、I2C。</li>
+            </ul>
+        </div>
+
+        <h4>UART数据帧结构</h4>
+        <p>一个完整的UART数据帧包含以下部分：</p>
+        
+        <pre><code>空闲状态(高电平) → 起始位(低) → 数据位(5-9位) → 校验位(可选) → 停止位(高)</code></pre>
+
+        <table>
+            <tr>
+                <th>部分</th>
+                <th>说明</th>
+                <th>典型值</th>
+            </tr>
+            <tr>
+                <td>起始位</td>
+                <td>拉低电平，表示数据开始</td>
+                <td>1位</td>
+            </tr>
+            <tr>
+                <td>数据位</td>
+                <td>实际传输的数据</td>
+                <td>8位（最常用）</td>
+            </tr>
+            <tr>
+                <td>校验位</td>
+                <td>用于检测传输错误</td>
+                <td>无校验/奇校验/偶校验</td>
+            </tr>
+            <tr>
+                <td>停止位</td>
+                <td>拉高电平，表示数据结束</td>
+                <td>1位或2位</td>
+            </tr>
+        </table>
+
+        <h3>1.3 波特率详解</h3>
+        <p><span class="hl">波特率</span>（Baud Rate）表示每秒传输的码元数量，单位是bps（bits per second）。在UART中，波特率等于比特率。</p>
+
+        <div class="card">
+            <div class="card-title">常见波特率</div>
+            <p>
+                <span class="tag tag-blue">9600</span>
+                <span class="tag tag-green">19200</span>
+                <span class="tag tag-purple">38400</span>
+                <span class="tag tag-orange">57600</span>
+                <span class="tag tag-cyan">115200</span>
+            </p>
+            <p>115200是最常用的波特率，每秒可传输约 115200 ÷ 10 = 11520字节（假设8N1配置）。</p>
+        </div>
+
+        <div class="note">
+            波特率必须双方一致！如果发送方用115200，接收方用9600，数据会完全乱掉。
+        </div>
+
+        <h3>1.4 数据位、校验位、停止位</h3>
+
+        <h4>数据位</h4>
+        <p>数据位表示每个数据帧携带的有效数据量，常用8位（正好一个字节）。</p>
+
+        <h4>校验位</h4>
+        <p>校验位用于检测传输过程中的错误：</p>
+        <ul>
+            <li><strong>无校验（None）</strong>：不使用校验位，最常用</li>
+            <li><strong>奇校验（Odd）</strong>：数据位+校验位共有奇数个1</li>
+            <li><strong>偶校验（Even）</strong>：数据位+校验位共有偶数个1</li>
+        </ul>
+
+        <div class="step">
+            <span>示例：数据 0x55 (01010101)</span>
+            <p>有4个1，偶校验时校验位=0，奇校验时校验位=1</p>
+        </div>
+
+        <h4>停止位</h4>
+        <p>停止位表示数据帧的结束，可以是1位或2位。1位停止位是最常用的配置。</p>
+
+        <h3>1.5 常见串口配置</h3>
+        <p>串口配置通常用 "数据位-校验位-停止位" 格式表示：</p>
+
+        <table>
+            <tr>
+                <th>配置</th>
+                <th>含义</th>
+                <th>应用场景</th>
+            </tr>
+            <tr>
+                <td><code>8-N-1</code></td>
+                <td>8数据位，无校验，1停止位</td>
+                <td>最常用，适合大多数场景</td>
+            </tr>
+            <tr>
+                <td><code>8-E-1</code></td>
+                <td>8数据位，偶校验，1停止位</td>
+                <td>工业设备，需要错误检测</td>
+            </tr>
+            <tr>
+                <td><code>7-E-1</code></td>
+                <td>7数据位，偶校验，1停止位</td>
+                <td>老式调制解调器</td>
+            </tr>
+        </table>
+
+        <!-- 第2节：硬件连接 -->
+        <h2 id="section2">2. 硬件连接</h2>
+
+        <h3>2.1 USB转TTL模块介绍</h3>
+        <p>现代电脑很少有真正的COM口，我们使用<span class="hl">USB转TTL模块</span>来模拟串口。</p>
+
+        <div class="card">
+            <div class="card-title">常用芯片对比</div>
+            <table>
+                <tr>
+                    <th>芯片型号</th>
+                    <th>特点</th>
+                    <th>价格</th>
+                    <th>推荐度</th>
+                </tr>
+                <tr>
+                    <td>CH340</td>
+                    <td>国产，便宜，稳定</td>
+                    <td>￥2-5</td>
+                    <td>⭐⭐⭐⭐⭐</td>
+                </tr>
+                <tr>
+                    <td>CP2102</td>
+                    <td>Silicon Labs，性能好</td>
+                    <td>￥8-15</td>
+                    <td>⭐⭐⭐⭐</td>
+                </tr>
+                <tr>
+                    <td>PL2303</td>
+                    <td>Prolific，老牌</td>
+                    <td>￥5-10</td>
+                    <td>⭐⭐⭐</td>
+                </tr>
+                <tr>
+                    <td>FT232</td>
+                    <td>FTDI原厂，最稳定</td>
+                    <td>￥20-40</td>
+                    <td>⭐⭐⭐⭐⭐</td>
+                </tr>
+            </table>
+        </div>
+
+        <div class="tip">
+            新手推荐买CH340模块，便宜好用，坏了也不心疼。
+        </div>
+
+        <h3>2.2 模块引脚说明</h3>
+        <p>一个典型的USB转TTL模块有以下引脚：</p>
+
+        <table>
+            <tr>
+                <th>引脚</th>
+                <th>名称</th>
+                <th>说明</th>
+                <th>连接方式</th>
+            </tr>
+            <tr>
+                <td>VCC</td>
+                <td>电源输出</td>
+                <td>给目标板供电（可选）</td>
+                <td>接目标板电源输入</td>
+            </tr>
+            <tr>
+                <td>GND</td>
+                <td>地线</td>
+                <td>必须连接！</td>
+                <td>接目标板GND</td>
+            </tr>
+            <tr>
+                <td>TXD</td>
+                <td>发送端</td>
+                <td>模块发送数据</td>
+                <td>接目标板RX</td>
+            </tr>
+            <tr>
+                <td>RXD</td>
+                <td>接收端</td>
+                <td>模块接收数据</td>
+                <td>接目标板TX</td>
+            </tr>
+        </table>
+
+        <h3>2.3 正确的接线方法</h3>
+
+        <div class="warn">
+            <strong>核心原则：TX接RX，RX接TX，GND必须共地！</strong>
+        </div>
+
+        <div class="step">
+            <span>接线步骤</span>
+            <ol>
+                <li><strong>共地</strong>：模块GND → 目标板GND（必须先接！）</li>
+                <li><strong>交叉连接</strong>：模块TXD → 目标板RX</li>
+                <li><strong>交叉连接</strong>：模块RXD → 目标板TX</li>
+                <li><strong>电源（可选）</strong>：模块VCC → 目标板电源输入</li>
+            </ol>
+        </div>
+
+        <div class="card">
+            <div class="card-title">接线示意图</div>
+            <pre><code>USB转TTL模块              STM32开发板
+    ┌─────────┐              ┌─────────┐
+    │   VCC   │──────────────│   5V    │
+    │   GND   │══════════════│   GND   │  ← 必须共地！
+    │   TXD   │──────────────│   RX    │  ← 交叉
+    │   RXD   │──────────────│   TX    │  ← 交叉
+    └─────────┘              └─────────┘</code></pre>
+        </div>
+
+        <div class="analogy">
+            想象打电话：你的嘴巴（TX）对着别人的耳朵（RX），别人的嘴巴（TX）对着你的耳朵（RX）。如果嘴巴对嘴巴，耳朵对耳朵，那谁也听不见谁！
+        </div>
+
+        <h3>2.4 电压问题：3.3V vs 5V</h3>
+        <p>这是新手最容易踩的坑！</p>
+
+        <div class="card">
+            <div class="card-title">常见电平标准</div>
+            <table>
+                <tr>
+                    <th>电平类型</th>
+                    <th>电压范围</th>
+                    <th>典型设备</th>
+                </tr>
+                <tr>
+                    <td>5V TTL</td>
+                    <td>0V/5V</td>
+                    <td>Arduino Uno, 老式设备</td>
+                </tr>
+                <tr>
+                    <td>3.3V TTL</td>
+                    <td>0V/3.3V</td>
+                    <td>STM32, ESP32, ESP8266</td>
+                </tr>
+                <tr>
+                    <td>RS232</td>
+                    <td>±12V</td>
+                    <td>传统DB9串口</td>
+                </tr>
+            </table>
+        </div>
+
+        <div class="warn">
+            <strong>5V模块直接接3.3V芯片可能烧毁芯片！</strong>
+            <p>解决方案：</p>
+            <ul>
+                <li>购买带3.3V/5V切换开关的模块</li>
+                <li>使用电平转换模块</li>
+                <li>串联1K电阻限流（不推荐，治标不治本）</li>
+            </ul>
+        </div>
+
+        <div class="tip">
+            大多数CH340模块已经兼容3.3V和5V，但买之前一定要确认！
+        </div>
+
+        <!-- 第3节：驱动安装 -->
+        <h2 id="section3">3. Windows驱动安装</h2>
+
+        <h3>3.1 CH340驱动安装</h3>
+
+        <div class="step">
+            <span>Step 1: 下载驱动</span>
+            <p>官网下载：搜索"CH340驱动"或访问南京沁恒官网</p>
+        </div>
+
+        <div class="step">
+            <span>Step 2: 安装驱动</span>
+            <ol>
+                <li>解压下载的压缩包</li>
+                <li>以管理员身份运行 <code>SETUP.EXE</code></li>
+                <li>点击"安装"按钮</li>
+                <li>等待提示"驱动安装成功"</li>
+            </ol>
+        </div>
+
+        <div class="step">
+            <span>Step 3: 插入设备</span>
+            <p>将USB转TTL模块插入电脑USB口，Windows会自动识别。</p>
+        </div>
+
+        <h3>3.2 查看COM口号</h3>
+
+        <div class="step">
+            <span>Step 4: 打开设备管理器</span>
+            <p>右键"此电脑" → 管理 → 设备管理器</p>
+            <p>或按 <span class="key">Win + X</span> → 设备管理器</p>
+        </div>
+
+        <div class="step">
+            <span>Step 5: 找到端口</span>
+            <p>展开"端口 (COM 和 LPT)"，找到类似"USB-SERIAL CH340 (COM3)"</p>
+            <p>这个COM3就是你要用的端口号。</p>
+        </div>
+
+        <div class="card">
+            <div class="card-title">设备管理器显示示例</div>
+            <pre><code>端口 (COM 和 LPT)
+├── 通信端口 (COM1)        ← 传统串口，很少用
+└── USB-SERIAL CH340 (COM3) ← 这是你需要的！</code></pre>
+        </div>
+
+        <h3>3.3 常见驱动问题</h3>
+
+        <div class="warn">
+            <strong>设备显示为"未知设备"？</strong>
+            <ul>
+                <li>尝试更换USB口</li>
+                <li>重新安装驱动</li>
+                <li>尝试不同版本的驱动程序</li>
+                <li>检查USB线是否支持数据传输（有些线只能充电！）</li>
+            </ul>
+        </div>
+
+        <div class="note">
+            <strong>COM口号太大（如COM20+）？</strong>
+            <p>可以在设备管理器中右键设备 → 属性 → 端口设置 → 高级，手动修改为较小的COM口号。</p>
+        </div>
+
+        <!-- 第4节：PuTTY -->
+        <h2 id="section4">4. PuTTY串口终端</h2>
+
+        <h3>4.1 PuTTY简介</h3>
+        <p><span class="hl">PuTTY</span>是一个免费、开源的终端软件，支持SSH、Telnet、串口等多种连接方式。</p>
+
+        <div class="card">
+            <div class="card-title">下载地址</div>
+            <p>官网：<code>https://www.putty.org/</code></p>
+            <p>选择 Windows Installer 版本，直接安装即可。</p>
+        </div>
+
+        <h3>4.2 配置串口连接</h3>
+
+        <div class="step">
+            <span>配置步骤</span>
+            <ol>
+                <li>打开PuTTY</li>
+                <li>选择"Serial"连接类型</li>
+                <li>填写以下参数：</li>
+            </ol>
+        </div>
+
+        <table>
+            <tr>
+                <th>参数</th>
+                <th>示例值</th>
+                <th>说明</th>
+            </tr>
+            <tr>
+                <td>Serial line</td>
+                <td>COM3</td>
+                <td>设备管理器中查看的COM口号</td>
+            </tr>
+            <tr>
+                <td>Speed</td>
+                <td>115200</td>
+                <td>波特率，必须与设备一致</td>
+            </tr>
+            <tr>
+                <td>Data bits</td>
+                <td>8</td>
+                <td>数据位</td>
+            </tr>
+            <tr>
+                <td>Stop bits</td>
+                <td>1</td>
+                <td>停止位</td>
+            </tr>
+            <tr>
+                <td>Parity</td>
+                <td>None</td>
+                <td>校验位</td>
+            </tr>
+            <tr>
+                <td>Flow control</td>
+                <td>None</td>
+                <td>流控（一般不用）</td>
+            </tr>
+        </table>
+
+        <h3>4.3 保存Session</h3>
+        <p>每次都输入参数很麻烦，可以保存配置：</p>
+
+        <div class="step">
+            <span>保存步骤</span>
+            <ol>
+                <li>在"Saved Sessions"输入名称，如"STM32-115200"</li>
+                <li>点击"Save"按钮保存</li>
+                <li>下次直接双击Saved Sessions中的项目即可连接</li>
+            </ol>
+        </div>
+
+        <div class="tip">
+            建议为不同设备保存不同的Session，比如"Arduino-9600"、"ESP32-115200"等。
+        </div>
+
+        <h3>4.4 常用快捷键</h3>
+
+        <table>
+            <tr>
+                <th>快捷键</th>
+                <th>功能</th>
+            </tr>
+            <tr>
+                <td><span class="key">Ctrl + C</span></td>
+                <td>中断当前命令（发送0x03）</td>
+            </tr>
+            <tr>
+                <td><span class="key">Ctrl + D</span></td>
+                <td>发送EOF（发送0x04）</td>
+            </tr>
+            <tr>
+                <td><span class="key">Ctrl + A</span></td>
+                <td>光标移到行首</td>
+            </tr>
+            <tr>
+                <td><span class="key">Ctrl + E</span></td>
+                <td>光标移到行尾</td>
+            </tr>
+            <tr>
+                <td><span class="key">Ctrl + U</span></td>
+                <td>删除整行</td>
+            </tr>
+            <tr>
+                <td><span class="key">右键点击</span></td>
+                <td>粘贴剪贴板内容</td>
+            </tr>
+            <tr>
+                <td><span class="key">Shift + Insert</span></td>
+                <td>粘贴（更通用的方式）</td>
+            </tr>
+        </table>
+
+        <h3>4.5 乱码排查</h3>
+
+        <div class="warn">
+            <strong>出现乱码的常见原因：</strong>
+            <ol>
+                <li><strong>波特率不匹配</strong>（最常见！）→ 确认双方波特率一致</li>
+                <li><strong>编码格式问题</strong> → 尝试切换UTF-8/GBK编码</li>
+                <li><strong>TX/RX接反</strong> → 检查接线是否交叉</li>
+                <li><strong>电平不匹配</strong> → 5V/3.3V问题</li>
+            </ol>
+        </div>
+
+        <div class="card">
+            <div class="card-title">PuTTY设置编码</div>
+            <p>Window → Translation → Remote character set：</p>
+            <ul>
+                <li><code>UTF-8</code> - 大多数现代设备</li>
+                <li><code>CP936</code> / <code>GBK</code> - Windows中文环境</li>
+            </ul>
+        </div>
+
+        <!-- 第5节：pyserial -->
+        <h2 id="section5">5. Python pyserial编程</h2>
+
+        <h3>5.1 安装pyserial</h3>
+
+        <pre><code>pip install pyserial</code></pre>
+
+        <div class="note">
+            安装后导入时用 <code>import serial</code>，不是 <code>import pyserial</code>。
+        </div>
+
+        <h3>5.2 列出所有串口</h3>
+
+        <pre><code>import serial.tools.list_ports
+
+# 列出所有可用串口
+ports = serial.tools.list_ports.comports()
+for port in ports:
+    print(f"端口: {port.device}")
+    print(f"描述: {port.description}")
+    print(f"硬件ID: {port.hwid}")
+    print("-" * 40)</code></pre>
+
+        <div class="card">
+            <div class="card-title">输出示例</div>
+            <pre><code>端口: COM3
+描述: USB-SERIAL CH340 (COM3)
+硬件ID: USB VID:PID=1A86:7523
+----------------------------------------</code></pre>
+        </div>
+
+        <h3>5.3 miniterm终端工具</h3>
+        <p>pyserial自带一个好用的终端工具：</p>
+
+        <pre><code># 基本用法
+python -m serial.tools.miniterm COM3 115200
+
+# 带时间戳
+python -m serial.tools.miniterm COM3 115200 --eol CR --timestamps
+
+# 指定编码
+python -m serial.tools.miniterm COM3 115200 --encoding utf-8</code></pre>
+
+        <div class="tip">
+            <span class="key">Ctrl + ]</span> 退出miniterm
+        </div>
+
+        <h3>5.4 串口基本操作</h3>
+
+        <pre><code>import serial
+import time
+
+# 打开串口
+ser = serial.Serial(
+    port='COM3',
+    baudrate=115200,
+    bytesize=serial.EIGHTBITS,
+    parity=serial.PARITY_NONE,
+    stopbits=serial.STOPBITS_ONE,
+    timeout=1  # 读超时（秒）
+)
+
+# 检查是否打开
+print(f"串口已打开: {ser.is_open}")
+print(f"端口名: {ser.name}")
+
+# 发送数据（字节）
+ser.write(b'Hello STM32!\r\n')
+
+# 发送数据（字符串）
+ser.write('你好\n'.encode('utf-8'))
+
+# 读取数据
+data = ser.read(10)  # 读取10字节（阻塞）
+print(f"收到: {data}")
+
+# 读取一行（直到\n）
+line = ser.readline()
+print(f"一行: {line.decode('utf-8').strip()}")
+
+# 读取所有可用数据
+available = ser.in_waiting
+if available > 0:
+    data = ser.read(available)
+
+# 关闭串口
+ser.close()</code></pre>
+
+        <h3>5.5 完整收发示例</h3>
+
+        <pre><code>import serial
+import threading
+import time
+
+class SerialComm:
+    def __init__(self, port, baudrate=115200):
+        self.ser = serial.Serial(
+            port=port,
+            baudrate=baudrate,
+            timeout=0.1
+        )
+        self.running = False
+        
+    def start(self):
+        self.running = True
+        # 启动接收线程
+        self.rx_thread = threading.Thread(target=self._receive_loop)
+        self.rx_thread.daemon = True
+        self.rx_thread.start()
+        
+    def stop(self):
+        self.running = False
+        self.ser.close()
+        
+    def _receive_loop(self):
+        """接收线程"""
+        while self.running:
+            if self.ser.in_waiting > 0:
+                try:
+                    data = self.ser.readline()
+                    if data:
+                        print(f"[RX] {data.decode('utf-8', errors='replace').strip()}")
+                except Exception as e:
+                    print(f"[错误] {e}")
+                    
+    def send(self, msg):
+        """发送数据"""
+        if self.ser.is_open:
+            self.ser.write((msg + '\n').encode('utf-8'))
+            print(f"[TX] {msg}")
+
+# 使用示例
+if __name__ == '__main__':
+    comm = SerialComm('COM3', 115200)
+    comm.start()
+    
+    try:
+        while True:
+            msg = input("输入消息（q退出）: ")
+            if msg.lower() == 'q':
+                break
+            comm.send(msg)
+    except KeyboardInterrupt:
+        pass
+    finally:
+        comm.stop()
+        print("串口已关闭")</code></pre>
+
+        <h3>5.6 读取传感器数据示例</h3>
+
+        <p>假设传感器输出格式：<code>TEMP:25.6,HUM:45.2\r\n</code></p>
+
+        <pre><code>import serial
+import re
+import time
+
+def read_sensor(port='COM3', baudrate=9600):
+    ser = serial.Serial(port, baudrate, timeout=2)
+    time.sleep(0.5)  # 等待稳定
+    
+    try:
+        while True:
+            line = ser.readline()
+            if not line:
+                continue
+                
+            try:
+                # 解析数据
+                text = line.decode('utf-8').strip()
+                
+                # 正则匹配
+                match = re.match(r'TEMP:(\d+\.?\d*),HUM:(\d+\.?\d*)', text)
+                if match:
+                    temp = float(match.group(1))
+                    hum = float(match.group(2))
+                    print(f"温度: {temp}°C | 湿度: {hum}%")
+                else:
+                    print(f"原始数据: {text}")
+                    
+            except UnicodeDecodeError:
+                print(f"HEX: {line.hex()}")
+                
+    except KeyboardInterrupt:
+        print("\n停止读取")
+    finally:
+        ser.close()
+
+# 运行
+read_sensor('COM3', 9600)</code></pre>
+
+        <!-- 第6节：STM32 -->
+        <h2 id="section6">6. STM32串口代码</h2>
+
+        <h3>6.1 HAL库初始化</h3>
+
+        <div class="note">
+            STM32CubeMX配置步骤：
+            <ol>
+                <li>选择对应的USART外设</li>
+                <li>Mode选择Asynchronous（异步）</li>
+                <li>设置波特率、数据位等参数</li>
+                <li>使能 NVIC 中断（如需中断接收）</li>
+                <li>生成代码</li>
+            </ol>
+        </div>
+
+        <pre><code>// CubeMX生成的初始化代码（usart.c）
+UART_HandleTypeDef huart1;
+
+void MX_USART1_UART_Init(void)
+{
+    huart1.Instance = USART1;
+    huart1.Init.BaudRate = 115200;
+    huart1.Init.WordLength = UART_WORDLENGTH_8B;
+    huart1.Init.StopBits = UART_STOPBITS_1;
+    huart1.Init.Parity = UART_PARITY_NONE;
+    huart1.Init.Mode = UART_MODE_TX_RX;
+    huart1.Init.HwFlowCtl = UART_HWCONTROL_NONE;
+    huart1.Init.OverSampling = UART_OVERSAMPLING_16;
+    
+    if (HAL_UART_Init(&huart1) != HAL_OK) {
+        Error_Handler();
+    }
+}</code></pre>
+
+        <h3>6.2 发送数据</h3>
+
+        <h4>方式一：阻塞发送</h4>
+        <pre><code>// 发送字符串
+HAL_UART_Transmit(&huart1, (uint8_t*)"Hello\r\n", 7, HAL_MAX_DELAY);
+
+// 发送变量
+char buf[32];
+int len = sprintf(buf, "Value: %d\r\n", sensor_value);
+HAL_UART_Transmit(&huart1, (uint8_t*)buf, len, HAL_MAX_DELAY);</code></pre>
+
+        <h4>方式二：printf重定向</h4>
+        <pre><code>// 在 main.c 或 usart.c 中添加
+#include &lt;stdio.h&gt;
+
+// 重定向 printf（需要勾选 Use MicroLIB 或实现 _write）
+#ifdef __GNUC__
+int __io_putchar(int ch)
+{
+    HAL_UART_Transmit(&huart1, (uint8_t*)&ch, 1, HAL_MAX_DELAY);
+    return ch;
+}
+#else
+int fputc(int ch, FILE *f)
+{
+    HAL_UART_Transmit(&huart1, (uint8_t*)&ch, 1, HAL_MAX_DELAY);
+    return ch;
+}
+#endif
+
+// 使用
+printf("Temperature: %.2f°C\r\n", temp);</code></pre>
+
+        <h3>6.3 接收数据</h3>
+
+        <h4>方式一：阻塞接收</h4>
+        <pre><code>uint8_t rx_buf[64];
+HAL_UART_Receive(&huart1, rx_buf, 10, 1000);  // 超时1000ms</code></pre>
+
+        <div class="warn">
+            阻塞接收会卡住程序！仅用于调试或简单场景。
+        </div>
+
+        <h4>方式二：中断接收（推荐）</h4>
+        <pre><code>// 全局变量
+uint8_t rx_buf[64];
+uint8_t rx_index = 0;
+volatile uint8_t data_ready = 0;
+
+// 启动中断接收（在初始化后调用）
+HAL_UART_Receive_IT(&huart1, &rx_buf[rx_index], 1);
+
+// 中断回调函数
+void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
+{
+    if (huart->Instance == USART1) {
+        // 检查是否收到换行符
+        if (rx_buf[rx_index] == '\n' || rx_index >= 63) {
+            rx_buf[rx_index + 1] = '\0';  // 字符串结束
+            data_ready = 1;               // 标记数据就绪
+            rx_index = 0;
+        } else {
+            rx_index++;
+        }
+        
+        // 重新启动中断接收
+        HAL_UART_Receive_IT(&huart1, &rx_buf[rx_index], 1);
+    }
+}
+
+// 主循环处理
+while (1) {
+    if (data_ready) {
+        data_ready = 0;
+        printf("Received: %s", rx_buf);
+    }
+    // 其他任务...
+}</code></pre>
+
+        <h3>6.4 DMA接收（最佳方案）</h3>
+        <p>DMA接收不占用CPU，适合高速、大量数据。</p>
+
+        <pre><code>// 使用串口空闲中断 + DMA
+#define RX_BUF_SIZE 256
+
+uint8_t rx_buf[RX_BUF_SIZE];
+volatile uint16_t rx_len = 0;
+
+// 初始化时启动DMA接收
+HAL_UART_Receive_DMA(&huart1, rx_buf, RX_BUF_SIZE);
+__HAL_UART_ENABLE_IT(&huart1, UART_IT_IDLE);  // 使能空闲中断
+
+// 在 stm32xxx_it.c 中添加空闲中断处理
+void USART1_IRQHandler(void)
+{
+    if (__HAL_UART_GET_FLAG(&huart1, UART_FLAG_IDLE)) {
+        __HAL_UART_CLEAR_IDLEFLAG(&huart1);
+        
+        // 计算接收长度
+        rx_len = RX_BUF_SIZE - huart1.hdmarx->Instance->CNDTR;
+        
+        // 停止DMA，处理数据
+        HAL_UART_DMAStop(&huart1);
+        
+        // 处理接收到的数据
+        printf("DMA RX[%d]: %.*s\r\n", rx_len, rx_len, rx_buf);
+        
+        // 重新启动DMA接收
+        HAL_UART_Receive_DMA(&huart1, rx_buf, RX_BUF_SIZE);
+    }
+    
+    HAL_UART_IRQHandler(&huart1);
+}</code></pre>
+
+        <div class="card">
+            <div class="card-title">空闲中断原理</div>
+            <p>当接收端停止发送数据（总线空闲）时，硬件会触发空闲中断。此时DMA已经接收了所有数据，我们可以知道实际接收的长度。</p>
+        </div>
+
+        <h3>6.5 完整工程框架</h3>
+
+        <pre><code>// main.c
+#include "main.h"
+#include "usart.h"
+
+extern UART_HandleTypeDef huart1;
+
+// 接收缓冲区
+#define RX_BUF_SIZE 128
+uint8_t rx_buf[RX_BUF_SIZE];
+volatile uint8_t cmd_ready = 0;
+
+void UART_ProcessCommand(uint8_t *buf, uint16_t len)
+{
+    // 解析命令
+    if (strncmp((char*)buf, "LED ON", 6) == 0) {
+        HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, GPIO_PIN_SET);
+        printf("LED已开启\r\n");
+    }
+    else if (strncmp((char*)buf, "LED OFF", 7) == 0) {
+        HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, GPIO_PIN_RESET);
+        printf("LED已关闭\r\n");
+    }
+    else {
+        printf("未知命令: %.*s\r\n", len, buf);
+    }
+}
+
+int main(void)
+{
+    HAL_Init();
+    SystemClock_Config();
+    MX_GPIO_Init();
+    MX_USART1_UART_Init();
+    
+    printf("STM32串口测试程序\r\n");
+    
+    // 启动空闲中断+DMA接收
+    HAL_UART_Receive_DMA(&huart1, rx_buf, RX_BUF_SIZE);
+    __HAL_UART_ENABLE_IT(&huart1, UART_IT_IDLE);
+    
+    while (1) {
+        // 其他任务...
+        HAL_Delay(100);
+    }
+}</code></pre>
+
+        <!-- 第7节：调试技巧 -->
+        <h2 id="section7">7. 串口调试技巧</h2>
+
+        <h3>7.1 HEX模式调试</h3>
+        <p>当遇到乱码或二进制数据时，用十六进制查看最直观：</p>
+
+        <pre><code>import serial
+
+ser = serial.Serial('COM3', 115200)
+
+while True:
+    if ser.in_waiting:
+        data = ser.read(ser.in_waiting)
+        # 同时显示HEX和ASCII
+        hex_str = ' '.join(f'{b:02X}' for b in data)
+        ascii_str = ''.join(chr(b) if 32 <= b < 127 else '.' for b in data)
+        print(f"HEX: {hex_str}")
+        print(f"ASC: {ascii_str}")</code></pre>
+
+        <div class="tip">
+            常用调试软件：SSCOM、串口调试助手、RealTerm 都支持HEX显示。
+        </div>
+
+        <h3>7.2 时间戳功能</h3>
+
+        <pre><code>from datetime import datetime
+
+def log_with_timestamp(msg):
+    ts = datetime.now().strftime('%H:%M:%S.%f')[:-3]
+    print(f"[{ts}] {msg}")</code></pre>
+
+        <h3>7.3 日志保存</h3>
+
+        <pre><code>import serial
+from datetime import datetime
+
+log_file = open(f"serial_log_{datetime.now():%Y%m%d_%H%M%S}.txt", 'w', encoding='utf-8')
+
+def log(msg):
+    print(msg)
+    log_file.write(msg + '\n')
+    log_file.flush()
+
+# 使用
+log("开始记录...")
+
+# 结束时关闭
+log_file.close()</code></pre>
+
+        <h3>7.4 常见乱码原因</h3>
+
+        <table>
+            <tr>
+                <th>现象</th>
+                <th>可能原因</th>
+                <th>解决方案</th>
+            </tr>
+            <tr>
+                <td>全部乱码</td>
+                <td>波特率不匹配</td>
+                <td>确认双方波特率一致</td>
+            </tr>
+            <tr>
+                <td>部分乱码</td>
+                <td>编码问题</td>
+                <td>尝试UTF-8/GBK切换</td>
+            </tr>
+            <tr>
+                <td>每2字节错1个</td>
+                <td>TX/RX接反</td>
+                <td>交叉接线</td>
+            </tr>
+            <tr>
+                <td>数据丢失</td>
+                <td>波特率太高或缓冲溢出</td>
+                <td>降低波特率或增加缓冲</td>
+            </tr>
+            <tr>
+                <td>随机乱码</td>
+                <td>电平不匹配或干扰</td>
+                <td>检查电压、加下拉电阻</td>
+            </tr>
+        </table>
+
+        <h3>7.5 自动换行设置</h3>
+        <p>不同系统的换行符：</p>
+        <ul>
+            <li><strong>Windows</strong>：<code>\r\n</code> (CR+LF)</li>
+            <li><strong>Linux/Mac</strong>：<code>\n</code> (LF)</li>
+            <li><strong>老Mac</strong>：<code>\r</code> (CR)</li>
+        </ul>
+
+        <div class="note">
+            调试软件中一般可以设置"自动换行"和"发送新行"选项。
+        </div>
+
+        <!-- 第8节：常见问题 -->
+        <h2 id="section8">8. 常见问题FAQ</h2>
+
+        <h3>Q1: 设备管理器中找不到COM口？</h3>
+        <div class="card">
+            <div class="card-title">排查步骤</div>
+            <ol>
+                <li><strong>检查物理连接</strong>：USB线是否插好？LED是否亮？</li>
+                <li><strong>更换USB口</strong>：尝试不同的USB口</li>
+                <li><strong>检查驱动</strong>：设备管理器是否有"未知设备"？</li>
+                <li><strong>重装驱动</strong>：卸载后重新安装驱动</li>
+                <li><strong>更换USB线</strong>：有些线只能充电不能传输数据！</li>
+                <li><strong>更换电脑测试</strong>：排除模块损坏的可能</li>
+            </ol>
+        </div>
+
+        <h3>Q2: Python报"Permission denied"？</h3>
+        <div class="warn">
+            <strong>原因：</strong>串口被其他程序占用！
+            <p><strong>解决：</strong></p>
+            <ul>
+                <li>关闭PuTTY、串口调试助手等软件</li>
+                <li>检查是否有其他Python脚本在运行</li>
+                <li>Windows任务管理器查找占用COM口的进程</li>
+            </ul>
+        </div>
+
+        <h3>Q3: 波特率不匹配会怎样？</h3>
+        <div class="card">
+            <div class="card-title">波特率不匹配的表现</div>
+            <pre><code>正确波特率(115200):
+Hello World!
+
+错误波特率(9600):
+àààààààààààà</code></pre>
+            <p>完全无法辨认的乱码通常是波特率问题。</p>
+        </div>
+
+        <h3>Q4: 数据丢失或粘包？</h3>
+        <div class="analogy">
+            <strong>粘包：</strong>发送方快速发送"ABC"和"DEF"，接收方可能一次性收到"ABCDEF"，无法区分两条消息。
+        </div>
+
+        <p><strong>解决方案：</strong></p>
+        <ul>
+            <li><strong>协议设计</strong>：使用帧头+长度+数据+校验的格式</li>
+            <li><strong>分隔符</strong>：每条消息以<code>\r\n</code>结尾</li>
+            <li><strong>超时机制</strong>：空闲中断检测帧结束</li>
+            <li><strong>定长发送</strong>：每条消息固定长度</li>
+        </ul>
+
+        <pre><code>// 推荐的帧格式
+// [0xAA][0x55][LEN][DATA...][CHECKSUM]
+// 帧头(2B) + 长度(1B) + 数据(NB) + 校验(1B)
+
+typedef struct {
+    uint8_t header[2];   // 0xAA, 0x55
+    uint8_t length;      // 数据长度
+    uint8_t data[32];    // 数据区
+    uint8_t checksum;    // 校验和
+} SerialFrame;</code></pre>
+
+        <h3>Q5: Linux下权限问题？</h3>
+        <pre><code># 添加用户到dialout组
+sudo usermod -a -G dialout $USER
+
+# 注销后生效
+# 或者临时解决
+sudo chmod 666 /dev/ttyUSB0</code></pre>
+
+        <!-- 第9节：速查表 -->
+        <h2 id="section9">9. 速查表</h2>
+
+        <h3>串口参数速查</h3>
+        <table>
+            <tr>
+                <th>参数</th>
+                <th>常用值</th>
+                <th>说明</th>
+            </tr>
+            <tr>
+                <td>波特率</td>
+                <td>9600, 115200</td>
+                <td>必须双方一致</td>
+            </tr>
+            <tr>
+                <td>数据位</td>
+                <td>8</td>
+                <td>最常用</td>
+            </tr>
+            <tr>
+                <td>校验位</td>
+                <td>None</td>
+                <td>一般不用</td>
+            </tr>
+            <tr>
+                <td>停止位</td>
+                <td>1</td>
+                <td>标准配置</td>
+            </tr>
+        </table>
+
+        <h3>PuTTY快捷操作</h3>
+        <table>
+            <tr>
+                <th>操作</th>
+                <th>方法</th>
+            </tr>
+            <tr>
+                <td>粘贴</td>
+                <td>右键点击</td>
+            </tr>
+            <tr>
+                <td>复制</td>
+                <td>选中即自动复制</td>
+            </tr>
+            <tr>
+                <td>中断</td>
+                <td>Ctrl+C</td>
+            </tr>
+            <tr>
+                <td>退出</td>
+                <td>直接关闭窗口</td>
+            </tr>
+        </table>
+
+        <h3>Python pyserial常用方法</h3>
+        <table>
+            <tr>
+                <th>方法</th>
+                <th>功能</th>
+            </tr>
+            <tr>
+                <td><code>serial.Serial()</code></td>
+                <td>打开串口</td>
+            </tr>
+            <tr>
+                <td><code>ser.write(data)</code></td>
+                <td>发送数据</td>
+            </tr>
+            <tr>
+                <td><code>ser.read(n)</code></td>
+                <td>读取n字节</td>
+            </tr>
+            <tr>
+                <td><code>ser.readline()</code></td>
+                <td>读取一行</td>
+            </tr>
+            <tr>
+                <td><code>ser.in_waiting</code></td>
+                <td>接收缓冲区字节数</td>
+            </tr>
+            <tr>
+                <td><code>ser.close()</code></td>
+                <td>关闭串口</td>
+            </tr>
+        </table>
+
+        <h3>STM32 HAL串口函数</h3>
+        <table>
+            <tr>
+                <th>函数</th>
+                <th>功能</th>
+            </tr>
+            <tr>
+                <td><code>HAL_UART_Transmit()</code></td>
+                <td>阻塞发送</td>
+            </tr>
+            <tr>
+                <td><code>HAL_UART_Transmit_IT()</code></td>
+                <td>中断发送</td>
+            </tr>
+            <tr>
+                <td><code>HAL_UART_Transmit_DMA()</code></td>
+                <td>DMA发送</td>
+            </tr>
+            <tr>
+                <td><code>HAL_UART_Receive()</code></td>
+                <td>阻塞接收</td>
+            </tr>
+            <tr>
+                <td><code>HAL_UART_Receive_IT()</code></td>
+                <td>中断接收</td>
+            </tr>
+            <tr>
+                <td><code>HAL_UART_Receive_DMA()</code></td>
+                <td>DMA接收</td>
+            </tr>
+        </table>
+
+        <h3>接线速记</h3>
+        <div class="card">
+            <pre><code>USB转TTL          目标板
+─────────        ─────────
+   TXD    ────────→   RX
+   RXD    ←────────   TX
+   GND    ═══════════ GND   (必须共地！)
+   VCC    ────────→   VCC   (可选)</code></pre>
+        </div>
+
+        <div class="tip">
+            记忆口诀：<strong>T接R，R接T，GND连GND！</strong>
+        </div>
+
+        <h3>常见波特率对应时间</h3>
+        <table>
+            <tr>
+                <th>波特率</th>
+                <th>1字节传输时间</th>
+                <th>典型应用</th>
+            </tr>
+            <tr>
+                <td>9600</td>
+                <td>约1.04ms</td>
+                <td>低速传感器</td>
+            </tr>
+            <tr>
+                <td>19200</td>
+                <td>约0.52ms</td>
+                <td>调制解调器</td>
+            </tr>
+            <tr>
+                <td>115200</td>
+                <td>约0.087ms</td>
+                <td>调试输出</td>
+            </tr>
+            <tr>
+                <td>921600</td>
+                <td>约0.011ms</td>
+                <td>高速数据传输</td>
+            </tr>
+        </table>
+
+    </div>
+
+    <!-- 面包屑 -->
+    <div class="breadcrumb">
+        <a href="index.html">🏠 嵌入式工具教程</a>
+        <span>›</span>
+        <span>串口通信</span>
+    </div>
+</body>
+</html>

@@ -1,0 +1,665 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0"><title>教程9：步进电机控制 - STM32嵌入式开发</title><style>:root{--bg:#0d1117;--bg2:#161b22;--bg3:#21262d;--br:#30363d;--t:#c9d1d9;--t2:#8b949e;--a:#58a6ff;--g:#3fb950;--o:#d29922;--r:#f85149;--p:#a371f7;--c1:#39c5cf}body{background:var(--bg);color:var(--t);font-family:system-ui,sans-serif;line-height:1.8;max-width:900px;margin:0 auto;padding:20px}h1{text-align:center;background:linear-gradient(135deg,var(--a),var(--p));-webkit-background-clip:text;-webkit-text-fill-color:transparent}h2{color:var(--a);border-bottom:2px solid var(--br);padding-bottom:6px;margin-top:32px}h3{color:var(--c1);margin-top:22px}pre{background:#1c2128;border:1px solid var(--br);border-radius:8px;padding:14px;overflow-x:auto;font-size:.84em}code{font-family:'Cascadia Code',Consolas,monospace}:not(pre)>code{background:var(--bg3);padding:2px 6px;border-radius:4px;color:var(--c1)}table{width:100%;border-collapse:collapse;margin:12px 0}th{background:var(--bg3);color:var(--a);padding:8px 12px;border:1px solid var(--br);text-align:left}td{padding:8px 12px;border:1px solid var(--br)}.note{background:rgba(88,166,255,.08);border-left:3px solid var(--a);border-radius:8px;padding:12px 16px;margin:12px 0}.warn{background:rgba(248,81,73,.08);border-left:3px solid var(--r);border-radius:8px;padding:12px 16px;margin:12px 0}.tip{background:rgba(63,185,80,.08);border-left:3px solid var(--g);border-radius:8px;padding:12px 16px;margin:12px 0}.step{background:var(--bg2);border:1px solid var(--br);border-radius:8px;padding:12px 16px;margin:10px 0}</style></head><body>
+<h1>⚙️ 教程9：步进电机控制</h1>
+<p style="text-align:center;color:var(--t2)">STM32F103C8T6 + 28BYJ-48 + ULN2003 | 四相八拍 | 精确位置控制</p>
+
+<h2>📖 你将学到什么</h2>
+<ul>
+<li>步进电机工作原理（四相、八拍、步距角）</li>
+<li>ULN2003驱动板的使用方法</li>
+<li>相序表与正确的驱动顺序</li>
+<li>28BYJ-48减速比计算与角度换算</li>
+<li>梯形加减速曲线实现</li>
+<li>精确位置控制与绝对定位</li>
+</ul>
+
+<h2>🧰 硬件清单</h2>
+<table>
+<tr><th>元件</th><th>数量</th><th>说明</th></tr>
+<tr><td>STM32F103C8T6 最小系统板</td><td>1</td><td>Blue Pill</td></tr>
+<tr><td>28BYJ-48 步进电机</td><td>1</td><td>5V 4相减速步进</td></tr>
+<tr><td>ULN2003 驱动板</td><td>1</td><td>带LED指示</td></tr>
+<tr><td>5V 电源</td><td>1</td><td>≥1A 推荐</td></tr>
+<tr><td>杜邦线</td><td>若干</td><td>公对公</td></tr>
+</table>
+
+<h2>🔬 步进电机原理详解</h2>
+
+<h3>28BYJ-48 规格参数</h3>
+<table>
+<tr><th>参数</th><th>数值</th><th>说明</th></tr>
+<tr><td>型号</td><td>28BYJ-48</td><td>永磁式减速步进电机</td></tr>
+<tr><td>工作电压</td><td>5V DC</td><td>ULN2003驱动</td></tr>
+<tr><td>步距角（电机轴）</td><td>5.625°</td><td>每步转5.625°</td></tr>
+<tr><td>减速比</td><td>1:64 或 1:513</td><td>常见版本为1:64</td></tr>
+<tr><td>输出轴步距角</td><td>≈0.0879°</td><td>5.625°/64 ≈ 0.088°</td></tr>
+<tr><td>每圈步数（八拍）</td><td>4096步</td><td>64×64 = 4096</td></tr>
+<tr><td>驱动方式</td><td>四相八拍</td><td>1相2相励磁</td></tr>
+<tr><td>工作电流</td><td>约 100~200mA</td><td>4相同时通电时</td></tr>
+</table>
+
+<div class="warn">
+<strong>⚠ 重要：减速比争议</strong><br>
+关于28BYJ-48的减速比，网上存在两种说法：<br>
+- <strong>1:64</strong> — 早期版本，每转4096步<br>
+- <strong>1:513/84 ≈ 1:6.1</strong> — 实际内部齿轮比，每转2037.886步<br>
+实际每转步数请以<strong>实测结果</strong>为准：让电机转2048步，看是否转了半圈（如果是则减速比约为1:6.1）。
+</div>
+
+<h3>四相八拍驱动方式</h3>
+<pre><code>28BYJ-48 四相八拍相序表（正向旋转）
+
+相序编号   A相  B相  C相  D相  十六进制值
+─────────────────────────────────────────────
+   0       1    0    0    0       0x01   (0b0001)
+   1       1    1    0    0       0x03   (0b0011)
+   2       0    1    0    0       0x02   (0b0010)
+   3       0    1    1    0       0x06   (0b0110)
+   4       0    0    1    0       0x04   (0b0100)
+   5       0    0    1    1       0x0C   (0b1100)
+   6       0    0    0    1       0x08   (0b1000)
+   7       1    0    0    1       0x09   (0b1001)
+
+注：ULN2003是反相器，高电平→输出低电平→线圈通电
+有些资料把表反过来，以IN1~IN4通电顺序为准
+
+反转：把相序表倒序输出即可
+   7 → 6 → 5 → 4 → 3 → 2 → 1 → 0 → 7 ...</code></pre>
+
+<h3>驱动板接线与相序</h3>
+<pre><code>ULN2003 驱动板         28BYJ-48 电机
+─────────────          ──────────────
+IN1 (红LED)   ──────── 红线 (1相)
+IN2 (蓝LED)   ──────── 橙线 (2相)
+IN3 (黄LED)   ──────── 黄线 (3相)
+IN4 (白LED)   ──────── 粉线 (4相)
++5V (红线)    ──────── 红线 (公共端)
+GND (黑线)    ──────── 不接（电机外壳）
+
+电机线序（标准28BYJ-48）：
+  红线  = 1相 (A)
+  橙线  = 2相 (B)
+  黄线  = 3相 (C)
+  粉线  = 4相 (D)
+  蓝线  = 公共端（接+5V）</code></pre>
+
+<h3>步距角与角度计算</h3>
+<pre><code>每步角度计算（八拍模式）：
+
+1. 电机轴步距角 = 5.625°（每步）
+2. 减速比 = 64:1（常见版本）
+3. 输出轴每步角度 = 5.625° / 64 = 0.08789°
+4. 每圈步数 = 360° / 0.08789° ≈ 4096步
+
+角度 → 步数换算：
+  steps = angle / 0.08789
+  steps = angle × 11.378  （约）
+
+示例：
+  转90°  → 90 / 0.08789 ≈ 1024步
+  转180° → 180 / 0.08789 ≈ 2048步
+  转一圈 → 360 / 0.08789 ≈ 4096步
+
+注意：如果实测减速比是1:6.1（约）：
+  每圈步数 ≈ 2048步
+  每步角度 ≈ 0.176°</code></pre>
+
+<h2>🔌 接线图</h2>
+
+<pre><code>STM32F103C8T6          ULN2003 驱动板
+─────────────          ──────────────
+PA0 (GPIO Out) ──────── IN1
+PA1 (GPIO Out) ──────── IN2
+PA2 (GPIO Out) ──────── IN3
+PA3 (GPIO Out) ──────── IN4
+
+ULN2003 驱动板          电源
+─────────────          ────
++5V (红线)     ──────── 5V 电源正极
+GND (黑线)     ──────── 5V 电源负极 & STM32 GND
+
+ULN2003 驱动板          28BYJ-48 电机
+─────────────          ──────────────
+5V OUT (端子)   ──────── 电机红线 (公共端)
+IN1~IN4 信号   ──────── 电机对应相线
+
+⚠ 注意：ULN2003是反向驱动，STM32输出高电平→ULN2003输出低电平→线圈通电
+⚠ 外置5V电源需≥1A，步进电机工作电流约200mA</code></pre>
+
+<div class="note">
+<strong>接线验证：</strong>通电后，用手转动电机轴，应有一定阻力（线圈励磁）。如果轻松转动，说明相序或接线有问题。
+</div>
+
+<h2>📝 分步操作指引</h2>
+
+<div class="step">
+<strong>Step 1：CubeMX 配置</strong><br>
+1. PA0~PA3 配置为 GPIO_Output<br>
+2. 配置USART1用于调试输出<br>
+3. 设置合适的GPIO速度（Low或Medium即可）<br>
+4. 生成代码
+</div>
+
+<div class="step">
+<strong>Step 2：编写相序输出函数</strong><br>
+根据四相八拍相序表，编写 <code>Stepper_SetPhase(uint8_t phase)</code> 函数。
+</div>
+
+<div class="step">
+<strong>Step 3：编写步进运行函数</strong><br>
+每次输出一个相序，延时一定时间，然后输出下一个相序。
+</div>
+
+<div class="step">
+<strong>Step 4：测定减速比</strong><br>
+让电机转2048步，用眼睛观察是否转了半圈。如果是，则减速比≈1:6.1。
+</div>
+
+<div class="step">
+<strong>Step 5：实现加减速（进阶）</strong><br>
+实现梯形加减速曲线，避免失步和振动。
+</div>
+
+<h2>💻 完整代码</h2>
+
+<h3>main.c — 步进电机完整控制</h3>
+<pre><code>/* USER CODE BEGIN Includes */
+#include &lt;stdio.h&gt;
+#include &lt;stdint.h&gt;
+#include &lt;math.h&gt;
+/* USER CODE END Includes */
+
+/* USER CODE BEGIN PV */
+
+// 步进电机相序表（四相八拍）
+// 顺序: IN1(A) IN2(B) IN3(C) IN4(D)
+// 对应PA0 PA1 PA2 PA3
+static const uint8_t STEP_SEQ[8] = {
+    0x01,  // 0b0001 - A相通电
+    0x03,  // 0b0011 - A+B相通电
+    0x02,  // 0b0010 - B相通电
+    0x06,  // 0b0110 - B+C相通电
+    0x04,  // 0b0100 - C相通电
+    0x0C,  // 0b1100 - C+D相通电
+    0x08,  // 0b1000 - D相通电
+    0x09,  // 0b1001 - D+A相通电
+};
+
+// 电机状态
+typedef enum {
+    STEP_DIR_CW = 0,   // 顺时针
+    STEP_DIR_CCW,       // 逆时针
+} StepDir_t;
+
+typedef struct {
+    uint32_t current_step;    // 当前步数
+    uint32_t target_step;      // 目标步数
+    StepDir_t direction;       // 旋转方向
+    uint8_t running;           // 运行状态
+    uint16_t speed_delay_us;   // 每步延时(μs)，越小越快
+} Stepper_t;
+
+volatile Stepper_t g_stepper = {0};
+
+// 28BYJ-48 参数（请根据实测调整）
+#define STEPS_PER_REV   4096    // 每圈步数（减速比64:1 版本）
+// #define STEPS_PER_REV   2038    // 每圈步数（实测减速比≈6.1 版本）
+
+// 步进电机GPIO端口
+#define STEP_PORT GPIOA
+#define STEP_PIN_A GPIO_PIN_0
+#define STEP_PIN_B GPIO_PIN_1
+#define STEP_PIN_C GPIO_PIN_2
+#define STEP_PIN_D GPIO_PIN_3
+
+/* USER CODE END PV */
+
+/* USER CODE BEGIN 0 */
+
+// 设置相序输出
+static void Stepper_SetPhase(uint8_t phase_idx)
+{
+    uint8_t seq = STEP_SEQ[phase_idx &amp; 0x07];  // 取模8
+    
+    HAL_GPIO_WritePin(STEP_PORT, STEP_PIN_A, (seq &amp; 0x01) ? GPIO_PIN_SET : GPIO_PIN_RESET);
+    HAL_GPIO_WritePin(STEP_PORT, STEP_PIN_B, (seq &amp; 0x02) ? GPIO_PIN_SET : GPIO_PIN_RESET);
+    HAL_GPIO_WritePin(STEP_PORT, STEP_PIN_C, (seq &amp; 0x04) ? GPIO_PIN_SET : GPIO_PIN_RESET);
+    HAL_GPIO_WritePin(STEP_PORT, STEP_PIN_D, (seq &amp; 0x08) ? GPIO_PIN_SET : GPIO_PIN_RESET);
+}
+
+// 微秒延时（使用定时器或简单循环）
+static void Delay_us(uint16_t us)
+{
+    // 简单延时（不精确，适合步进电机）
+    // 对于72MHz STM32，大约需要 72 个循环/μs
+    uint32_t count = us * 72;
+    while (count--) {
+        __NOP();
+    }
+}
+
+// 步进运行一步
+// phase: 当前相序 (0~7)
+// dir: 方向
+// delay_us: 每步延时
+// 返回: 下一个相序
+static uint8_t Stepper_Step(uint8_t phase, StepDir_t dir, uint16_t delay_us)
+{
+    Stepper_SetPhase(phase);
+    
+    if (dir == STEP_DIR_CW) {
+        phase = (phase + 1) &amp; 0x07;   // 顺时针: 0→1→2→...→7→0
+    } else {
+        phase = (phase - 1) &amp; 0x07;   // 逆时针: 0→7→6→...→1→0
+    }
+    
+    Delay_us(delay_us);
+    return phase;
+}
+
+// 转动指定步数
+// steps: 步数
+// dir: 方向
+// speed: 速度等级 (1~10, 1最慢，10最快)
+void Stepper_MoveSteps(uint32_t steps, StepDir_t dir, uint8_t speed)
+{
+    // 速度等级 → 每步延时 映射
+    // 速度越大，延时越短
+    uint16_t delay_table[11] = {
+        0,      // 不使用
+        12000,  // 1 - 很慢
+        8000,   // 2
+        5000,   // 3
+        3000,   // 4
+        2000,   // 5
+        1500,   // 6
+        1000,   // 7
+        800,    // 8
+        600,    // 9
+        500,    // 10 - 很快（可能失步）
+    };
+    
+    uint16_t delay_us = delay_table[speed &gt; 10 ? 10 : (speed == 0 ? 1 : speed)];
+    
+    uint8_t phase = 0;
+    for (uint32_t i = 0; i &lt; steps; i++) {
+        phase = Stepper_Step(phase, dir, delay_us);
+        
+        // 可在此处添加位置记录
+        if (dir == STEP_DIR_CW) {
+            g_stepper.current_step++;
+        } else {
+            g_stepper.current_step--;
+        }
+    }
+    
+    // 断电（可选，省电但失去保持力矩）
+    // Stepper_SetPhase(8);  // 全部断电
+}
+
+// 转动指定角度（度）
+void Stepper_MoveAngle(float angle_deg, StepDir_t dir, uint8_t speed)
+{
+    uint32_t steps = (uint32_t)(fabs(angle_deg) * STEPS_PER_REV / 360.0f);
+    printf("Moving %.1f° = %lu steps [%s] speed=%d\r\n",
+           angle_deg, steps,
+           dir == STEP_DIR_CW ? "CW" : "CCW", speed);
+    
+    Stepper_MoveSteps(steps, dir, speed);
+}
+
+// 梯形加减速运行
+// 实现平滑启动和停止，避免失步和振动
+void Stepper_MoveAccel(uint32_t total_steps, StepDir_t dir)
+{
+    // 梯形加减速参数
+    uint32_t accel_steps  = total_steps / 4;     // 加速段步数
+    uint32_t decel_steps  = total_steps / 4;     // 减速段步数
+    uint32_t const_steps  = total_steps - accel_steps - decel_steps;
+    
+    uint16_t min_delay_us = 500;   // 最高速延时
+    uint16_t max_delay_us = 8000;  // 最低速延时
+    
+    uint8_t phase = 0;
+    uint32_t step_count = 0;
+    
+    printf("Trapezoidal move: %lu steps\r\n", total_steps);
+    
+    while (step_count &lt; total_steps) {
+        uint16_t delay_us;
+        
+        if (step_count &lt; accel_steps) {
+            // 加速段：延时逐渐减小
+            delay_us = max_delay_us - (step_count * (max_delay_us - min_delay_us) / accel_steps);
+        }
+        else if (step_count &lt; accel_steps + const_steps) {
+            // 匀速段
+            delay_us = min_delay_us;
+        }
+        else {
+            // 减速段：延时逐渐增大
+            uint32_t decel_step = step_count - accel_steps - const_steps;
+            delay_us = min_delay_us + (decel_step * (max_delay_us - min_delay_us) / decel_steps);
+        }
+        
+        phase = Stepper_Step(phase, dir, delay_us);
+        step_count++;
+    }
+}
+
+// 精确位置控制（绝对位置）
+// 将电机转到指定角度（相对0位的绝对角度）
+static int32_t g_abs_position = 0;  // 当前绝对位置（步数）
+
+void Stepper_MoveTo(int32_t target_angle_deg, uint8_t speed)
+{
+    int32_t target_steps = (int32_t)(target_angle_deg * STEPS_PER_REV / 360.0f);
+    int32_t delta = target_steps - g_abs_position;
+    
+    StepDir_t dir = (delta &gt;= 0) ? STEP_DIR_CW : STEP_DIR_CCW;
+    uint32_t steps = (uint32_t)abs(delta);
+    
+    printf("MoveTo: %d° (from %d° to %d°)\r\n",
+           target_angle_deg,
+           (int)(g_abs_position * 360 / STEPS_PER_REV),
+           target_angle_deg);
+    
+    Stepper_MoveSteps(steps, dir, speed);
+    g_abs_position = target_steps;
+}
+
+// printf 重定向
+#ifdef __GNUC__
+int __io_putchar(int ch)
+#else
+int fputc(int ch, FILE *f)
+#endif
+{
+    HAL_UART_Transmit(&amp;huart1, (uint8_t *)&amp;ch, 1, HAL_MAX_DELAY);
+    return ch;
+}
+
+/* USER CODE END 0 */
+
+int main(void)
+{
+    HAL_Init();
+    SystemClock_Config();
+    MX_GPIO_Init();
+    MX_USART1_UART_Init();
+
+    /* USER CODE BEGIN 2 */
+    // 初始断电
+    Stepper_SetPhase(8);  // 全部断电
+    
+    printf("Stepper Motor Control Ready!\r\n");
+    printf("Commands via buttons or serial:\r\n");
+    printf("  S90  - Move 90° CW\r\n");
+    printf("  S-90 - Move 90° CCW\r\n");
+    printf("  R1   - Rotate 1 revolution (CW)\r\n");
+    printf("  R-1  - Rotate 1 revolution (CCW)\r\n");
+    printf("  CAL  - Calibrate (count steps for 1 rev)\r\n");
+    printf("========================================\r\n");
+    /* USER CODE END 2 */
+
+    /* USER CODE BEGIN WHILE */
+    while (1)
+    {
+        // 示例1：转动90°
+        Stepper_MoveAngle(90.0f, STEP_DIR_CW, 5);
+        HAL_Delay(1000);
+        
+        // 示例2：转动180°
+        Stepper_MoveAngle(180.0f, STEP_DIR_CW, 5);
+        HAL_Delay(1000);
+        
+        // 示例3：转回原位
+        Stepper_MoveAngle(270.0f, STEP_DIR_CCW, 5);
+        HAL_Delay(2000);
+        
+        // 示例4：梯形加减速（更平滑）
+        // Stepper_MoveAccel(2048, STEP_DIR_CW);
+        // HAL_Delay(1000);
+    }
+    /* USER CODE END WHILE */
+}</code></pre>
+
+<h3>串口命令解析（可选，添加到主循环）</h3>
+<pre><code>// 在main.c的while(1)中加入以下代码
+
+uint8_t rx_buf[32];
+if (HAL_UART_Receive(&amp;huart1, rx_buf, 32, 100) == HAL_OK) {
+    // 解析命令
+    if (rx_buf[0] == 'S') {
+        // S90 或 S-90
+        int angle = atoi((char*)(rx_buf + 1));
+        StepDir_t dir = (angle &gt;= 0) ? STEP_DIR_CW : STEP_DIR_CCW;
+        Stepper_MoveAngle((float)abs(angle), dir, 5);
+    }
+    else if (rx_buf[0] == 'R') {
+        // R1 或 R-1
+        int revs = atoi((char*)(rx_buf + 1));
+        StepDir_t dir = (revs &gt;= 0) ? STEP_DIR_CW : STEP_DIR_CCW;
+        uint32_t steps = abs(revs) * STEPS_PER_REV;
+        Stepper_MoveSteps(steps, dir, 5);
+    }
+    else if (strncmp((char*)rx_buf, "CAL", 3) == 0) {
+        // 校准：转动直到位置明显变化
+        printf("Calibrating... turning 2048 steps\r\n");
+        Stepper_MoveSteps(2048, STEP_DIR_CW, 3);
+        printf("Did motor turn half a revolution? If yes, STEPS_PER_REV=2048\r\n");
+    }
+}</code></pre>
+
+<h2>❓ 常见问题排查</h2>
+
+<h3>问题1：电机不转或抖动</h3>
+<div class="warn">
+<strong>最常见原因：相序错误！</strong><br>
+1. <strong>相序表错误</strong> — 28BYJ-48的相序有多种版本，请对照表格逐一测试：<br>
+<pre><code>// 版本2（有些ULN2003板是反序的）
+static const uint8_t STEP_SEQ_ALT[8] = {
+    0x01,  // IN1
+    0x09,  // IN1+IN4
+    0x08,  // IN4
+    0x0C,  // IN4+IN3
+    0x04,  // IN3
+    0x06,  // IN3+IN2
+    0x02,  // IN2
+    0x03,  // IN2+IN1
+};</code></pre>
+2. <strong>GPIO引脚配置错误</strong> — 确认PA0~PA3是Output模式，不是Input。<br>
+3. <strong>延时太短</strong> — 速度太快电机会丢失步数，降低速度（增大delay_us）。<br>
+4. <strong>电机未接触良好</strong> — 用手转动电机轴，如果轻松转动说明线圈没通电。
+</div>
+
+<h3>问题2：失步（加速太快）</h3>
+<div class="note">
+步进电机有最大启动力矩和最大响应频率，加速太快会失步：<br>
+- <strong>启动速度</strong>：建议从2000μs/步开始，确认能启动<br>
+- <strong>加速曲线</strong>：使用梯形加减速（代码中已实现）<br>
+- <strong>负载过重</strong>：减轻负载或换用更大扭矩的步进电机<br>
+- <strong>驱动电流不足</strong>：ULN2003最大500mA/路，28BYJ-48约200mA，理论上够用
+</div>
+
+<h3>问题3：28BYJ-48减速比到底是多少？</h3>
+<div class="tip">
+这是28BYJ-48项目中最大的坑！<br>
+<strong>实测方法：</strong><br>
+<pre><code>// 让电机转2048步（半圈），观察实际转动
+Stepper_MoveSteps(2048, STEP_DIR_CW, 3);
+
+// 如果转了半圈 → 减速比约1:64，每圈4096步
+// 如果转了整圈 → 减速比约1:128，每圈8192步
+// 如果转了约1/4圈 → 减速比约1:6.1，每圈2038步</code></pre>
+常见结论是：<strong>实测每圈约2038步</strong>（减速比≈1:6.1，不是标称的1:64）。<br>
+请根据实测结果修改 <code>STEPS_PER_REV</code> 宏定义。
+</div>
+
+<h3>问题4：电机发热严重</h3>
+<div class="warn">
+步进电机在静止时仍保持励磁，会持续发热（正常）。<br>
+解决方案：<br>
+1. 完成运动后调用 <code>Stepper_SetPhase(8)</code> 断电<br>
+2. 如果需要保持位置，使用<strong>半流保持</strong>（降低励磁电流）<br>
+3. 不要长时间全速运行
+</div>
+
+<h3>问题5：想用定时器中断驱动步进</h3>
+<div class="note">
+上面的代码使用延时函数驱动，会阻塞主循环。<br>
+<strong>非阻塞驱动（推荐）：</strong><br>
+<pre><code>// 用TIM3中断控制步进
+// 中断中更新相序，主循环设置速度和目标位置
+
+volatile uint32_t g_step_counter = 0;
+volatile uint32_t g_step_target = 0;
+volatile uint8_t  g_step_running = 0;
+
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
+{
+    if (htim-&gt;Instance == TIM3) {
+        if (g_step_running &amp;&amp; g_step_counter &lt; g_step_target) {
+            static uint8_t phase = 0;
+            phase = Stepper_Step(phase, g_dir, 0);  // 0延时，由定时器周期控制速度
+            g_step_counter++;
+        } else {
+            g_step_running = 0;
+        }
+    }
+}
+
+// 设置速度（定时器ARR值）
+void Stepper_SetSpeed(uint16_t speed) {
+    __HAL_TIM_SET_AUTORELOAD(&amp;htim3, speed);
+}</code></pre>
+</div>
+
+<h2>🎯 进阶练习</h2>
+<ol>
+<li>实现位置闭环（添加编码器反馈）</li>
+<li>用OLED显示当前角度和速度</li>
+<li>多轴协调控制（XY平台）</li>
+<li>实现G代码解析，控制小型CNC</li>
+<li>用按钮控制方向，电位器控制速度</li>
+<li>实现"回零"功能（添加限位开关）</li>
+<li>加入加速度控制，实现S形加减速曲线（更平滑）</li>
+</ol>
+
+<div class="tip">
+<strong>📌 总结：</strong>步进电机是精确位置控制的利器，但需要注意相序、减速比标定和防失步。28BYJ-48虽然便宜，但精度有限，适合低精度应用。需要高精度时，推荐使用42步进电机 + A4988/DRV8825驱动。
+</div>
+
+
+
+<h2>📐 步进电机微步细分原理</h2>
+<p>全步(full-step)时每一步1.8°(200步/转)，通过控制两相电流比例可以实现更小的步进角：</p>
+
+<pre><code>// 两相电流与微步位置的关系
+// I_A = I_max × cos(&theta;), I_B = I_max × sin(&theta;)
+// &theta; = (step / microsteps_per_step) × 90°
+
+// 16微步的电流表(正弦表，DAC输出或PWM+滤波)
+const uint16_t microstep_sine[16] = {
+    // 第一象限 0°-90°
+    0,     // sin(0°)    → 0%
+    4006,  // sin(5.625°)→ 9.8% (4095×0.098)
+    7996,  // sin(11.25°)→ 19.5%
+    11955, // sin(16.875°)→29.2%
+    15866, // sin(22.5°)→ 38.8%
+    19714, // sin(28.125°)→48.1%
+    23483, // sin(33.75°)→57.3%
+    27158, // sin(39.375°)→66.3%
+    30725, // sin(45°)→   75.0%
+    34170, // sin(50.625°)→83.4%
+    37480, // sin(56.25°)→91.5%
+    40643, // sin(61.875°)→99.2%
+    43648, // sin(67.5°)→ ~100%(夹紧)
+    46484, // sin(73.125°)
+    49142, // sin(78.75°)
+    51612, // sin(84.375°)
+};
+
+// 使用TIM高级定时器互补输出 + 死区 + 斩波模式
+// A4988/DRV8825内部已实现微步，只需STEP/DIR控制
+// 自己用H桥+MCU做微步时才需要上面的正弦表</code></pre>
+
+<h2>⚡ S曲线加减速算法</h2>
+<pre><code>// S曲线加速 vs 梯形加速
+// 梯形: 突然起停 → 机械振动、丢步
+// S曲线: 加速度渐变 → 平滑、安静、高速
+
+// Bresenham算法 + S曲线速度表
+#define ACCEL_STEPS 200  // 加速步数
+
+// 生成S曲线频率表（定时器重载值）
+uint16_t s_curve_freq[ACCEL_STEPS];
+
+void Generate_SCurve(uint32_t start_freq, uint32_t target_freq) {
+    for (int i = 0; i < ACCEL_STEPS; i++) {
+        float t = (float)i / ACCEL_STEPS;  // 0→1
+        // S曲线公式: 使用sigmoid或三角函数的对称S
+        // f(t) = start + (target-start) × (1-cos(&pi;×t))/2
+        float s = (1.0f - cosf(3.14159f * t)) / 2.0f;
+        float freq = start_freq + (target_freq - start_freq) * s;
+        s_curve_freq[i] = (uint16_t)(SystemCoreClock / freq);
+    }
+}
+
+// 步进脉冲定时器中断
+void TIMx_IRQHandler(void) {
+    // 更新定时器ARR → 改变脉冲频率
+    if (step_index < ACCEL_STEPS) {
+        TIMx->ARR = s_curve_freq[step_index++];  // 加速
+    } else if (step_index < total_steps - ACCEL_STEPS) {
+        TIMx->ARR = s_curve_freq[ACCEL_STEPS-1];  // 匀速
+    } else {
+        TIMx->ARR = s_curve_freq[total_steps - step_index];  // 减速
+    }
+}</code></pre>
+
+<h2>🔧 常见驱动器芯片对比</h2>
+<table>
+<tr><th>芯片</th><th>最大电流</th><th>微步</th><th>最大电压</th><th>Rds(on)</th><th>价格</th><th>特点</th></tr>
+<tr><td>A4988</td><td>2A</td><td>1/16</td><td>35V</td><td>0.32&Omega;</td><td>¥5</td><td>最流行</td></tr>
+<tr><td>DRV8825</td><td>2.5A</td><td>1/32</td><td>45V</td><td>0.2&Omega;</td><td>¥8</td><td>高细分</td></tr>
+<tr><td>TMC2208</td><td>1.4A</td><td>1/256</td><td>36V</td><td>0.28&Omega;</td><td>¥12</td><td>超静音</td></tr>
+<tr><td>TMC2209</td><td>2.8A</td><td>1/256</td><td>29V</td><td>0.17&Omega;</td><td>¥18</td><td>StallGuard</td></tr>
+<tr><td>TMC5160</td><td>3A</td><td>1/256</td><td>60V</td><td>0.06&Omega;</td><td>¥55</td><td>高端旗舰</td></tr>
+</table>
+
+<div class="tip">
+<strong>TMC2209的StealthChop2 vs SpreadCycle：</strong><br>
+StealthChop2：静音模式，适合3D打印机，低速安静但高速扭矩不足<br>
+SpreadCycle：高性能模式，有轻微噪音但全速段扭矩保持<br>
+可通过UART配置切换模式，无需改动硬件
+</div>
+
+<h2>📏 共振与失步问题</h2>
+<div class="warn">
+<strong>步进电机共振区：</strong> 每台步进电机都有特定的共振频率，在此频率下振动幅度急剧增大，可能导致丢步。常见共振区在50-200RPM。<br><br>
+<strong>解决方案：</strong><br>
+1. 加速时快速穿过共振区（不在此频率段做匀速）<br>
+2. 使用微步驱动（16细分以上，振动减小到1/16）<br>
+3. 机械阻尼（加装减震垫、柔性联轴器）<br>
+4. 使用TMC系列芯片的共振抑制算法<br>
+5. 电流闭环控制（通过反电动势检测丢步）
+</div><hr><h2>❓ 常见问题 FAQ</h2>
+
+<div style="margin:12px 0;padding:12px 16px;background:var(--bg2);border-left:3px solid var(--a);border-radius:0 8px 8px 0">
+  <p style="font-weight:600;color:var(--c1);margin-bottom:4px">Q: 步进电机丢步？</p>
+  <p style="color:var(--t)">A: 1)加速度太大，需要梯形/S形加减速曲线 2)负载过重 3)驱动电压不够 4)脉冲频率突变</p>
+</div>
+
+<div style="margin:12px 0;padding:12px 16px;background:var(--bg2);border-left:3px solid var(--a);border-radius:0 8px 8px 0">
+  <p style="font-weight:600;color:var(--c1);margin-bottom:4px">Q: 28BYJ-48为什么转得慢？</p>
+  <p style="color:var(--t)">A: 减速比1:64，实际步距角5.625°/64=0.088°。需要高速时换NEMA17+A4988驱动。</p>
+</div>
+
+<hr><h2>🔗 相关教程</h2>
+<div style="display:flex;flex-wrap:wrap;gap:8px;margin:12px 0">
+<a href="#" onclick="parent.loadPage && parent.loadPage('proj-pwm-motor')" style="display:inline-block;padding:6px 14px;background:var(--bg3);border:1px solid var(--br);border-radius:6px;color:var(--a);text-decoration:none;font-size:.85em">PWM电机 →</a>
+<a href="#" onclick="parent.loadPage && parent.loadPage('proj-servo-control')" style="display:inline-block;padding:6px 14px;background:var(--bg3);border:1px solid var(--br);border-radius:6px;color:var(--a);text-decoration:none;font-size:.85em">舵机 →</a>
+</div>
+
+</body></html>

@@ -1,0 +1,698 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0"><title>教程15: 低功耗电池设备</title><style>:root{--bg:#0d1117;--bg2:#161b22;--bg3:#21262d;--br:#30363d;--t:#c9d1d9;--t2:#8b949e;--a:#58a6ff;--g:#3fb950;--o:#d29922;--r:#f85149;--p:#a371f7;--c1:#39c5cf}body{background:var(--bg);color:var(--t);font-family:system-ui,sans-serif;line-height:1.8;max-width:900px;margin:0 auto;padding:20px}h1{text-align:center;background:linear-gradient(135deg,var(--a),var(--p));-webkit-background-clip:text;-webkit-text-fill-color:transparent}h2{color:var(--a);border-bottom:2px solid var(--br);padding-bottom:6px;margin-top:32px}h3{color:var(--c1);margin-top:22px}pre{background:#1c2128;border:1px solid var(--br);border-radius:8px;padding:14px;overflow-x:auto;font-size:.84em}code{font-family:'Cascadia Code',Consolas,monospace}:not(pre)>code{background:var(--bg3);padding:2px 6px;border-radius:4px;color:var(--c1)}table{width:100%;border-collapse:collapse;margin:12px 0}th{background:var(--bg3);color:var(--a);padding:8px 12px;border:1px solid var(--br);text-align:left}td{padding:8px 12px;border:1px solid var(--br)}.note{background:rgba(88,166,255,.08);border-left:3px solid var(--a);border-radius:8px;padding:12px 16px;margin:12px 0}.warn{background:rgba(248,81,73,.08);border-left:3px solid var(--r);border-radius:8px;padding:12px 16px;margin:12px 0}.tip{background:rgba(63,185,80,.08);border-left:3px solid var(--g);border-radius:8px;padding:12px 16px;margin:12px 0}.step{background:var(--bg2);border:1px solid var(--br);border-radius:8px;padding:12px 16px;margin:10px 0}</style></head><body>
+
+<h1>🔋 教程15: 低功耗电池设备</h1>
+
+<h2>📋 项目概述</h2>
+<p>本教程将带你实现一个由纽扣电池CR2032供电的超低功耗嵌入式设备。我们将学习STM32的三种低功耗模式、RTC定时唤醒、外部中断唤醒，以及如何将系统功耗优化到微安(uA)级别。</p>
+
+<div class="note">
+<strong>适用场景：</strong>无线传感器节点、环境监测、智能仪表、可穿戴设备等需要长期电池供电的场景。
+</div>
+
+<h2>🔧 硬件准备</h2>
+<table>
+<tr><th>元件</th><th>数量</th><th>说明</th></tr>
+<tr><td>STM32L053C8T6 开发板</td><td>1</td><td>STM32L系列超低功耗MCU，首选</td></tr>
+<tr><td>STM32F103C8T6 最小系统板</td><td>1</td><td>备选，功耗略高</td></tr>
+<tr><td>CR2032 纽扣电池 + 电池座</td><td>1</td><td>3V，约220mAh容量</td></tr>
+<tr><td>轻触按键</td><td>1</td><td>用于外部中断唤醒</td></tr>
+<tr><td>万用表（uA档）</td><td>1</td><td>测量微安级电流</td></tr>
+<tr><td>10KΩ 电阻</td><td>1</td><td>按键上拉/下拉</td></tr>
+</table>
+
+<h2>📐 接线图</h2>
+<pre>
+CR2032电池供电接线：
+┌─────────────────────────────────────────────┐
+│                                             │
+│  CR2032(+)──── VDD(3V)                     │
+│  CR2032(-)──── GND                         │
+│                                             │
+│  按键唤醒接线：                              │
+│  VDD ──┤10KΩ├── PA0 ──┤ 按键 ├── GND       │
+│         (上拉)     (下降沿触发)              │
+│                                             │
+│  ⚠️ 去掉所有LED和不需要的外设！               │
+│  ⚠️ 断开ST-Link供电线！                      │
+│  ⚠️ USB线也要拔掉！                          │
+│                                             │
+│  功耗测量接线：                              │
+│  电池(+) ──→ 万用表(uA档) ──→ VDD           │
+│  电池(-) ───────────────────→ GND           │
+│                                             │
+└─────────────────────────────────────────────┘
+</pre>
+
+<div class="warn">
+<strong>⚠️ 关键注意事项：</strong><br>
+1. 测量功耗时，必须断开ST-Link和USB供电，只用电池供电<br>
+2. 开发板上的LED和LDO是耗电大户，尽量使用最小系统板<br>
+3. STM32L系列比F103功耗低一个数量级，推荐首选<br>
+4. 万用表要串在电池正极和VDD之间，打到uA档
+</div>
+
+<h2>📖 知识讲解</h2>
+
+<h3>STM32三种低功耗模式</h3>
+<table>
+<tr><th>模式</th><th>CPU</th><th>时钟</th><th>RAM</th><th>唤醒方式</th><th>典型功耗</th></tr>
+<tr><td><strong>Sleep</strong></td><td>停止</td><td>运行</td><td>保持</td><td>任意中断</td><td>~1-2mA(F103)</td></tr>
+<tr><td><strong>Stop</strong></td><td>停止</td><td>停止</td><td>保持</td><td>外部中断/RTC</td><td>~20uA(F103) / ~0.5uA(L0)</td></tr>
+<tr><td><strong>Standby</strong></td><td>停止</td><td>停止</td><td>丢失</td><td>WKUP引脚/RTC/复位</td><td>~2uA(F103) / ~0.3uA(L0)</td></tr>
+</table>
+
+<div class="note">
+<strong>Sleep vs Stop vs Standby 怎么选？</strong><br>
+- <strong>Sleep</strong>：只是CPU暂停，外设还能工作，功耗降低有限，适合短暂等待<br>
+- <strong>Stop</strong>：RAM保持，唤醒后可继续执行，是大多数场景的最佳选择<br>
+- <strong>Standby</strong>：最省电但RAM丢失，唤醒等于复位重启，适合超长待机场景
+</div>
+
+<h3>功耗优化核心原则</h3>
+<div class="step">
+<strong>1. 关闭不必要的外设时钟</strong> — 每个外设时钟都在耗电，GPIO、USART、ADC不用就关掉
+</div>
+<div class="step">
+<strong>2. 降低系统时钟频率</strong> — 运行时频率越低越省电，用 MSI 而非 HSE/PLL
+</div>
+<div class="step">
+<strong>3. 尽快进入低功耗模式</strong> — 任务完成后立即睡眠，不要空转等待
+</div>
+<div class="step">
+<strong>4. GPIO配置正确</strong> — 未用引脚设为模拟输入或带上拉/下拉的输入，不要浮空
+</div>
+<div class="step">
+<strong>5. 关闭调试接口</strong> — SWD/SWDIO在低功耗时也耗电，发布版可以关闭
+</div>
+
+<h2>💻 完整代码</h2>
+
+<h3>低功耗主程序 (main.c)</h3>
+<pre>
+/* ============================================
+ * 低功耗电池设备 - 完整示例
+ * MCU: STM32L053C8T6 (也适用于F103, 需调整)
+ * 功能: RTC定时唤醒 + 按键唤醒 + Stop模式
+ * ============================================ */
+
+#include "main.h"
+#include &lt;stdio.h&gt;
+
+/* 私有变量 */
+RTC_HandleTypeDef hrtc;
+UART_HandleTypeDef huart1;
+
+/* 唤醒标志 */
+volatile uint8_t rtc_wakeup_flag = 0;
+volatile uint8_t button_wakeup_flag = 0;
+
+/* 缓冲区 */
+char uart_buf[128];
+
+/* 函数声明 */
+void SystemClock_Config(void);
+static void MX_GPIO_Init(void);
+static void MX_RTC_Init(void);
+static void MX_USART1_UART_Init(void);
+static void Enter_Stop_Mode(void);
+static void Enter_Standby_Mode(void);
+static void LowPower_Gpio_Init(void);
+static void SystemClock_Restore(void);
+static void Do_Task(void);
+static uint32_t Calculate_Battery_Life(uint32_t current_ua, uint32_t capacity_mah);
+
+int main(void)
+{
+    /* HAL初始化 */
+    HAL_Init();
+
+    /* 系统时钟配置 - 使用MSI低频时钟(2.1MHz)省电 */
+    SystemClock_Config();
+
+    /* 外设初始化 */
+    MX_GPIO_Init();
+    MX_RTC_Init();
+    MX_USART1_UART_Init();
+
+    /* 关闭不需要的外设时钟，进一步省电 */
+    __HAL_RCC_GPIOB_CLK_DISABLE();
+    __HAL_RCC_GPIOC_CLK_DISABLE();
+    __HAL_RCC_GPIOH_CLK_DISABLE();
+    __HAL_RCC_ADC1_CLK_DISABLE();
+    __HAL_RCC_SPI1_CLK_DISABLE();
+    __HAL_RCC_I2C1_CLK_DISABLE();
+
+    printf("\r\n=== 低功耗设备启动 ===\r\n");
+
+    while (1)
+    {
+        /* 执行任务：读取传感器、发送数据等 */
+        Do_Task();
+
+        /* 任务完成后进入Stop模式 */
+        printf("进入Stop模式，等待RTC或按键唤醒...\r\n");
+
+        /* 确保UART发送完成 */
+        HAL_UART_Transmit(&amp;huart1, (uint8_t*)"", 0, 100);
+
+        /* 进入低功耗模式 */
+        Enter_Stop_Mode();
+
+        /* ===== 唤醒后从这里继续执行 ===== */
+
+        /* Stop模式唤醒后，系统时钟回到MSI，需要重新配置 */
+        SystemClock_Restore();
+
+        /* 判断唤醒源 */
+        if (rtc_wakeup_flag)
+        {
+            printf("RTC定时唤醒！\r\n");
+            rtc_wakeup_flag = 0;
+        }
+        if (button_wakeup_flag)
+        {
+            printf("按键唤醒！\r\n");
+            button_wakeup_flag = 0;
+            HAL_Delay(50); /* 按键消抖 */
+        }
+    }
+}
+
+/* ============ 执行任务 ============ */
+static void Do_Task(void)
+{
+    /* 这里放你的实际任务 */
+    printf("执行任务: 读取传感器数据...\r\n");
+
+    /* 模拟读取传感器 */
+    uint32_t sensor_val = HAL_GetTick() % 1000;
+    printf("传感器值: %lu\r\n", sensor_val);
+
+    /* 模拟发送数据 */
+    printf("发送数据完成\r\n");
+}
+
+/* ============ 进入Stop模式 ============ */
+static void Enter_Stop_Mode(void)
+{
+    /* 关闭USART外设和时钟 */
+    HAL_UART_DeInit(&amp;huart1);
+    __HAL_RCC_USART1_CLK_DISABLE();
+
+    /* 关闭GPIOA时钟(除了PA0唤醒引脚) */
+    /* PA0需要保持为外部中断模式，所以GPIOA时钟先保留 */
+
+    /* 清除唤醒标志 */
+    rtc_wakeup_flag = 0;
+    button_wakeup_flag = 0;
+
+    /* 进入Stop模式，电压调节器低功耗模式 */
+    /* PWR_LOWPOWERREGULATOR_ON: Stop模式下电压调节器低功耗 */
+    HAL_PWR_EnterSTOPMode(PWR_LOWPOWERREGULATOR_ON, PWR_STOPENTRY_WFI);
+
+    /* ===== 唤醒后从这里继续 ===== */
+    /* Stop模式唤醒后，系统时钟自动回到MSI(2.1MHz) */
+}
+
+/* ============ 进入Standby模式(最省电) ============ */
+static void Enter_Standby_Mode(void)
+{
+    printf("进入Standby模式，只能按复位键或RTC唤醒\r\n");
+
+    /* 清除唤醒标志 */
+    __HAL_PWR_CLEAR_FLAG(PWR_FLAG_WU);
+
+    /* 使能唤醒引脚 */
+    HAL_PWR_EnableWakeUpPin(PWR_WAKEUP_PIN1); /* PA0 */
+
+    /* 进入Standby模式 */
+    HAL_PWR_EnterSTANDBYMode();
+
+    /* 永远不会执行到这里 */
+    /* Standby唤醒等于复位重启 */
+}
+
+/* ============ Stop唤醒后恢复系统时钟 ============ */
+static void SystemClock_Restore(void)
+{
+    /* Stop模式唤醒后，系统时钟回到MSI低频
+     * 需要重新配置到正常频率 */
+
+    /* 重新使能HSE和PLL */
+    __HAL_RCC_HSE_CONFIG(RCC_HSE_ON);
+    while(!__HAL_RCC_GET_FLAG(RCC_FLAG_HSERDY));
+
+    /* 重新使能PLL */
+    __HAL_RCC_PLL_ENABLE();
+    while(!__HAL_RCC_GET_FLAG(RCC_FLAG_PLLRDY));
+
+    /* 切换系统时钟到PLL */
+    __HAL_RCC_SYSCLK_CONFIG(RCC_SYSCLKSOURCE_PLLCLK);
+    while(__HAL_RCC_GET_SYSCLK_SOURCE() != RCC_SYSCLKSOURCE_STATUS_PLLCLK);
+
+    /* 重新初始化USART */
+    __HAL_RCC_USART1_CLK_ENABLE();
+    HAL_UART_Init(&amp;huart1);
+
+    /* 更新HAL的时钟变量 */
+    SystemCoreClockUpdate();
+    HAL_InitTick(TICK_INT_PRIORITY);
+}
+
+/* ============ RTC初始化 ============ */
+static void MX_RTC_Init(void)
+{
+    /* 使能PWR时钟 */
+    __HAL_RCC_PWR_CLK_ENABLE();
+    HAL_PWR_EnableBkUpAccess();
+
+    /* 使能LSE(低速外部晶振32.768KHz) */
+    __HAL_RCC_LSE_CONFIG(RCC_LSE_ON);
+    while(!__HAL_RCC_GET_FLAG(RCC_FLAG_LSERDY));
+
+    /* 选择RTC时钟源为LSE */
+    __HAL_RCC_RTC_CONFIG(RCC_RTCCLKSOURCE_LSE);
+
+    /* 使能RTC时钟 */
+    __HAL_RCC_RTC_ENABLE();
+
+    hrtc.Instance = RTC;
+    hrtc.Init.HourFormat = RTC_HOURFORMAT_24;
+    hrtc.Init.AsynchPrediv = 127;  /* 异步分频 128 */
+    hrtc.Init.SynchPrediv = 255;   /* 同步分频 256 → 32768/128/256 = 1Hz */
+    hrtc.Init.OutPut = RTC_OUTPUT_DISABLE;
+
+    if (HAL_RTC_Init(&amp;hrtc) != HAL_OK)
+    {
+        Error_Handler();
+    }
+
+    /* 配置RTC闹钟，每10秒唤醒一次 */
+    /* 使用闹钟A */
+    RTC_AlarmTypeDef sAlarm = {0};
+    sAlarm.AlarmTime.Hours = 0;
+    sAlarm.AlarmTime.Minutes = 0;
+    sAlarm.AlarmTime.Seconds = 10;
+    sAlarm.AlarmMask = RTC_ALARMMASK_DATEWEEKDAY |
+                       RTC_ALARMMASK_HOURS |
+                       RTC_ALARMMASK_MINUTES;
+    /* 只比较秒数，每10秒触发 */
+    sAlarm.AlarmSubSecondMask = RTC_ALARMSUBSECONDMASK_ALL;
+    sAlarm.Alarm = RTC_ALARM_A;
+
+    HAL_RTC_SetAlarm_IT(&amp;hrtc, &amp;sAlarm, RTC_FORMAT_BIN);
+
+    /* 使能RTC闹钟中断 */
+    HAL_NVIC_SetPriority(RTC_Alarm_IRQn, 0, 0);
+    HAL_NVIC_EnableIRQ(RTC_Alarm_IRQn);
+}
+
+/* ============ GPIO初始化 ============ */
+static void MX_GPIO_Init(void)
+{
+    GPIO_InitTypeDef GPIO_InitStruct = {0};
+
+    /* 使能GPIO时钟 */
+    __HAL_RCC_GPIOA_CLK_ENABLE();
+
+    /* PA0: 按键唤醒引脚，外部中断下降沿触发 */
+    GPIO_InitStruct.Pin = GPIO_PIN_0;
+    GPIO_InitStruct.Mode = GPIO_MODE_IT_FALLING;
+    GPIO_InitStruct.Pull = GPIO_PULLUP;
+    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+    HAL_GPIO_Init(GPIOA, &amp;GPIO_InitStruct);
+
+    /* 配置外部中断 */
+    HAL_NVIC_SetPriority(EXTI0_1_IRQn, 0, 0);
+    HAL_NVIC_EnableIRQ(EXTI0_1_IRQn);
+
+    /* 未用引脚配置为模拟输入(最省电) */
+    LowPower_Gpio_Init();
+}
+
+/* ============ 未用GPIO低功耗配置 ============ */
+static void LowPower_Gpio_Init(void)
+{
+    GPIO_InitTypeDef GPIO_InitStruct = {0};
+
+    /* 未使用的引脚全部设为模拟输入，功耗最低 */
+    GPIO_InitStruct.Mode = GPIO_MODE_ANALOG;
+    GPIO_InitStruct.Pull = GPIO_NOPULL;
+
+    /* PA1-PA15(除了PA0和PA9/PA10)设为模拟输入 */
+    GPIO_InitStruct.Pin = GPIO_PIN_1 | GPIO_PIN_2 | GPIO_PIN_3 |
+                          GPIO_PIN_4 | GPIO_PIN_5 | GPIO_PIN_6 |
+                          GPIO_PIN_7 | GPIO_PIN_8 | GPIO_PIN_15;
+    HAL_GPIO_Init(GPIOA, &amp;GPIO_InitStruct);
+
+    /* PB全部模拟输入(PB时钟已关闭则不需要) */
+    /* ... 根据实际引脚配置 */
+}
+
+/* ============ USART初始化 ============ */
+static void MX_USART1_UART_Init(void)
+{
+    huart1.Instance = USART1;
+    huart1.Init.BaudRate = 9600;  /* 低波特率省电 */
+    huart1.Init.WordLength = UART_WORDLENGTH_8B;
+    huart1.Init.StopBits = UART_STOPBITS_1;
+    huart1.Init.Parity = UART_PARITY_NONE;
+    huart1.Init.Mode = UART_MODE_TX_RX;
+    huart1.Init.HwFlowCtl = UART_HWCONTROL_NONE;
+    huart1.Init.OverSampling = UART_OVERSAMPLING_16;
+
+    if (HAL_UART_Init(&amp;huart1) != HAL_OK)
+    {
+        Error_Handler();
+    }
+}
+
+/* ============ 系统时钟配置(低频省电) ============ */
+void SystemClock_Config(void)
+{
+    RCC_OscInitTypeDef RCC_OscInitStruct = {0};
+    RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
+
+    /* 使用MSI内部低速时钟(2.1MHz)，省电 */
+    RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSE |
+                                       RCC_OSCILLATORTYPE_LSE;
+    RCC_OscInitStruct.HSEState = RCC_HSE_ON;
+    RCC_OscInitStruct.LSEState = RCC_LSE_ON;  /* RTC需要LSE */
+    RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
+    RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
+    RCC_OscInitStruct.PLL.PLLMUL = RCC_PLLMUL_12;  /* 8*12=96MHz → 降频更省电 */
+    RCC_OscInitStruct.PLL.PLLDIV = RCC_PLLDIV_3;
+
+    if (HAL_RCC_OscConfig(&amp;RCC_OscInitStruct) != HAL_OK)
+    {
+        Error_Handler();
+    }
+
+    RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK | RCC_CLOCKTYPE_SYSCLK |
+                                  RCC_CLOCKTYPE_PCLK1 | RCC_CLOCKTYPE_PCLK2;
+    RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
+    RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
+    RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV1;
+    RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1;
+
+    if (HAL_RCC_ClockConfig(&amp;RCC_ClkInitStruct, FLASH_LATENCY_1) != HAL_OK)
+    {
+        Error_Handler();
+    }
+}
+
+/* ============ 中断回调 ============ */
+
+/* RTC闹钟中断 */
+void RTC_Alarm_IRQHandler(void)
+{
+    HAL_RTC_AlarmIRQHandler(&amp;hrtc);
+}
+
+/* RTC闹钟回调 */
+void HAL_RTC_AlarmAEventCallback(RTC_HandleTypeDef *hrtc)
+{
+    rtc_wakeup_flag = 1;
+}
+
+/* 外部中断0(PA0按键) */
+void EXTI0_1_IRQHandler(void)
+{
+    HAL_GPIO_EXTI_IRQHandler(GPIO_PIN_0);
+}
+
+/* GPIO外部中断回调 */
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
+{
+    if (GPIO_Pin == GPIO_PIN_0)
+    {
+        button_wakeup_flag = 1;
+    }
+}
+
+/* ============ 电池寿命计算 ============ */
+static uint32_t Calculate_Battery_Life(uint32_t current_ua, uint32_t capacity_mah)
+{
+    /* 电池寿命(小时) = 容量(mAh) * 1000 / 电流(uA) */
+    if (current_ua == 0) return 0xFFFFFFFF;
+    return (capacity_mah * 1000) / current_ua;
+}
+
+/* 重定向printf */
+#ifdef __GNUC__
+int __io_putchar(int ch)
+{
+    HAL_UART_Transmit(&amp;huart1, (uint8_t*)&amp;ch, 1, HAL_MAX_DELAY);
+    return ch;
+}
+#endif
+</pre>
+
+<h3>CubeMX配置要点</h3>
+<pre>
+1. 选择芯片: STM32L053C8T6
+2. 时钟配置:
+   - HSE: Crystal/Ceramic Resonator (8MHz)
+   - LSE: Crystal (32.768KHz，RTC用)
+   - PLL: HSE × 12 / 3 = 32MHz (不要跑太高)
+3. RTC配置:
+   - Enable RTC
+   - Hour Format: 24
+   - Async Prediv: 127, Sync Prediv: 255
+   - Enable Alarm A
+   - Alarm Mask: 日期+小时+分钟(只比较秒)
+4. GPIO配置:
+   - PA0: GPIO_EXTI0, Falling Edge, Pull-Up
+   - PA9/PA10: USART1_TX/RX
+5. NVIC配置:
+   - RTC alarm interrupt: Enabled
+   - EXTI line 0 interrupt: Enabled
+</pre>
+
+<h2>📝 分步操作指引</h2>
+
+<div class="step">
+<strong>第1步：CubeMX工程创建</strong><br>
+1. 打开STM32CubeMX，选择STM32L053C8T6<br>
+2. 按照上面的配置设置时钟、RTC、GPIO、USART<br>
+3. Project Manager → Code Generator → 勾选"Generate peripheral initialization..."<br>
+4. 生成代码，用Keil/IAR打开工程
+</div>
+
+<div class="step">
+<strong>第2步：添加用户代码</strong><br>
+1. 将上面的完整代码复制到main.c的对应位置<br>
+2. 注意不要覆盖CubeMX生成的代码（在USER CODE区域内编写）<br>
+3. 编译确认无错误
+</div>
+
+<div class="step">
+<strong>第3步：首次烧录(用ST-Link)</strong><br>
+1. 连接ST-Link，正常烧录<br>
+2. 通过串口助手观察输出，确认RTC闹钟正常触发<br>
+3. 按PA0按键确认外部中断唤醒正常
+</div>
+
+<div class="step">
+<strong>第4步：功耗测量</strong><br>
+1. 断开ST-Link和USB线<br>
+2. 将万用表打到uA档，串联在电池正极和VDD之间<br>
+3. 观察运行时电流和Stop模式电流<br>
+4. 记录数据，对比规格书标称值
+</div>
+
+<div class="step">
+<strong>第5步：优化功耗</strong><br>
+1. 如果Stop模式电流偏高(>50uA)，检查：<br>
+   - 是否有引脚浮空<br>
+   - 是否有外设未关闭时钟<br>
+   - LED是否已断开<br>
+2. 逐步关闭外设，每次只关一个，观察电流变化<br>
+3. 目标：Stop模式 < 5uA (STM32L系列)
+</div>
+
+<div class="step">
+<strong>第6步：电池寿命估算</strong><br>
+1. 测得平均电流 = (运行电流 × 运行时间 + 睡眠电流 × 睡眠时间) / 周期<br>
+2. 例：每10秒唤醒1秒，运行2mA，睡眠5uA<br>
+   平均 = (2000 × 1 + 5 × 9) / 10 = 204.5uA<br>
+3. CR2032容量220mAh → 220×1000/204.5 ≈ 1076小时 ≈ 45天<br>
+4. 如果每60秒唤醒1秒 → 平均 ≈ 38uA → 约658天！
+</div>
+
+<h2>❓ 常见问题排查</h2>
+
+<h3>问题1：Stop模式唤醒后程序异常</h3>
+<div class="warn">
+<strong>原因：</strong>Stop模式唤醒后，系统时钟回到MSI低频，如果没有调用<code>SystemClock_Restore()</code>，所有依赖高频时钟的外设(如USART)都无法正常工作。
+</div>
+<p><strong>解决：</strong>唤醒后立即调用<code>SystemClock_Restore()</code>重新配置PLL和系统时钟。这是最容易犯的错误！</p>
+
+<h3>问题2：RTC闹钟不触发</h3>
+<div class="note">
+<strong>排查步骤：</strong><br>
+1. 确认LSE已正常起振 — 检查<code>__HAL_RCC_GET_FLAG(RCC_FLAG_LSERDY)</code><br>
+2. 确认RTC闹钟中断已使能 — NVIC中使能RTC_Alarm_IRQn<br>
+3. 确认闹钟屏蔽位正确 — 如果想每N秒触发，需要屏蔽日期/小时/分钟<br>
+4. 检查32.768KHz晶振是否焊接正确
+</div>
+
+<h3>问题3：功耗测量值远高于预期</h3>
+<table>
+<tr><th>现象</th><th>可能原因</th><th>解决方法</th></tr>
+<tr><td>Stop模式 > 100uA</td><td>引脚浮空</td><td>未用引脚设为模拟输入或上下拉</td></tr>
+<tr><td>Stop模式 > 500uA</td><td>LED仍在电路中</td><td>拆除LED或断开供电</td></tr>
+<tr><td>Stop模式 > 1mA</td><td>ST-Link未断开</td><td>拔掉ST-Link所有连线</td></tr>
+<tr><td>Stop模式 > 5mA</td><td>LDO仍在供电</td><td>使用最小系统板，直接3V供电</td></tr>
+<tr><td>电流不稳定</td><td>万用表量程不对</td><td>使用uA档，不要用mA档</td></tr>
+</table>
+
+<h3>问题4：电池寿命计算</h3>
+<pre>
+/* 电池寿命快速计算公式 */
+
+/* CR2032 容量: 220mAh (标称值，实际考虑80%利用率) */
+/* 有效容量 = 220 × 0.8 = 176 mAh */
+
+/* 场景1: 每10秒唤醒1秒 */
+/* 运行: 2mA × 1s = 2mA·s */
+/* 睡眠: 5uA × 9s = 45uA·s */
+/* 平均电流 = (2000 + 45) / 10 = 204.5uA */
+/* 寿命 = 176mAh / 0.2045mA = 860小时 ≈ 36天 */
+
+/* 场景2: 每60秒唤醒0.5秒 */
+/* 运行: 2mA × 0.5s = 1000uA·s */
+/* 睡眠: 5uA × 59.5s = 297.5uA·s */
+/* 平均电流 = (1000 + 297.5) / 60 = 21.6uA */
+/* 寿命 = 176mAh / 0.0216mA = 8148小时 ≈ 340天 */
+</pre>
+
+<h3>问题5：__WFI() 指令使用</h3>
+<div class="tip">
+<code>__WFI()</code> (Wait For Interrupt) 是ARM Cortex-M的低功耗指令。<br>
+- 执行后CPU进入Sleep模式等待中断<br>
+- <code>HAL_PWR_EnterSTOPMode()</code>内部已经调用了<code>__WFI()</code>或<code>__WFE()</code><br>
+- 单独使用<code>__WFI()</code>只进入Sleep模式，不进入Stop模式<br>
+- 如果只需要短暂等待(如等ADC转换)，用<code>__WFI()</code>即可
+</div>
+
+<div class="note">
+<strong>💡 进阶技巧：</strong><br>
+1. 使用<code>PWR_LOWPOWERREGULATOR_ON</code>进入Stop模式可进一步降低功耗<br>
+2. 唤醒后如果不需要高速运行，可以不恢复PLL，直接用MSI运行<br>
+3. 使用<code>HAL_PWR_DisablePVD()</code>关闭可编程电压检测器省电<br>
+4. 发布版本可以关闭SWD调试接口：<code>__HAL_RCC_DBGMCU_CLK_DISABLE()</code>
+</div>
+
+
+
+<h2>💤 STM32低功耗模式深度对比</h2>
+<table>
+<tr><th>模式</th><th>功耗(F103@72MHz)</th><th>唤醒源</th><th>唤醒时间</th><th>SRAM保持</th><th>适用场景</th></tr>
+<tr><td>Run(正常运行)</td><td>~36mA</td><td>—</td><td>—</td><td>全部</td><td>高性能计算</td></tr>
+<tr><td>Sleep(睡眠)</td><td>~14mA</td><td>任意中断</td><td>即刻</td><td>全部</td><td>等待事件</td></tr>
+<tr><td>Stop(停止)</td><td>~25&mu;A</td><td>EXTI/RTC/WKUP</td><td>~6&mu;s</td><td>全部</td><td>间歇采样</td></tr>
+<tr><td>Standby(待机)</td><td>~3&mu;A</td><td>WKUP/RTC/NRST</td><td>~60&mu;s</td><td>丢失</td><td>电池供电传感器</td></tr>
+<tr><td>Shutdown(F4+)</td><td>~0.3&mu;A</td><td>WKUP/RTC/NRST</td><td>~200&mu;s</td><td>丢失</td><td>超长待机</td></tr>
+</table>
+
+<pre><code>// Stop模式的正确用法 (功耗: 36mA → 25&mu;A, 降低1400倍!)
+void Enter_StopMode(void) {
+    // 1. 关闭不需要的外设时钟
+    __HAL_RCC_GPIOA_CLK_DISABLE();  // 只保留唤醒源GPIO
+    __HAL_RCC_USART1_CLK_DISABLE();
+    __HAL_RCC_SPI1_CLK_DISABLE();
+    
+    // 2. 配置所有未用GPIO为模拟输入(最低功耗)
+    GPIO_InitTypeDef gpio = {0};
+    gpio.Mode = GPIO_MODE_ANALOG;
+    gpio.Pull = GPIO_NOPULL;
+    for (int pin = 0; pin <= 15; pin++) {
+        gpio.Pin = 1 << pin;
+        HAL_GPIO_Init(GPIOA, &gpio);
+    }
+    
+    // 3. 配置唤醒源
+    HAL_PWR_EnableWakeUpPin(PWR_WAKEUP_PIN1);  // PA0上升沿唤醒
+    
+    // 4. 进入Stop模式
+    HAL_PWR_EnterSTOPMode(PWR_LOWPOWERREGULATOR_ON, PWR_STOPENTRY_WFI);
+    
+    // 5. 唤醒后: 恢复时钟和外设
+    SystemClock_Config();  // 重新配置时钟
+}</code></pre>
+
+<h2>🔋 电池寿命估算</h2>
+<pre><code>// 电池容量计算
+// 假设: 2000mAh锂电池 + Stop模式(25&mu;A) + 每10秒唤醒50ms采样(14mA)
+
+// 平均电流 = (待机电流 × 待机时间 + 工作电流 × 工作时间) / 总时间
+// = (25&mu;A × 9950ms + 14mA × 50ms) / 10000ms
+// = (0.24875 + 0.7) / 10 = 0.0949 mA
+
+// 续航 = 2000mAh / 0.0949mA = 21075小时 ≈ 878天 ≈ 2.4年!
+
+// 如果不用低功耗(Run模式永远36mA):
+// 续航 = 2000mAh / 36mA = 55小时 ≈ 2.3天
+
+// 结论: Stop模式把电池寿命从2天提升到2年!</code></pre>
+
+<h2>⏰ RTC闹钟唤醒策略</h2>
+<pre><code>// 周期性唤醒 + 执行任务 + 快速回睡
+void RTC_Wakeup_Config(uint32_t interval_seconds) {
+    // 使用RTC的Wakeup定时器(不需要额外时钟源)
+    __HAL_RCC_PWR_CLK_ENABLE();
+    HAL_PWR_EnableBkUpAccess();
+    
+    // LSI = ~32kHz, 配置每interval_seconds秒唤醒一次
+    // RTC_WAKEUPCLOCK_RTCCLK_DIV16 = 32kHz/16 = 2kHz
+    uint32_t wakeup_counter = interval_seconds * 2000 - 1;
+    
+    HAL_RTCEx_SetWakeUpTimer_IT(&hrtc, wakeup_counter, 
+        RTC_WAKEUPCLOCK_RTCCLK_DIV16);
+}
+
+void HAL_RTCEx_WakeUpTimerEventCallback(RTC_HandleTypeDef *hrtc) {
+    // 1. 快速采样传感器
+    uint16_t temp = ReadTemperature();  // ~10ms
+    uint16_t humidity = ReadHumidity(); // ~10ms
+    
+    // 2. 判断是否需要上报
+    if (abs(temp - last_temp) > 2.0f) {  // 温度变化>2°C才发
+        LoRa_Send(temp, humidity);       // ~100ms
+        last_temp = temp;
+    }
+    
+    // 3. 回到Stop模式 (总占用: 20-120ms)
+    Enter_StopMode();
+}</code></pre>
+
+<h2>📊 实际功耗测量方法</h2>
+<div class="note">
+<strong>精确测量低功耗电流的方法：</strong><br>
+1. 串联&Omega;级采样电阻(如10&Omega;)在电源回路<br>
+2. 用高精度万用表测量电阻两端电压 → I = V/R<br>
+3. 或在电源回路串入万用表电流档(注意: &mu;A档内阻较大, 唤醒瞬间可能导致MCU复位)<br>
+4. 更专业的方法: Nordic PPK2或Joulescope(能捕捉&mu;s级瞬态电流)<br>
+5. 注意: 杜邦线接触电阻、面包板寄生电容都可能增加功耗5-10&mu;A
+</div><hr><h2>❓ 常见问题 FAQ</h2>
+
+<div style="margin:12px 0;padding:12px 16px;background:var(--bg2);border-left:3px solid var(--a);border-radius:0 8px 8px 0">
+  <p style="font-weight:600;color:var(--c1);margin-bottom:4px">Q: 功耗降不下来？</p>
+  <p style="color:var(--t)">A: 1)未用GPIO设为模拟输入 2)关闭不需要的外设时钟 3)ADC用完关闭 4)printf/UART是功耗大户 5)检查是否有上拉电阻持续耗电</p>
+</div>
+
+<div style="margin:12px 0;padding:12px 16px;background:var(--bg2);border-left:3px solid var(--a);border-radius:0 8px 8px 0">
+  <p style="font-weight:600;color:var(--c1);margin-bottom:4px">Q: Standby模式唤醒后程序从头跑？</p>
+  <p style="color:var(--t)">A: 对，Standby是最深度休眠，唤醒等同复位。需要保存数据到RTC后备寄存器或外部EEPROM。Stop模式可保持RAM。</p>
+</div>
+
+<hr><h2>🔗 相关教程</h2>
+<div style="display:flex;flex-wrap:wrap;gap:8px;margin:12px 0">
+<a href="#" onclick="parent.loadPage && parent.loadPage('freertos')" style="display:inline-block;padding:6px 14px;background:var(--bg3);border:1px solid var(--br);border-radius:6px;color:var(--a);text-decoration:none;font-size:.85em">FreeRTOS →</a>
+<a href="#" onclick="parent.loadPage && parent.loadPage('stm32')" style="display:inline-block;padding:6px 14px;background:var(--bg3);border:1px solid var(--br);border-radius:6px;color:var(--a);text-decoration:none;font-size:.85em">STM32开发 →</a>
+<a href="#" onclick="parent.loadPage && parent.loadPage('proj-freertos-station')" style="display:inline-block;padding:6px 14px;background:var(--bg3);border:1px solid var(--br);border-radius:6px;color:var(--a);text-decoration:none;font-size:.85em">FreeRTOS站 →</a>
+</div>
+
+</body></html>

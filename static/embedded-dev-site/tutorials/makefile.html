@@ -1,0 +1,1770 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Makefile 细致教程 - 嵌入式开发必备</title>
+<style>
+/* ========== CSS 变量 ========== */
+:root {
+  --bg: #0d1117;
+  --bg2: #161b22;
+  --bg3: #21262d;
+  --br: #30363d;
+  --t: #c9d1d9;
+  --t2: #8b949e;
+  --a: #58a6ff;
+  --g: #3fb950;
+  --o: #d2991d;
+  --r: #f85149;
+  --p: #a371f7;
+  --c1: #39c5cf;
+}
+
+/* ========== 基础重置 ========== */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--bg);
+  color: var(--t);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
+  line-height: 1.8;
+  font-size: 15px;
+  padding-top: 60px;
+}
+
+/* ========== 顶部固定导航 ========== */
+.nav-top {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  height: 56px;
+  background: var(--bg2);
+  border-bottom: 1px solid var(--br);
+  display: flex;
+  align-items: center;
+  padding: 0 24px;
+  z-index: 1000;
+  backdrop-filter: blur(12px);
+}
+
+.nav-top .logo {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--c1);
+  letter-spacing: 1px;
+}
+
+.nav-top .nav-links {
+  margin-left: auto;
+  display: flex;
+  gap: 20px;
+  overflow-x: auto;
+}
+
+.nav-top .nav-links a {
+  color: var(--t2);
+  text-decoration: none;
+  font-size: 13px;
+  white-space: nowrap;
+  transition: color 0.2s;
+}
+
+.nav-top .nav-links a:hover { color: var(--a); }
+
+/* ========== 主容器 ========== */
+.container {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 32px 24px 80px;
+}
+
+/* ========== 标题样式 ========== */
+h1 {
+  font-size: 32px;
+  font-weight: 800;
+  color: var(--t);
+  margin-bottom: 8px;
+  line-height: 1.3;
+}
+
+h1 .subtitle {
+  display: block;
+  font-size: 16px;
+  font-weight: 400;
+  color: var(--t2);
+  margin-top: 8px;
+}
+
+h2 {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--c1);
+  margin-top: 48px;
+  margin-bottom: 20px;
+  padding-bottom: 10px;
+  border-bottom: 2px solid var(--br);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+h2 .sec-num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px; height: 36px;
+  background: var(--c1);
+  color: var(--bg);
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 800;
+  flex-shrink: 0;
+}
+
+h3 {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--a);
+  margin-top: 28px;
+  margin-bottom: 12px;
+}
+
+/* ========== 段落和文本 ========== */
+p {
+  margin-bottom: 16px;
+  color: var(--t);
+}
+
+strong { color: var(--g); font-weight: 600; }
+
+/* ========== 样式类 ========== */
+
+/* 卡片 */
+.card {
+  background: var(--bg2);
+  border: 1px solid var(--br);
+  border-radius: 10px;
+  padding: 20px 24px;
+  margin: 20px 0;
+  transition: border-color 0.2s;
+}
+
+.card:hover { border-color: var(--a); }
+
+.card-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--c1);
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* 笔记/提示框 */
+.note, .warn, .tip, .analogy {
+  border-radius: 8px;
+  padding: 16px 20px;
+  margin: 20px 0;
+  position: relative;
+  padding-left: 48px;
+}
+
+.note::before, .warn::before, .tip::before, .analogy::before {
+  position: absolute;
+  left: 16px;
+  top: 16px;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.note {
+  background: rgba(88, 166, 255, 0.08);
+  border-left: 4px solid var(--a);
+}
+.note::before { content: "📌"; }
+
+.warn {
+  background: rgba(248, 81, 73, 0.08);
+  border-left: 4px solid var(--r);
+}
+.warn::before { content: "⚠️"; }
+
+.tip {
+  background: rgba(63, 185, 80, 0.08);
+  border-left: 4px solid var(--g);
+}
+.tip::before { content: "💡"; }
+
+.analogy {
+  background: rgba(163, 113, 247, 0.08);
+  border-left: 4px solid var(--p);
+}
+.analogy::before { content: "🔄"; }
+
+/* 步骤 */
+.step {
+  counter-increment: step-counter;
+  background: var(--bg2);
+  border: 1px solid var(--br);
+  border-radius: 10px;
+  padding: 20px 24px 20px 60px;
+  margin: 16px 0;
+  position: relative;
+}
+
+.step::before {
+  content: counter(step-counter);
+  position: absolute;
+  left: 18px;
+  top: 18px;
+  width: 28px; height: 28px;
+  background: var(--p);
+  color: var(--bg);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.steps { counter-reset: step-counter; }
+
+/* 标签 */
+.tag {
+  display: inline-block;
+  background: var(--bg3);
+  color: var(--a);
+  border: 1px solid var(--br);
+  border-radius: 4px;
+  padding: 2px 8px;
+  font-size: 12px;
+  font-family: "Fira Code", "Consolas", monospace;
+  margin: 0 2px;
+}
+
+.tag.green { color: var(--g); border-color: rgba(63,185,80,0.3); }
+.tag.orange { color: var(--o); border-color: rgba(210,153,29,0.3); }
+.tag.red { color: var(--r); border-color: rgba(248,81,73,0.3); }
+.tag.purple { color: var(--p); border-color: rgba(163,113,247,0.3); }
+.tag.cyan { color: var(--c1); border-color: rgba(57,197,207,0.3); }
+
+/* ========== 代码块 ========== */
+pre {
+  background: #0d1021;
+  border: 1px solid var(--br);
+  border-radius: 8px;
+  padding: 20px;
+  margin: 16px 0;
+  overflow-x: auto;
+  font-size: 13.5px;
+  line-height: 1.6;
+}
+
+pre code {
+  font-family: "Fira Code", "JetBrains Mono", "Consolas", monospace;
+  color: var(--t);
+}
+
+/* 行内代码 */
+code {
+  font-family: "Fira Code", "JetBrains Mono", "Consolas", monospace;
+  background: var(--bg3);
+  color: var(--c1);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 13px;
+}
+
+/* 语法高亮（简易） */
+.hl-keyword { color: #ff7b72; }
+.hl-func { color: #d2a8ff; }
+.hl-string { color: #a5d6ff; }
+.hl-comment { color: #8b949e; font-style: italic; }
+.hl-variable { color: #ffa657; }
+.hl-number { color: #79c0ff; }
+.hl-make-target { color: #7ee787; }
+.hl-make-var { color: #ffa657; }
+.hl-make-auto { color: #ff7b72; }
+.hl-make-prereq { color: #79c0ff; }
+
+/* ========== 表格 ========== */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 20px 0;
+  font-size: 14px;
+}
+
+th {
+  background: var(--bg3);
+  color: var(--a);
+  padding: 10px 14px;
+  text-align: left;
+  border: 1px solid var(--br);
+  font-weight: 600;
+}
+
+td {
+  padding: 10px 14px;
+  border: 1px solid var(--br);
+  vertical-align: top;
+}
+
+tr:nth-child(even) { background: rgba(33,38,45,0.5); }
+
+/* ========== 列表 ========== */
+ul, ol {
+  margin: 12px 0 12px 24px;
+}
+
+li {
+  margin-bottom: 8px;
+  color: var(--t);
+}
+
+li::marker { color: var(--a); }
+
+/* ========== 面包屑 ========== */
+.breadcrumb {
+  margin-top: 64px;
+  padding: 20px 0;
+  border-top: 1px solid var(--br);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: var(--t2);
+}
+
+.breadcrumb a {
+  color: var(--a);
+  text-decoration: none;
+}
+
+.breadcrumb a:hover { text-decoration: underline; }
+
+.breadcrumb .sep { color: var(--br); }
+
+/* ========== 首页 Hero ========== */
+.hero {
+  text-align: center;
+  padding: 48px 0 40px;
+  border-bottom: 1px solid var(--br);
+  margin-bottom: 40px;
+}
+
+.hero h1 {
+  font-size: 36px;
+  background: linear-gradient(135deg, var(--c1), var(--a));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.hero .desc {
+  color: var(--t2);
+  font-size: 16px;
+  margin-top: 16px;
+  max-width: 600px;
+  margin-left: auto; margin-right: auto;
+}
+
+.hero-tags {
+  margin-top: 20px;
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+/* ========== 目录 ========== */
+.toc {
+  background: var(--bg2);
+  border: 1px solid var(--br);
+  border-radius: 10px;
+  padding: 24px;
+  margin: 32px 0;
+}
+
+.toc-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--c1);
+  margin-bottom: 16px;
+}
+
+.toc ol {
+  list-style: none;
+  margin-left: 0;
+}
+
+.toc li {
+  padding: 6px 0;
+  border-bottom: 1px solid rgba(48,54,61,0.4);
+}
+
+.toc li:last-child { border-bottom: none; }
+
+.toc a {
+  color: var(--t);
+  text-decoration: none;
+  transition: color 0.2s;
+  display: block;
+  padding: 4px 0;
+}
+
+.toc a:hover { color: var(--a); }
+
+/* ========== 对比框 ========== */
+.compare {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin: 20px 0;
+}
+
+.compare .col {
+  background: var(--bg2);
+  border: 1px solid var(--br);
+  border-radius: 8px;
+  padding: 16px;
+}
+
+.compare .col-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--t2);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--br);
+}
+
+@media (max-width: 640px) {
+  .compare { grid-template-columns: 1fr; }
+  body { font-size: 14px; }
+  h1 { font-size: 26px; }
+  h2 { font-size: 20px; }
+}
+
+/* ========== 进度条（用于说明增量编译） ========== */
+.progress-bar {
+  height: 8px;
+  background: var(--bg3);
+  border-radius: 4px;
+  margin: 12px 0;
+  overflow: hidden;
+}
+
+.progress-bar .fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.3s;
+}
+
+/* ========== 分隔线 ========== */
+hr {
+  border: none;
+  border-top: 1px solid var(--br);
+  margin: 32px 0;
+}
+
+/* ========== 锚点跳转偏移 ========== */
+:target { scroll-margin-top: 72px; }
+</style>
+</head>
+<body>
+
+<!-- ========== 顶部固定导航 ========== -->
+<nav class="nav-top">
+  <div class="logo">⚙️ 嵌入式教程系列</div>
+  <div class="nav-links">
+    <a href="#sec1">是什么</a>
+    <a href="#sec2">语法</a>
+    <a href="#sec3">变量</a>
+    <a href="#sec4">模式规则</a>
+    <a href="#sec5">STM32实战</a>
+    <a href="#sec6">增量编译</a>
+    <a href="#sec7">嵌入式参数</a>
+    <a href="#sec8">Debug/Release</a>
+    <a href="#sec9">常见错误</a>
+    <a href="#sec10">速查表</a>
+  </div>
+</nav>
+
+<div class="container">
+
+<!-- ========== Hero 区域 ========== -->
+<div class="hero">
+  <h1>Makefile 细致教程<span class="subtitle">从"手敲 gcc"到"一键编译"——嵌入式小白的第一份构建指南</span></h1>
+  <p class="desc">Makefile 是嵌入式开发绕不开的技能。本文从零开始，带你彻底搞懂 Makefile 的每一个细节，并给出一个可直接用于 STM32 项目的完整模板。</p>
+  <div class="hero-tags">
+    <span class="tag">嵌入式</span>
+    <span class="tag">Makefile</span>
+    <span class="tag">STM32</span>
+    <span class="tag">GCC</span>
+    <span class="tag">构建系统</span>
+  </div>
+</div>
+
+<!-- ========== 目录 ========== -->
+<div class="toc">
+  <div class="toc-title">📖 目录</div>
+  <ol>
+    <li><a href="#sec1">Makefile 是什么？为什么要用它？（对比手敲 gcc 命令）</a></li>
+    <li><a href="#sec2">基本语法规则（target、prerequisites、recipe、Tab 缩进）</a></li>
+    <li><a href="#sec3">变量和自动变量（CC、CFLAGS、LDFLAGS、$@、$&lt;、$^）</a></li>
+    <li><a href="#sec4">模式规则和伪目标（%.o: %.c 和 .PHONY）</a></li>
+    <li><a href="#sec5">完整 STM32 项目 Makefile（compile/link/objcopy/size/clean/flash）</a></li>
+    <li><a href="#sec6">增量编译原理（如何只重编改过的文件）</a></li>
+    <li><a href="#sec7">嵌入式专用编译参数（-mcpu、-mthumb、-Os、--specs 等）</a></li>
+    <li><a href="#sec8">调试版 vs 发布版 Makefile 切换</a></li>
+    <li><a href="#sec9">常见错误（Tab/空格、路径含空格、通配符陷阱、Windows 换行符）</a></li>
+    <li><a href="#sec10">Makefile 速查表</a></li>
+  </ol>
+</div>
+
+<!-- ============================================================ -->
+<!-- 第1章 -->
+<!-- ============================================================ -->
+<h2 id="sec1"><span class="sec-num">1</span> Makefile 是什么？为什么要用它？<span class="tag g" style="margin-left:8px">🟢入门</span></h2>
+
+<h3>🔍 先说说"没有 Makefile"的日子</h3>
+
+<p>假设你正在写一个 STM32 程序，有 3 个源文件：<code>main.c</code>、<code>uart.c</code>、<code>led.c</code>，对应的头文件各一个。你要编译它们，传统做法是——</p>
+
+<div class="card">
+  <div class="card-title">😫 手敲 gcc 命令（错误示范）</div>
+<pre><code class="hl-keyword"># 第1步：编译每个 .c 为 .o
+arm-none-eabi-gcc -c main.c -o main.o -mcpu=cortex-m3 -mthumb -I.
+arm-none-eabi-gcc -c uart.c -o uart.o -mcpu=cortex-m3 -mthumb -I.
+arm-none-eabi-gcc -c led.c  -o led.o  -mcpu=cortex-m3 -mthumb -I.
+
+# 第2步：链接所有 .o 为 .elf
+arm-none-eabi-gcc main.o uart.o led.o -o firmware.elf -Tlinker.ld -mcpu=cortex-m3 -mthumb -nostartfiles
+
+# 第3步：转换成 .bin/.hex 烧录文件
+arm-none-eabi-objcopy -O binary firmware.elf firmware.bin
+
+# 第4步：查看文件大小
+arm-none-eabi-size firmware.elf</code></pre>
+</div>
+
+<p>每次修改任何一个文件，你都要重新敲一遍这些命令。文件一多（真实项目往往有几十上百个 <code>.c</code>），这简直是噩梦。</p>
+
+<div class="analogy">
+  <strong>类比：</strong>手敲 gcc 命令就像每次做饭都要亲自去菜市场买菜、洗菜、切菜、炒菜——即使你只改了一道菜的一小块食材，也要从头来一遍。Makefile 就是你的"智能厨师"——你告诉它<strong>菜谱</strong>（依赖关系），它自动判断哪些步骤需要重做，哪些可以跳过。
+</div>
+
+<h3>✅ 有了 Makefile 之后</h3>
+
+<p>只需要准备一个 <code>Makefile</code> 文件，然后在终端输入：</p>
+
+<pre><code><span class="hl-keyword">make</span>          <span class="hl-comment"># 编译整个项目</span>
+<span class="hl-keyword">make</span> clean    <span class="hl-comment"># 清理编译产物</span>
+<span class="hl-keyword">make</span> flash    <span class="hl-comment"># 编译并烧录到芯片</span></code></pre>
+
+<p>一条命令，全自动完成编译→链接→格式转换→大小分析。</p>
+
+<div class="compare">
+  <div class="col">
+    <div class="col-title" style="color:var(--r)">❌ 手敲命令</div>
+    <ul>
+      <li>每次都要敲几十行命令</li>
+      <li>容易敲错参数</li>
+      <li>改一个文件也要全量重编</li>
+      <li>团队成员各自为政，编译方式不统一</li>
+      <li>换台电脑就要重新记命令</li>
+    </ul>
+  </div>
+  <div class="col">
+    <div class="col-title" style="color:var(--g)">✅ 使用 Makefile</div>
+    <ul>
+      <li>一条 <code>make</code> 搞定所有</li>
+      <li>参数统一写在文件里，不会错</li>
+      <li>自动增量编译，只重编改过的</li>
+      <li>团队共享同一个 Makefile，编译结果一致</li>
+      <li>任何装了 GNU Make 的环境都能用</li>
+    </ul>
+  </div>
+</div>
+
+<div class="tip">
+  <strong>一句话总结：</strong>Makefile 是一个"自动化构建脚本"。它告诉 <code>make</code> 工具：你的项目有哪些文件、它们之间是什么关系、怎么编译、怎么链接。<code>make</code> 读取 Makefile 后，自动决定哪些文件需要重新编译，哪些可以跳过。
+</div>
+
+<h3>🧠 Make 工具是什么？</h3>
+
+<p><code>make</code> 是一个构建自动化工具，诞生于 1976 年（比很多读者的年龄还大！）。它读取当前目录下名为 <code>Makefile</code> 或 <code>makefile</code> 的文件，根据文件的时间戳判断哪些部分需要重新构建。</p>
+
+<p>在嵌入式开发中，我们通常使用 <strong>GNU Make</strong>（GNU 版本的 make），配合 <strong>arm-none-eabi-gcc</strong> 工具链使用。</p>
+
+<div class="card">
+  <div class="card-title">📦 嵌入式常用工具链组件</div>
+  <table>
+    <tr><th>工具</th><th>作用</th><th>示例命令</th></tr>
+    <tr><td><code>arm-none-eabi-gcc</code></td><td>编译 C 代码</td><td><code>arm-none-eabi-gcc -c main.c</code></td></tr>
+    <tr><td><code>arm-none-eabi-g++</code></td><td>编译 C++ 代码</td><td><code>arm-none-eabi-g++ -c main.cpp</code></td></tr>
+    <tr><td><code>arm-none-eabi-ld</code></td><td>链接器（通常不直接调用）</td><td>—</td></tr>
+    <tr><td><code>arm-none-eabi-objcopy</code></td><td>格式转换（ELF→BIN/HEX）</td><td><code>objcopy -O binary x.elf x.bin</code></td></tr>
+    <tr><td><code>arm-none-eabi-size</code></td><td>查看段大小</td><td><code>size firmware.elf</code></td></tr>
+    <tr><td><code>arm-none-eabi-gdb</code></td><td>调试器</td><td><code>gdb firmware.elf</code></td></tr>
+  </table>
+</div>
+
+<!-- ============================================================ -->
+<!-- 第2章 -->
+<!-- ============================================================ -->
+<h2 id="sec2"><span class="sec-num">2</span> 基本语法规则<span class="tag g" style="margin-left:8px">🟢入门</span></h2>
+
+<h3>📐 Makefile 的核心语法</h3>
+
+<p>Makefile 的基本组成单位是<strong>规则（Rule）</strong>，每条规则的格式如下：</p>
+
+<pre><code><span class="hl-make-target">目标</span>: <span class="hl-make-prereq">依赖文件1</span> <span class="hl-make-prereq">依赖文件2</span> ...
+<span class="hl-comment">    （这里必须是一个 Tab，不是空格！）</span>
+    <span class="hl-make-target">命令1</span>
+    <span class="hl-make-target">命令2</span>
+    ...</code></pre>
+
+<div class="card">
+  <div class="card-title">🔑 三个关键概念</div>
+  <table>
+    <tr><th>名称</th><th>含义</th><th>示例</th></tr>
+    <tr>
+      <td><strong>目标（Target）</strong></td>
+      <td>这条规则要生成的文件，或要执行的"动作名称"</td>
+      <td><code>main.o</code>、<code>firmware.elf</code>、<code>clean</code></td>
+    </tr>
+    <tr>
+      <td><strong>依赖（Prerequisites）</strong></td>
+      <td>生成目标所需要的文件。如果依赖比目标"新"，目标就会重新生成</td>
+      <td><code>main.c</code>、<code>uart.c</code>、<code>stm32f1xx.h</code></td>
+    </tr>
+    <tr>
+      <td><strong>命令（Recipe）</strong></td>
+      <td>生成目标的具体 shell 命令。每行命令<strong>必须以 Tab 开头</strong></td>
+      <td><code>arm-none-eabi-gcc -c main.c -o main.o</code></td>
+    </tr>
+  </table>
+</div>
+
+<h3>📝 第一个 Makefile 例子</h3>
+
+<p>假设我们有一个文件 <code>hello.c</code>：</p>
+
+<pre><code><span class="hl-comment">/* hello.c */</span>
+<span class="hl-keyword">#include</span> <span class="hl-string">&lt;stdio.h&gt;</span>
+
+<span class="hl-keyword">int</span> <span class="hl-func">main</span>(<span class="hl-keyword">void</span>) {
+    <span class="hl-func">printf</span>(<span class="hl-string">"Hello, Makefile!\n"</span>);
+    <span class="hl-keyword">return</span> 0;
+}</code></pre>
+
+<p>对应的 Makefile（普通 GCC，非嵌入式）可以这样写：</p>
+
+<pre><code><span class="hl-comment"># 这是注释，以 # 开头</span>
+<span class="hl-comment"># 规则1：把 hello.c 编译成 hello</span>
+<span class="hl-make-target">hello</span>: <span class="hl-make-prereq">hello.c</span>
+    <span class="hl-keyword">gcc</span> hello.c -o hello
+
+<span class="hl-comment"># 规则2：清理编译产物</span>
+<span class="hl-make-target">clean</span>:
+    <span class="hl-keyword">rm</span> -f hello</code></pre>
+
+<p>在终端执行：</p>
+<pre><code><span class="hl-keyword">make</span>          <span class="hl-comment"># 默认执行第一个目标（hello）</span>
+<span class="hl-keyword">make</span> clean    <span class="hl-comment"># 执行 clean 目标</span></code></pre>
+
+<div class="warn">
+  <strong>致命陷阱：Tab 缩进！</strong><br>
+  Makefile 的命令行<strong>必须以 Tab 字符开头</strong>，不能用空格代替。如果你用编辑器把 Tab 自动转换成了空格，make 会报错：<br>
+  <code>*** missing separator.  Stop.</code><br>
+  解决方法：在编辑器里关闭"将 Tab 替换为空格"的选项，或按 <code>Ctrl+V</code> 然后 <code>Tab</code>（vim）强制插入真实 Tab。
+</div>
+
+<h3>🎯 make 的执行流程</h3>
+
+<p>当你执行 <code>make target</code> 时，make 做了以下几件事：</p>
+
+<div class="steps">
+  <div class="step">
+    <strong>读取 Makefile</strong>：找到与目标同名的规则。如果没指定目标，执行第一个规则。
+  </div>
+  <div class="step">
+    <strong>检查依赖</strong>：对于目标的每个依赖，先检查它是否也是某个规则的目标。如果是，递归处理（先构建依赖）。
+  </div>
+  <div class="step">
+    <strong>比较时间戳</strong>：如果目标文件不存在，或者任何一个依赖比目标"更新"（修改时间更晚），执行命令重新生成目标。
+  </div>
+  <div class="step">
+    <strong>执行命令</strong>：在 shell 中逐行执行 recipe 中的命令。每行命令在独立的 shell 进程中执行。
+  </div>
+</div>
+
+<div class="note">
+  <strong>注意：</strong>每条命令在<strong>独立的 shell</strong> 中运行。这意味着：<br>
+  <code>cd build</code> 后面跟 <code>gcc ...</code> 是不会在 build 目录下执行 gcc 的！<br>
+  正确写法：<code>cd build && gcc ...</code>（用 <code>&&</code> 把多条命令放在同一行）。
+</div>
+
+<!-- ============================================================ -->
+<!-- 第3章 -->
+<!-- ============================================================ -->
+<h2 id="sec3"><span class="sec-num">3</span> 变量和自动变量<span class="tag o" style="margin-left:8px">🟡进阶</span></h2>
+
+<h3>📦 为什么需要变量？</h3>
+
+<p>想象一下，你的项目有 50 个 <code>.c</code> 文件，每个编译命令都要写 <code>-mcpu=cortex-m3 -mthumb -Os -I./inc</code>。某天你要改编译优化等级，难道要改 50 行？</p>
+
+<p>用变量，只需要改<strong>一处</strong>。</p>
+
+<h3>🧩 定义和使用变量</h3>
+
+<div class="card">
+  <div class="card-title">变量基本语法</div>
+<pre><code><span class="hl-comment"># 定义变量（= 或 :=）</span>
+<span class="hl-make-var">CC</span> = arm-none-eabi-gcc
+<span class="hl-make-var">CFLAGS</span> = -mcpu=cortex-m3 -mthumb -Os
+
+<span class="hl-comment"># 使用变量（$(VAR) 或 ${VAR}）</span>
+<span class="hl-make-target">main.o</span>: <span class="hl-make-prereq">main.c</span>
+    $(<span class="hl-make-var">CC</span>) $(<span class="hl-make-var">CFLAGS</span>) -c main.c -o main.o</code></pre>
+</div>
+
+<h3>📋 嵌入式项目常用变量</h3>
+
+<table>
+  <tr><th>变量名</th><th>含义</th><th>示例值</th></tr>
+  <tr><td><code>CC</code></td><td>C 编译器</td><td><code>arm-none-eabi-gcc</code></td></tr>
+  <tr><td><code>CXX</code></td><td>C++ 编译器</td><td><code>arm-none-eabi-g++</code></td></tr>
+  <tr><td><code>CFLAGS</code></td><td>C 编译参数</td><td><code>-mcpu=cortex-m3 -mthumb -Os -Wall</code></td></tr>
+  <tr><td><code>CXXFLAGS</code></td><td>C++ 编译参数</td><td><code>$(CFLAGS) -fno-exceptions</code></td></tr>
+  <tr><td><code>LDFLAGS</code></td><td>链接参数</td><td><code>-Tlinker.ld -nostartfiles -Wl,--gc-sections</code></td></tr>
+  <tr><td><code>LD</code></td><td>链接器（通常用 gcc 驱动链接）</td><td><code>arm-none-eabi-gcc</code></td></tr>
+  <tr><td><code>OBJCOPY</code></td><td>格式转换工具</td><td><code>arm-none-eabi-objcopy</code></td></tr>
+  <tr><td><code>SIZE</code></td><td>大小查看工具</td><td><code>arm-none-eabi-size</code></td></tr>
+  <tr><td><code>SRC</code></td><td>所有源文件列表</td><td><code>main.c uart.c led.c</code></td></tr>
+  <tr><td><code>OBJ</code></td><td>所有目标文件列表</td><td><code>main.o uart.o led.o</code></td></tr>
+  <tr><td><code>INC</code></td><td>头文件搜索路径</td><td><code>-I./inc -I./hal/inc</code></td></tr>
+  <tr><td><code>DEF</code></td><td>宏定义</td><td><code>-DSTM32F103xB -DUSE_HAL_DRIVER</code></td></tr>
+</table>
+
+<h3>⚡ <code>=</code> vs <code>:=</code> vs <code>?=</code> vs <code>+=</code></h3>
+
+<div class="card">
+  <div class="card-title">变量赋值方式对比</div>
+  <table>
+    <tr><th>操作符</th><th>含义</th><th>示例</th></tr>
+    <tr>
+      <td><code>=</code></td>
+      <td><strong>递归展开</strong>。使用时才求值，可以引用后面定义的变量</td>
+      <td><code>FOO = $(BAR)</code><br><code>BAR = hello</code><br>→ <code>$(FOO)</code> = <code>hello</code></td>
+    </tr>
+    <tr>
+      <td><code>:=</code></td>
+      <td><strong>立即展开</strong>。定义时立即求值，不能引用后面定义的变量</td>
+      <td><code>FOO := $(BAR)</code><br><code>BAR = hello</code><br>→ <code>$(FOO)</code> = <code>（空）</code></td>
+    </tr>
+    <tr>
+      <td><code>?=</code></td>
+      <td>如果变量未定义才赋值（避免覆盖命令行传入的值）</td>
+      <td><code>CFLAGS ?= -O2</code></td>
+    </tr>
+    <tr>
+      <td><code>+=</code></td>
+      <td>追加内容</td>
+      <td><code>CFLAGS += -Wall</code></td>
+    </tr>
+  </table>
+</div>
+
+<div class="tip">
+  <strong>建议：</strong>在 Makefile 中，推荐使用 <code>:=</code>（立即展开），因为行为更可预测，不会产生意外的递归引用。只有在确实需要递归展开时才用 <code>=</code>。
+</div>
+
+<h3>🎯 自动变量（重点！）</h3>
+
+<p>自动变量是 Makefile 中最强大也最容易困惑的部分。它们在<strong>每条规则的命令中自动被赋值</strong>，代表当前规则的相关信息。</p>
+
+<div class="card">
+  <div class="card-title">常用自动变量一览</div>
+  <table>
+    <tr><th>自动变量</th><th>含义</th><th>示例</th></tr>
+    <tr>
+      <td><code>$@</code></td>
+      <td>当前规则的<strong>目标文件名</strong></td>
+      <td>规则 <code>main.o: main.c</code> 中，<code>$@</code> = <code>main.o</code></td>
+    </tr>
+    <tr>
+      <td><code>$&lt;</code></td>
+      <td>当前规则的<strong>第一个依赖文件名</strong></td>
+      <td>规则 <code>main.o: main.c uart.h</code> 中，<code>$&lt;</code> = <code>main.c</code></td>
+    </tr>
+    <tr>
+      <td><code>$^</code></td>
+      <td>当前规则的<strong>所有依赖文件名</strong>（去重，空格分隔）</td>
+      <td>规则 <code>app: a.o b.o c.o</code> 中，<code>$^</code> = <code>a.o b.o c.o</code></td>
+    </tr>
+    <tr>
+      <td><code>$?</code></td>
+      <td>所有<strong>比目标新</strong>的依赖文件列表</td>
+      <td>用于打包等场景</td>
+    </tr>
+    <tr>
+      <td><code>$+</code></td>
+      <td>所有依赖（不去重）</td>
+      <td>保留重复依赖时使用</td>
+    </tr>
+    <tr>
+      <td><code>$*</code></td>
+      <td>模式规则中<strong>匹配的部分</strong></td>
+      <td>规则 <code>%.o: %.c</code> 中，对 <code>main.o</code> 来说 <code>$*</code> = <code>main</code></td>
+    </tr>
+  </table>
+</div>
+
+<h3>📝 自动变量使用示例</h3>
+
+<p>没有自动变量时，你这样写：</p>
+
+<pre><code><span class="hl-comment"># 繁琐，每个文件都要写一遍</span>
+<span class="hl-make-target">main.o</span>: <span class="hl-make-prereq">main.c</span> <span class="hl-make-prereq">main.h</span>
+    arm-none-eabi-gcc -c main.c -o main.o $(CFLAGS)
+
+<span class="hl-make-target">uart.o</span>: <span class="hl-make-prereq">uart.c</span> <span class="hl-make-prereq">uart.h</span>
+    arm-none-eabi-gcc -c uart.c -o uart.o $(CFLAGS)</code></pre>
+
+<p>用了自动变量，配合模式规则（下一章讲），你只需要写<strong>两行</strong>：</p>
+
+<pre><code><span class="hl-comment"># 一个规则搞定所有 .c → .o 的编译</span>
+<span class="hl-make-target">%.o</span>: <span class="hl-make-prereq">%.c</span>
+    $(<span class="hl-make-var">CC</span>) -c $&lt; -o $@ $(<span class="hl-make-var">CFLAGS</span>)</code></pre>
+
+<p>解释：<code>$&lt;</code> 自动替换为当前规则的第一个依赖（即对应的 <code>.c</code> 文件），<code>$@</code> 自动替换为目标（即对应的 <code>.o</code> 文件）。</p>
+
+<div class="analogy">
+  <strong>类比：</strong>自动变量就像函数中的"形参"。你写一个通用规则（函数体），make 在匹配时自动把具体的文件名填进去（传参）。
+</div>
+
+<!-- ============================================================ -->
+<!-- 第4章 -->
+<!-- ============================================================ -->
+<h2 id="sec4"><span class="sec-num">4</span> 模式规则和伪目标<span class="tag o" style="margin-left:8px">🟡进阶</span></h2>
+
+<h3>🧩 模式规则（Pattern Rules）</h3>
+
+<p>模式规则用 <code>%</code> 作为通配符，表示"任意匹配的字符串"。最经典的模式规则是：</p>
+
+<pre><code><span class="hl-comment"># 任意 .o 文件，依赖于同名的 .c 文件</span>
+<span class="hl-make-target">%.o</span>: <span class="hl-make-prereq">%.c</span>
+    $(<span class="hl-make-var">CC</span>) -c $&lt; -o $@ $(<span class="hl-make-var">CFLAGS</span>)</code></pre>
+
+<p>当 make 需要构建 <code>main.o</code> 时，它会：</p>
+<ol>
+  <li>看到 <code>%.o: %.c</code> 模式可以匹配（<code>%</code> = <code>main</code>）</li>
+  <li>检查 <code>main.c</code> 是否存在</li>
+  <li>如果存在，执行命令：<code>arm-none-eabi-gcc -c main.c -o main.o $(CFLAGS)</code></li>
+</ol>
+
+<div class="tip">
+  <strong>模式规则 + 自动变量 = Makefile 的核心威力</strong><br>
+  这两个特性结合起来，让你可以用极少的代码处理成百上千个文件。
+</div>
+
+<h3>🎭 多个模式规则组合</h3>
+
+<pre><code><span class="hl-comment"># .c → .o</span>
+<span class="hl-make-target">%.o</span>: <span class="hl-make-prereq">%.c</span>
+    $(<span class="hl-make-var">CC</span>) -c $&lt; -o $@ $(<span class="hl-make-var">CFLAGS</span>)
+
+<span class="hl-comment"># .s → .o（汇编文件）</span>
+<span class="hl-make-target">%.o</span>: <span class="hl-make-prereq">%.s</span>
+    $(<span class="hl-make-var">CC</span>) -c $&lt; -o $@ $(<span class="hl-make-var">CFLAGS</span>)
+
+<span class="hl-comment"># .c → .i（只预处理，用于调试）</span>
+<span class="hl-make-target">%.i</span>: <span class="hl-make-prereq">%.c</span>
+    $(<span class="hl-make-var">CC</span>) -E $&lt; -o $@ $(<span class="hl-make-var">CFLAGS</span>)</code></pre>
+
+<h3>🎯 伪目标（Phony Targets）</h3>
+
+<p>有些"目标"不是真正的文件名，而是代表一个<strong>动作</strong>，比如 <code>clean</code>、<code>flash</code>、<code>all</code>。这些叫做<strong>伪目标</strong>。</p>
+
+<p>问题：如果你的目录里刚好有一个文件叫 <code>clean</code>，那么 <code>make clean</code> 就不会工作了——make 会认为 <code>clean</code> 文件已经是最新的，不需要执行任何命令。</p>
+
+<p>解决方法：用 <code>.PHONY</code> 声明伪目标。</p>
+
+<pre><code><span class="hl-comment"># 声明这些目标不是文件名，而是动作</span>
+<span class="hl-keyword">.PHONY</span>: all clean flash
+
+<span class="hl-comment"># all 是默认目标（第一个目标），依赖 firmware.elf</span>
+<span class="hl-make-target">all</span>: <span class="hl-make-prereq">firmware.elf</span>
+
+<span class="hl-make-target">clean</span>:
+    <span class="hl-keyword">rm</span> -f $(<span class="hl-make-var">OBJ</span>) firmware.elf firmware.bin
+
+<span class="hl-make-target">flash</span>: <span class="hl-make-prereq">firmware.bin</span>
+    st-flash write firmware.bin 0x08000000</code></pre>
+
+<div class="card">
+  <div class="card-title">📋 常用伪目标命名约定</div>
+  <table>
+    <tr><th>伪目标</th><th>含义</th></tr>
+    <tr><td><code>all</code></td><td>默认目标，构建所有东西</td></tr>
+    <tr><td><code>clean</code></td><td>删除所有编译产物</td></tr>
+    <tr><td><code>flash</code> / <code>burn</code></td><td>烧录到芯片</td></tr>
+    <tr><td><code>debug</code></td><td>启动调试器</td></tr>
+    <tr><td><code>test</code></td><td>运行测试</td></tr>
+    <tr><td><code>help</code></td><td>显示帮助信息</td></tr>
+    <tr><td><code>install</code></td><td>安装到系统（PC 端项目常用）</td></tr>
+  </table>
+</div>
+
+<div class="warn">
+  <strong>重要：</strong>凡是不会生成同名文件的目标，都应该加上 <code>.PHONY</code> 声明。这是一个好习惯，可以避免很多诡异的 bug。
+</div>
+
+<!-- ============================================================ -->
+<!-- 第5章 -->
+<!-- ============================================================ -->
+<h2 id="sec5"><span class="sec-num">5</span> 完整 STM32 项目 Makefile<span class="tag r" style="margin-left:8px">🟠实战</span></h2>
+
+<h3>🏗️ 一个可直接使用的 STM32 Makefile</h3>
+
+<p>下面是完整、可直接用于 STM32F103（Cortex-M3）项目的 Makefile。复制后只需修改 <code>PROJECT</code>、<code>MCU</code>、<code>DEF</code> 等几个变量即可适配你的项目。</p>
+
+<div class="card">
+  <div class="card-title">📄 STM32F103 完整 Makefile（可直接使用）</div>
+<pre><code><span class="hl-comment">################################################################################</span>
+<span class="hl-comment"># STM32 项目 Makefile（适用于 STM32F103，Cortex-M3）</span>
+<span class="hl-comment"># 使用方法：</span>
+<span class="hl-comment">#   make          - 编译并生成 .elf .bin .hex</span>
+<span class="hl-comment">#   make clean    - 清理所有编译产物</span>
+<span class="hl-comment">#   make flash    - 烧录到芯片（需要 st-link 或 openocd）</span>
+<span class="hl-comment">#   make size     - 查看固件大小</span>
+<span class="hl-comment">################################################################################</span>
+
+<span class="hl-comment"># ===================== 项目配置（按需修改） =====================</span>
+<span class="hl-make-var">PROJECT</span> := firmware              <span class="hl-comment"># 输出文件名（不含扩展名）</span>
+<span class="hl-make-var">MCU</span>     := cortex-m3            <span class="hl-comment"># MCU 内核（cortex-m0/m3/m4/m7 等）</span>
+<span class="hl-make-var">FPU</span>     := softfp               <span class="hl-comment"># 浮点单元（softfp/hard，M3 用 softfp）</span>
+<span class="hl-make-var">FLOAT</span>   := -mfloat-abi=$(<span class="hl-make-var">FPU</span>)  <span class="hl-comment"># 浮点 ABI</span>
+<span class="hl-make-var">DEF</span>     := -DSTM32F103xB        <span class="hl-comment"># 芯片宏定义（根据芯片修改）</span>
+
+<span class="hl-comment"># ===================== 工具链配置 =====================</span>
+<span class="hl-make-var">CC</span>      := arm-none-eabi-gcc
+<span class="hl-make-var">CXX</span>     := arm-none-eabi-g++
+<span class="hl-make-var">AS</span>      := arm-none-eabi-gcc -x assembler-with-cpp
+<span class="hl-make-var">LD</span>      := arm-none-eabi-gcc
+<span class="hl-make-var">OBJCOPY</span> := arm-none-eabi-objcopy
+<span class="hl-make-var">OBJDUMP</span> := arm-none-eabi-objdump
+<span class="hl-make-var">SIZE</span>    := arm-none-eabi-size
+<span class="hl-make-var">GDB</span>     := arm-none-eabi-gdb
+
+<span class="hl-comment"># ===================== 编译参数 =====================</span>
+<span class="hl-make-var">CFLAGS</span>  := -mcpu=$(<span class="hl-make-var">MCU</span>) -mthumb $(<span class="hl-make-var">FLOAT</span>)
+<span class="hl-make-var">CFLAGS</span>  += -Os -ffunction-sections -fdata-sections -fno-common -fno-exceptions
+<span class="hl-make-var">CFLAGS</span>  += -Wall -Wextra -Wpedantic
+<span class="hl-make-var">CFLAGS</span>  += $(<span class="hl-make-var">DEF</span>)
+<span class="hl-make-var">CFLAGS</span>  += -I./Core/Inc -I./Drivers/STM32F1xx_HAL_Driver/Inc
+<span class="hl-make-var">CFLAGS</span>  += -I./Drivers/CMSIS/Include
+<span class="hl-make-var">CFLAGS</span>  += -I./Drivers/CMSIS/Device/ST/STM32F1xx/Include
+
+<span class="hl-make-var">CXXFLAGS</span> := $(<span class="hl-make-var">CFLAGS</span>) -fno-rtti -fno-exceptions
+
+<span class="hl-comment"># ===================== 链接参数 =====================</span>
+<span class="hl-make-var">LDFLAGS</span> := -mcpu=$(<span class="hl-make-var">MCU</span>) -mthumb $(<span class="hl-make-var">FLOAT</span>)
+<span class="hl-make-var">LDFLAGS</span> += -T./STM32F103CBT6_FLASH.ld    <span class="hl-comment"># 链接脚本路径（根据芯片修改）</span>
+<span class="hl-make-var">LDFLAGS</span> += -specs=nosys.specs -specs=nano.specs
+<span class="hl-make-var">LDFLAGS</span> += -Wl,--gc-sections -Wl,-Map=$(<span class="hl-make-var">PROJECT</span>).map
+<span class="hl-make-var">LDFLAGS</span> += -Wl,--print-memory-usage
+
+<span class="hl-comment"># ===================== 源文件（按需修改） =====================</span>
+<span class="hl-comment"># 核心源码</span>
+<span class="hl-make-var">SRC_C</span>  := $(<span class="hl-make-var">wildcard</span>) ./Core/Src/*.c
+<span class="hl-make-var">SRC_C</span>  += $(<span class="hl-make-var">wildcard</span>) ./Drivers/STM32F1xx_HAL_Driver/Src/*.c
+<span class="hl-make-var">SRC_C</span>  += ./Startup/startup_stm32f103xb.s   <span class="hl-comment"># 启动文件（汇编）</span>
+
+<span class="hl-comment"># ===================== 自动推导目标文件 =====================</span>
+<span class="hl-make-var">OBJ</span> := $(<span class="hl-make-var">SRC_C</span>:.c=.o)    <span class="hl-comment"># 把所有 .c 替换成 .o</span>
+<span class="hl-make-var">OBJ</span> := $(<span class="hl-make-var">patsubst</span>) %.s,%.o,$(<span class="hl-make-var">OBJ</span>))  <span class="hl-comment"># 处理 .s 文件</span>
+
+<span class="hl-comment"># ===================== 伪目标声明 =====================</span>
+<span class="hl-keyword">.PHONY</span>: all clean flash size debug help
+
+<span class="hl-comment"># ===================== 默认目标 =====================</span>
+<span class="hl-make-target">all</span>: $(<span class="hl-make-var">PROJECT</span>).elf $(<span class="hl-make-var">PROJECT</span>).bin $(<span class="hl-make-var">PROJECT</span>).hex size
+
+<span class="hl-comment"># ===================== 编译：.c → .o =====================</span>
+<span class="hl-make-target">%.o</span>: <span class="hl-make-prereq">%.c</span>
+    @<span class="hl-keyword">echo</span> <span class="hl-string">"  CC    $&lt;"</span>
+    @$(<span class="hl-make-var">CC</span>) -c $&lt; -o $@ $(<span class="hl-make-var">CFLAGS</span>)
+
+<span class="hl-comment"># ===================== 编译：.s → .o（汇编） =====================</span>
+<span class="hl-make-target">%.o</span>: <span class="hl-make-prereq">%.s</span>
+    @<span class="hl-keyword">echo</span> <span class="hl-string">"  AS    $&lt;"</span>
+    @$(<span class="hl-make-var">AS</span>) -c $&lt; -o $@ $(<span class="hl-make-var">CFLAGS</span>)
+
+<span class="hl-comment"># ===================== 链接：.o → .elf =====================</span>
+<span class="hl-make-target">$(PROJECT).elf</span>: <span class="hl-make-prereq">$(OBJ)</span>
+    @<span class="hl-keyword">echo</span> <span class="hl-string">"  LD    $@"</span>
+    @$(<span class="hl-make-var">LD</span>) $^ -o $@ $(<span class="hl-make-var">LDFLAGS</span>)
+
+<span class="hl-comment"># ===================== 格式转换：.elf → .bin =====================</span>
+<span class="hl-make-target">$(PROJECT).bin</span>: <span class="hl-make-prereq">$(PROJECT).elf</span>
+    @<span class="hl-keyword">echo</span> <span class="hl-string">"  BIN   $@"</span>
+    @$(<span class="hl-make-var">OBJCOPY</span>) -O binary $&lt; $@
+
+<span class="hl-comment"># ===================== 格式转换：.elf → .hex =====================</span>
+<span class="hl-make-target">$(PROJECT).hex</span>: <span class="hl-make-prereq">$(PROJECT).elf</span>
+    @<span class="hl-keyword">echo</span> <span class="hl-string">"  HEX   $@"</span>
+    @$(<span class="hl-make-var">OBJCOPY</span>) -O ihex $&lt; $@
+
+<span class="hl-comment"># ===================== 查看固件大小 =====================</span>
+<span class="hl-make-target">size</span>:
+    @<span class="hl-keyword">echo</span> <span class="hl-string">"  SIZE"</span>
+    @$(<span class="hl-make-var">SIZE</span>) $(<span class="hl-make-var">PROJECT</span>).elf
+
+<span class="hl-comment"># ===================== 清理编译产物 =====================</span>
+<span class="hl-make-target">clean</span>:
+    @<span class="hl-keyword">echo</span> <span class="hl-string">"  CLEAN"</span>
+    @<span class="hl-keyword">rm</span> -f $(<span class="hl-make-var">OBJ</span>)
+    @<span class="hl-keyword">rm</span> -f $(<span class="hl-make-var">PROJECT</span>).elf $(<span class="hl-make-var">PROJECT</span>).bin $(<span class="hl-make-var">PROJECT</span>).hex $(<span class="hl-make-var">PROJECT</span>).map
+    @<span class="hl-keyword">rm</span> -f $(<span class="hl-make-var">PROJECT</span>).lst $(<span class="hl-make-var">PROJECT</span>).sym
+
+<span class="hl-comment"># ===================== 烧录（st-link） =====================</span>
+<span class="hl-make-target">flash</span>: <span class="hl-make-prereq">$(PROJECT).bin</span>
+    @<span class="hl-keyword">echo</span> <span class="hl-string">"  FLASH"</span>
+    st-flash write $(<span class="hl-make-var">PROJECT</span>).bin 0x08000000
+
+<span class="hl-comment"># ===================== 烧录（openocd，备选） =====================</span>
+<span class="hl-comment"># flash: $(PROJECT).elf</span>
+<span class="hl-comment">#   openocd -f interface/stlink.cfg -f target/stm32f1x.cfg \</span>
+<span class="hl-comment">#     -c "program $&lt; verify reset exit"</span>
+
+<span class="hl-comment"># ===================== 启动调试 =====================</span>
+<span class="hl-make-target">debug</span>: <span class="hl-make-prereq">$(PROJECT).elf</span>
+    $(<span class="hl-make-var">GDB</span>) $&lt;
+
+<span class="hl-comment"># ===================== 帮助信息 =====================</span>
+<span class="hl-make-target">help</span>:
+    @<span class="hl-keyword">echo</span> <span class="hl-string">"可用命令："</span>
+    @<span class="hl-keyword">echo</span> <span class="hl-string">"  make          - 编译项目"</span>
+    @<span class="hl-keyword">echo</span> <span class="hl-string">"  make clean    - 清理编译产物"</span>
+    @<span class="hl-keyword">echo</span> <span class="hl-string">"  make flash    - 烧录到芯片"</span>
+    @<span class="hl-keyword">echo</span> <span class="hl-string">"  make size     - 查看固件大小"</span>
+    @<span class="hl-keyword">echo</span> <span class="hl-string">"  make debug    - 启动 GDB 调试"</span></code></pre>
+</div>
+
+<h3>📁 配套的项目目录结构</h3>
+
+<p>上面的 Makefile 假设你的项目目录结构如下（这是 STM32CubeMX 生成的默认结构）：</p>
+
+<pre><code>project/
+├── Makefile                          ← 本文的 Makefile
+├── STM32F103CBT6_FLASH.ld           ← 链接脚本
+├── Core/
+│   ├── Inc/                          ← 头文件
+│   │   ├── main.h
+│   │   ├── stm32f1xx_hal_conf.h
+│   │   └── ...
+│   └── Src/                          ← 源文件
+│       ├── main.c
+│       ├── stm32f1xx_hal_msp.c
+│       └── ...
+├── Drivers/
+│   ├── STM32F1xx_HAL_Driver/        ← HAL 库
+│   │   ├── Inc/
+│   │   └── Src/
+│   └── CMSIS/                        ← CMSIS 核心文件
+│       ├── Include/
+│       └── Device/ST/STM32F1xx/Include/
+├── Startup/
+│   └── startup_stm32f103xb.s        ← 启动文件（汇编）
+└── Debug/（可选，编译输出目录）</code></pre>
+
+<div class="tip">
+  <strong>快速验证：</strong>把上面的 Makefile 保存为项目根目录下的 <code>Makefile</code>，然后执行 <code>make</code>，观察输出。如果报错"arm-none-eabi-gcc: command not found"，说明工具链没有安装或没有加入 PATH。
+</div>
+
+<!-- ============================================================ -->
+<!-- 第6章 -->
+<!-- ============================================================ -->
+<h2 id="sec6"><span class="sec-num">6</span> 增量编译原理<span class="tag o" style="margin-left:8px">🟡进阶</span></h2>
+
+<h3>🚀 什么是增量编译？</h3>
+
+<p><strong>增量编译</strong>（Incremental Build）是指：只重新编译那些<strong>发生了改变的文件</strong>，以及<strong>依赖于这些文件的其他文件</strong>，而不是每次都从头编译整个项目。</p>
+
+<div class="compare">
+  <div class="col">
+    <div class="col-title" style="color:var(--r)">❌ 全量编译</div>
+    <p>每次修改一个文件，重新编译所有 <code>.c</code> 文件，再重新链接。</p>
+    <p><strong>50 个文件的项目，改 1 行代码也要编译 50 次。</strong></p>
+    <div class="progress-bar"><div class="fill" style="width:100%;background:var(--r)"></div></div>
+    <p style="font-size:13px;color:var(--t2)">耗时：可能几十秒到几分钟</p>
+  </div>
+  <div class="col">
+    <div class="col-title" style="color:var(--g)">✅ 增量编译</div>
+    <p>只重新编译修改过的 <code>.c</code> 文件（生成新的 <code>.o</code>），然后重新链接。</p>
+    <p><strong>50 个文件的项目，改 1 行代码只需编译 1 次。</strong></p>
+    <div class="progress-bar"><div class="fill" style="width:2%;background:var(--g)"></div></div>
+    <p style="font-size:13px;color:var(--t2)">耗时：通常不到 1 秒</p>
+  </div>
+</div>
+
+<h3>⏰ make 如何判断"是否需要重编"？</h3>
+
+<p>make 的核心判断逻辑非常简单，就一条规则：</p>
+
+<div class="card" style="border-color:var(--g);text-align:center;padding:24px;">
+  <div style="font-size:18px;font-weight:700;color:var(--g);margin-bottom:8px;">核心规则</div>
+  <div style="font-size:20px;">
+    如果<strong>目标文件不存在</strong>，或者<strong>任意一个依赖的修改时间比目标新</strong><br>
+    → 执行命令重新生成目标
+  </div>
+  <div style="margin-top:12px;font-size:13px;color:var(--t2);">否则 → 跳过，提示 "xxx is up to date"</div>
+</div>
+
+<h3>📊 增量编译完整流程示例</h3>
+
+<p>假设项目有 3 个文件：<code>main.c</code>、<code>uart.c</code>、<code>led.c</code>，对应的 <code>.o</code> 文件已经存在。</p>
+
+<div class="steps">
+  <div class="step">
+    <strong>你修改了 <code>uart.c</code></strong><br>
+    文件时间戳更新：<code>uart.c</code> 现在比 <code>uart.o</code> 新。
+  </div>
+  <div class="step">
+    <strong>执行 <code>make</code></strong><br>
+    make 检查最终目标 <code>firmware.elf</code> 的依赖链。
+  </div>
+  <div class="step">
+    <strong>make 发现 <code>uart.o</code> 需要更新</strong><br>
+    因为 <code>uart.c</code> 比 <code>uart.o</code> 新，执行 <code>arm-none-eabi-gcc -c uart.c -o uart.o</code>。
+  </div>
+  <div class="step">
+    <strong>make 重新链接</strong><br>
+    因为 <code>uart.o</code> 更新了（比 <code>firmware.elf</code> 新），执行链接命令重新生成 <code>firmware.elf</code>。
+  </div>
+  <div class="step">
+    <strong><code>main.o</code> 和 <code>led.o</code> 被跳过</strong><br>
+    它们的 <code>.c</code> 文件没有修改，比对应的 <code>.o</code> 旧，不需要重编。
+  </div>
+</div>
+
+<div class="analogy">
+  <strong>类比：</strong>增量编译就像乐高拼装。你拼好了一个 1000 块的模型，后来发现其中一块（uart.c）拼错了。你只需要拆掉那一块重新拼，而不需要把整个模型拆了重拼。
+</div>
+
+<h3>⚠️ 增量编译的陷阱</h3>
+
+<div class="card">
+  <div class="card-title">哪些情况会导致增量编译失效？</div>
+  <table>
+    <tr><th>情况</th><th>后果</th><th>解决方法</th></tr>
+    <tr>
+      <td>修改了头文件（<code>.h</code>），但 <code>.c</code> 文件没有列明对该 <code>.h</code> 的依赖</td>
+      <td>make 不知道需要重编，使用旧的目标文件</td>
+      <td>在规则中列出所有 <code>.h</code> 依赖，或使用 <code>-MMD</code> 自动生成依赖（见下文）</td>
+    </tr>
+    <tr>
+      <td>修改了编译参数（如 <code>CFLAGS</code>）</td>
+      <td>旧的目标文件是用旧参数编译的，但不会触发重编</td>
+      <td>执行 <code>make clean</code> 后重新编译</td>
+    </tr>
+    <tr>
+      <td>修改了链接脚本（<code>.ld</code>）</td>
+      <td>链接步骤可能不会重跑</td>
+      <td>把 <code>.ld</code> 文件加入 <code>$(PROJECT).elf</code> 的依赖列表</td>
+    </tr>
+    <tr>
+      <td>系统时间不正确（如跨时区或虚拟机时间跳变）</td>
+      <td>时间戳比较出错</td>
+      <td>确保系统时间正确，或 <code>make clean</code> 后重编</td>
+    </tr>
+  </table>
+</div>
+
+<h3>🎯 自动生成头文件依赖（高级技巧）</h3>
+
+<p>手动维护每个 <code>.o</code> 对 <code>.h</code> 的依赖是不现实的（文件太多）。GCC 提供了一个功能，可以<strong>自动生成依赖关系</strong>：</p>
+
+<pre><code><span class="hl-comment"># 在 CFLAGS 中加入 -MMD -MP</span>
+<span class="hl-make-var">CFLAGS</span> += -MMD -MP
+
+<span class="hl-comment"># -MMD：生成 .d 文件（依赖文件），包含该 .c 所包含的所有 .h</span>
+<span class="hl-comment"># -MP：为每个头文件生成一个伪目标，防止头文件被删除时报错</span>
+
+<span class="hl-comment"># 在 Makefile 末尾加入：</span>
+<span class="hl-make-var">-include</span> $(<span class="hl-make-var">OBJ</span>:.o=.d)   <span class="hl-comment"># 包含所有的 .d 依赖文件</span></code></pre>
+
+<p>这样，当你修改任何一个 <code>.h</code> 文件时，make 会自动知道哪些 <code>.o</code> 需要重编。</p>
+
+<div class="tip">
+  <strong>强烈建议：</strong>在嵌入式项目的 Makefile 中，始终加上 <code>-MMD -MP</code> 标志。这是保证增量编译正确性的关键。
+</div>
+
+<!-- ============================================================ -->
+<!-- 第7章 -->
+<!-- ============================================================ -->
+<h2 id="sec7"><span class="sec-num">7</span> 嵌入式专用编译参数<span class="tag o" style="margin-left:8px">🟡进阶</span></h2>
+
+<h3>🎛️ 为什么嵌入式编译参数这么多？</h3>
+
+<p>嵌入式编译和 PC 编译最大的不同在于：<strong>没有操作系统</strong>。你的代码直接跑在裸机上，没有标准库、没有文件系统、没有动态内存分配器（除非你自己实现）。因此，你需要通过编译参数告诉 GCC：</p>
+
+<ul>
+  <li>目标 CPU 是什么型号？（<code>-mcpu</code>）</li>
+  <li>使用什么指令集？（<code>-mthumb</code>）</li>
+  <li>有没有硬件浮点单元？（<code>-mfpu</code>、<code>-mfloat-abi</code>）</li>
+  <li>用哪个标准库实现？（<code>--specs</code>）</li>
+  <li>怎么优化代码大小？（<code>-Os</code>、<code>-ffunction-sections</code>）</li>
+</ul>
+
+<h3>📋 嵌入式关键编译参数详解</h3>
+
+<div class="card">
+  <div class="card-title">🎯 CPU 和指令集参数</div>
+  <table>
+    <tr><th>参数</th><th>含义</th><th>示例</th></tr>
+    <tr>
+      <td><code>-mcpu=xxx</code></td>
+      <td>指定目标 CPU 内核</td>
+      <td><code>-mcpu=cortex-m3</code><br><code>-mcpu=cortex-m4</code><br><code>-mcpu=cortex-m7</code></td>
+    </tr>
+    <tr>
+      <td><code>-mthumb</code></td>
+      <td>使用 Thumb 指令集（Cortex-M 必须使用）</td>
+      <td>所有 Cortex-M 芯片都加这个</td>
+    </tr>
+    <tr>
+      <td><code>-march=xxx</code></td>
+      <td>指定目标架构（与 <code>-mcpu</code> 二选一，<code>-mcpu</code> 更常用）</td>
+      <td><code>-march=armv7-m</code></td>
+    </tr>
+  </table>
+</div>
+
+<div class="card">
+  <div class="card-title">🎯 浮点单元参数（FPU）</div>
+  <table>
+    <tr><th>参数</th><th>含义</th><th>适用芯片</th></tr>
+    <tr>
+      <td><code>-mfloat-abi=soft</code></td>
+      <td>不使用硬件 FPU，用软件库模拟浮点运算</td>
+      <td>Cortex-M0/M3（无 FPU）</td>
+    </tr>
+    <tr>
+      <td><code>-mfloat-abi=softfp</code></td>
+      <td>用软件浮点调用约定，但可以使用硬件 FPU 指令</td>
+      <td>兼容模式</td>
+    </tr>
+    <tr>
+      <td><code>-mfloat-abi=hard</code></td>
+      <td>使用硬件 FPU，调用约定也用 FPU 寄存器（性能最好）</td>
+      <td>Cortex-M4F/M7（有 FPU）</td>
+    </tr>
+    <tr>
+      <td><code>-mfpu=fpv4-sp-d16</code></td>
+      <td>指定 FPU 型号（配合 <code>-mfloat-abi=hard/softfp</code> 使用）</td>
+      <td>Cortex-M4F</td>
+    </tr>
+  </table>
+</div>
+
+<div class="card">
+  <div class="card-title">🎯 优化参数</div>
+  <table>
+    <tr><th>参数</th><th>含义</th><th>说明</th></tr>
+    <tr>
+      <td><code>-Os</code></td>
+      <td>优化代码大小（常用！嵌入式 Flash 很贵）</td>
+      <td>在尺寸和速度之间取平衡</td>
+    </tr>
+    <tr>
+      <td><code>-O0</code></td>
+      <td>不优化（调试时用）</td>
+      <td>代码和源码一一对应，方便单步调试</td>
+    </tr>
+    <tr>
+      <td><code>-O2</code></td>
+      <td>优化速度</td>
+      <td>Release 版本可用</td>
+    </tr>
+    <tr>
+      <td><code>-O3</code></td>
+      <td>最大优化</td>
+      <td>可能让调试变得困难</td>
+    </tr>
+    <tr>
+      <td><code>-ffunction-sections -fdata-sections</code></td>
+      <td>把每个函数/变量放在独立的段（section）中</td>
+      <td>配合链接器的 <code>--gc-sections</code> 可以删除未使用的函数，大幅减小固件体积</td>
+    </tr>
+    <tr>
+      <td><code>-fno-common</code></td>
+      <td>禁止"未初始化全局变量"放在 common 段</td>
+      <td>避免多个 <code>.c</code> 文件定义同名全局变量的链接错误</td>
+    </tr>
+  </table>
+</div>
+
+<div class="card">
+  <div class="card-title">🎯 链接器参数（通过 GCC 传递，加 <code>-Wl,</code> 前缀）</div>
+  <table>
+    <tr><th>参数</th><th>含义</th></tr>
+    <tr>
+      <td><code>-Txxx.ld</code></td>
+      <td>指定链接脚本（内存布局）</td>
+    </tr>
+    <tr>
+      <td><code>-Wl,--gc-sections</code></td>
+      <td>删除未使用的段（配合 <code>-ffunction-sections</code>）</td>
+    </tr>
+    <tr>
+      <td><code>-Wl,--print-memory-usage</code></td>
+      <td>链接时打印 Flash/RAM 使用情况</td>
+    </tr>
+    <tr>
+      <td><code>-Wl,-Map=xxx.map</code></td>
+      <td>生成链接映射文件（用于分析内存布局）</td>
+    </tr>
+    <tr>
+      <td><code>-nostartfiles</code></td>
+      <td>不使用标准启动文件（裸机程序通常需要）</td>
+    </tr>
+    <tr>
+      <td><code>-specs=nosys.specs</code></td>
+      <td>提供"空实现"的系统调用桩（如 <code>_write</code>、<code>_sbrk</code>）</td>
+    </tr>
+    <tr>
+      <td><code>-specs=nano.specs</code></td>
+      <td>使用 newlib-nano（精简版 C 标准库，减小体积）</td>
+    </tr>
+  </table>
+</div>
+
+<h3>🎯 <code>--specs</code> 参数详解</h3>
+
+<div class="note">
+  <strong>newlib 和 newlib-nano 是什么？</strong><br>
+  GCC 的 arm-none-eabi 工具链使用 <strong>newlib</strong> 作为 C 标准库实现。<code>nosys.specs</code> 提供空的系统调用实现（因为嵌入式没有操作系统），<code>nano.specs</code> 是 newlib 的精简版，可以把 printf 等函数缩小 70% 以上。
+</div>
+
+<div class="card">
+  <div class="card-title">常用 specs 组合</div>
+  <table>
+    <tr><th>组合</th><th>适用场景</th></tr>
+    <tr>
+      <td><code>-specs=nosys.specs</code></td>
+      <td>不需要 <code>printf</code> 等标准库功能，或自己实现了系统调用</td>
+    </tr>
+    <tr>
+      <td><code>-specs=nosys.specs -specs=nano.specs</code></td>
+      <td><strong>最常用</strong>。使用精简版标准库 + 空系统调用</td>
+    </tr>
+    <tr>
+      <td><code>-specs=rdimon.specs</code></td>
+      <td>使用 semihosting（通过调试器输出 printf，开发调试时用）</td>
+    </tr>
+  </table>
+</div>
+
+<!-- ============================================================ -->
+<!-- 第8章 -->
+<!-- ============================================================ -->
+<h2 id="sec8"><span class="sec-num">8</span> 调试版 vs 发布版 Makefile 切换<span class="tag r" style="margin-left:8px">🟠实战</span></h2>
+
+<h3>🎭 为什么需要两个版本？</h3>
+
+<table>
+  <tr><th></th><th>调试版（Debug）</th><th>发布版（Release）</th></tr>
+  <tr><td>优化等级</td><td><code>-O0</code>（不优化）</td><td><code>-Os</code> 或 <code>-O2</code>（优化）</td></tr>
+  <tr><td>调试信息</td><td><code>-g3</code>（包含宏定义）</td><td>无（或 <code>-g</code> 保留用于 addr2line）</td></tr>
+  <tr><td>断言</td><td>启用（<code>assert()</code> 有效）</td><td>禁用（<code>NDEBUG</code> 定义）</td></tr>
+  <tr><td>日志</td><td>完整日志</td><td>关闭调试日志</td></tr>
+  <tr><td>固件大小</td><td>较大</td><td>较小</td></tr>
+  <tr><td>运行速度</td><td>较慢（便于调试）</td><td>较快</td></tr>
+</table>
+
+<h3>🛠️ 方法一：在 Makefile 中加 <code>DEBUG</code> 变量</h3>
+
+<pre><code><span class="hl-comment"># 用法：make DEBUG=1（调试版）或 make（发布版）</span>
+<span class="hl-make-var">DEBUG</span> ?= 0
+
+<span class="hl-keyword">ifeq</span> ($(<span class="hl-make-var">DEBUG</span>), 1)
+    <span class="hl-comment"># 调试版配置</span>
+    <span class="hl-make-var">CFLAGS</span> += -O0 -g3 -DDEBUG -DENABLE_LOG
+<span class="hl-keyword">else</span>
+    <span class="hl-comment"># 发布版配置</span>
+    <span class="hl-make-var">CFLAGS</span> += -Os -DNDEBUG -DENABLE_LOG=0
+<span class="hl-keyword">endif</span></code></pre>
+
+<p>使用方式：</p>
+<pre><code><span class="hl-keyword">make</span> DEBUG=1        <span class="hl-comment"># 编译调试版</span>
+<span class="hl-keyword">make</span>                 <span class="hl-comment"># 编译发布版</span>
+<span class="hl-keyword">make</span> DEBUG=1 flash   <span class="hl-comment"># 编译调试版并烧录</span></code></pre>
+
+<h3>🛠️ 方法二：写两个独立的目标</h3>
+
+<pre><code><span class="hl-keyword">.PHONY</span>: debug release
+
+<span class="hl-make-target">debug</span>:
+    $(<span class="hl-make-var">MAKE</span>) CFLAGS=<span class="hl-string">"-O0 -g3 -DDEBUG"</span>
+
+<span class="hl-make-target">release</span>:
+    $(<span class="hl-make-var">MAKE</span>) CFLAGS=<span class="hl-string">"-Os -DNDEBUG"</span></code></pre>
+
+<h3>🛠️ 方法三（推荐）：使用 <code>BUILD_DIR</code> 分离输出目录</h3>
+
+<p>调试版和发布版的 <code>.o</code> 文件不能混在一起，否则增量编译会出问题。推荐用不同的输出目录：</p>
+
+<pre><code><span class="hl-comment"># 在 Makefile 顶部加入</span>
+<span class="hl-make-var">BUILD_DIR</span> := build/$(<span class="hl-make-var">BUILD_TYPE</span>)
+
+<span class="hl-comment"># 对象文件放到 BUILD_DIR 下</span>
+<span class="hl-make-var">OBJ</span> := $(<span class="hl-make-var">addprefix</span>) $(<span class="hl-make-var">BUILD_DIR</span>)/, $(<span class="hl-make-var">notdir</span>) $(<span class="hl-make-var">SRC_C</span>:.c=.o)))
+
+<span class="hl-comment"># 确保输出目录存在（Order-only 依赖，用 | 表示）</span>
+<span class="hl-make-target">$(BUILD_DIR)/%.o</span>: <span class="hl-make-prereq">%.c</span> <span class="hl-make-target">| $(BUILD_DIR)</span>
+    $(<span class="hl-make-var">CC</span>) -c $&lt; -o $@ $(<span class="hl-make-var">CFLAGS</span>)
+
+<span class="hl-make-target">$(BUILD_DIR)</span>:
+    <span class="hl-keyword">mkdir</span> -p $@</span></code></pre>
+
+<p>这样调试版的输出在 <code>build/debug/</code>，发布版在 <code>build/release/</code>，互不干扰。</p>
+
+<div class="tip">
+  <strong>推荐做法：</strong>用 <code>make DEBUG=1</code> 切换 + 用不同的 <code>BUILD_DIR</code> 分离输出。这是许多开源嵌入式项目的标准做法（如 STM32Cube HAL 的 Makefile 模板）。
+</div>
+
+<!-- ============================================================ -->
+<!-- 第9章 -->
+<!-- ============================================================ -->
+<h2 id="sec9"><span class="sec-num">9</span> 常见错误<span class="tag r" style="margin-left:8px">🟠实战</span></h2>
+
+<h3>💀 错误一：Tab 和空格混淆</h3>
+
+<div class="warn">
+  <strong>症状：</strong><code>*** missing separator.  Stop.</code><br><br>
+  <strong>原因：</strong>Makefile 的命令行必须用 Tab 字符开头，但你的编辑器把 Tab 自动转换成了空格。<br><br>
+  <strong>解决：</strong>
+  <ol>
+    <li>在编辑器中关闭"Tab 替换为空格"（VS Code：右下角 "Spaces" → "Indent Using Tabs"）</li>
+    <li>用 <code>cat -A Makefile</code> 检查（Tab 显示为 <code>^I</code>，空格显示为普通空格）</li>
+    <li>VS Code 可安装 "Makefile Tools" 插件，自动处理 Tab 问题</li>
+  </ol>
+</div>
+
+<h3>💀 错误二：路径含空格</h3>
+
+<div class="warn">
+  <strong>症状：</strong><code>make: *** No rule to make target 'Files/...'.  Stop.</code><br><br>
+  <strong>原因：</strong>你的项目放在了 <code>C:\Program Files\...</code> 这种含空格的路径下。Makefile 用空格分隔参数，路径中的空格会被误认为是参数分隔符。<br><br>
+  <strong>解决：</strong>
+  <ol>
+    <li><strong>最佳方案：</strong>把项目移到不含空格的路径，如 <code>C:\embedded\myproject\</code></li>
+    <li>如果必须含空格，用引号包裹路径：<code>"C:\Program Files\..."</code></li>
+    <li>Windows 用户推荐使用 <code>C:\Users\你的用户名\workspace\</code> 这类路径</li>
+  </ol>
+</div>
+
+<h3>💀 错误三：通配符陷阱（<code>%</code> vs <code>*</code>）</h3>
+
+<div class="warn">
+  <strong>症状：</strong>模式规则不生效，或 <code>wildcard</code> 找不到文件。<br><br>
+  <strong>原因：</strong>Makefile 中有两种"通配符"，用途不同，容易混淆：
+  <pre><code><span class="hl-comment"># * 用于文件名匹配（在变量赋值中）</span>
+<span class="hl-make-var">SRC</span> := $(<span class="hl-make-var">wildcard</span>) *.c)   <span class="hl-comment"># 正确：找出所有 .c 文件</span>
+
+<span class="hl-comment"># % 用于模式规则（在目标/依赖中）</span>
+<span class="hl-make-target">%.o</span>: <span class="hl-make-prereq">%.c</span>               <span class="hl-comment"># 正确：模式规则</span>
+
+<span class="hl-comment"># 错误示例：在规则中用 *</span>
+<span class="hl-make-target">*.o</span>: <span class="hl-make-prereq">*.c</span>                <span class="hl-comment"># 错误！这不是模式规则</span></code></pre>
+  <strong>记住：</strong><code>*</code> 是 shell 通配符，<code>%</code> 是 Makefile 模式通配符。不要在规则中用 <code>*</code>。
+</div>
+
+<h3>💀 错误四：Windows 换行符问题（CRLF vs LF）</h3>
+
+<div class="warn">
+  <strong>症状：</strong>在 Windows 下编辑的 Makefile，在 WSL 或 Linux 下运行时报错：<br>
+  <code>Makefile:XX: *** missing separator.  Stop.</code><br>
+  或者：<code>make: /bin/sh: Command not found</code><br><br>
+  <strong>原因：</strong>Windows 的换行符是 <code>\r\n</code>（CRLF），而 Linux/Mac/GNU Make 期望 <code>\n</code>（LF）。<code>\r</code> 会被当作普通字符，导致各种诡异错误。<br><br>
+  <strong>解决：</strong>
+  <ol>
+    <li>在 VS Code 右下角，把换行符从 "CRLF" 改为 "LF"</li>
+    <li>执行 <code>dos2unix Makefile</code>（Linux/WSL 下）</li>
+    <li>Git 配置：<code>git config --global core.autocrlf input</code></li>
+    <li>Windows 下推荐使用 <strong>WSL</strong> 或 <strong>MSYS2</strong> 环境，它们对 LF 更友好</li>
+  </ol>
+</div>
+
+<div class="note">
+  <strong>如何检查文件换行符？</strong><br>
+  VS Code 右下角状态栏会显示 "CRLF" 或 "LF"。点击可以切换。<br>
+  命令行：<code>file Makefile</code> 会显示 "CRLF line terminators" 如果存在 Windows 换行符。
+</div>
+
+<h3>💀 错误五：变量展开时机错误（<code>=</code> vs <code>:=</code>）</h3>
+
+<pre><code><span class="hl-comment"># 错误示例</span>
+<span class="hl-make-var">SRC</span> = $(<span class="hl-make-var">wildcard</span>) *.c)
+<span class="hl-make-var">OBJ</span> = $(<span class="hl-make-var">SRC</span>:%.c=%.o)   <span class="hl-comment"># 这里 SRC 可能还没展开！</span>
+
+<span class="hl-comment"># 正确写法</span>
+<span class="hl-make-var">SRC</span> := $(<span class="hl-make-var">wildcard</span>) *.c)   <span class="hl-comment"># 立即展开</span>
+<span class="hl-make-var">OBJ</span> := $(<span class="hl-make-var">SRC</span>:%.c=%.o)     <span class="hl-comment"># 现在 SRC 已经有值了</span></code></pre>
+
+<h3>💀 错误六：忘记声明 <code>.PHONY</code></h3>
+
+<pre><code><span class="hl-comment"># 如果目录里有一个文件叫 "clean"</span>
+<span class="hl-comment"># make clean 就不会执行清理命令！</span>
+
+<span class="hl-comment"># 正确做法：</span>
+<span class="hl-keyword">.PHONY</span>: clean
+<span class="hl-make-target">clean</span>:
+    <span class="hl-keyword">rm</span> -f *.o</code></pre>
+
+<h3>💀 错误七：Windows 下 <code>rm</code> 命令不存在</h3>
+
+<div class="warn">
+  <strong>症状：</strong><code>'rm' is not recognized as an internal or external command</code><br><br>
+  <strong>原因：</strong><code>rm</code> 是 Linux/Mac 命令，Windows CMD 中没有。<br><br>
+  <strong>解决：</strong>
+  <ol>
+    <li>安装 <strong>MSYS2</strong> 或 <strong>Git Bash</strong>，它们提供了 <code>rm</code> 等 Unix 工具</li>
+    <li>在 Makefile 中用条件判断适配 Windows：
+      <pre><code><span class="hl-keyword">ifeq</span> ($(<span class="hl-make-var">OS</span>),Windows_NT)
+    <span class="hl-make-var">RM</span> := del /F /Q
+<span class="hl-keyword">else</span>
+    <span class="hl-make-var">RM</span> := rm -f
+<span class="hl-keyword">endif</span></code></pre>
+    </li>
+    <li><strong>推荐：</strong>Windows 用户使用 WSL（Windows Subsystem for Linux），获得完整的 Linux 体验</li>
+  </ol>
+</div>
+
+<!-- ============================================================ -->
+<!-- 第10章 -->
+<!-- ============================================================ -->
+<h2 id="sec10"><span class="sec-num">10</span> Makefile 速查表</h2>
+
+<h3>📌 常用语法速查</h3>
+
+<div class="card">
+  <div class="card-title">📐 基本规则语法</div>
+<pre><code><span class="hl-comment"># 基本规则</span>
+<span class="hl-make-target">target</span>: <span class="hl-make-prereq">prereq1</span> <span class="hl-make-prereq">prereq2</span>
+    <span class="hl-comment">    command    ← 必须是 Tab，不是空格！</span>
+
+<span class="hl-comment"># 模式规则</span>
+<span class="hl-make-target">%.o</span>: <span class="hl-make-prereq">%.c</span>
+    $(<span class="hl-make-var">CC</span>) -c $&lt; -o $@
+
+<span class="hl-comment"># 静态模式规则（限制作用于特定目标列表）</span>
+<span class="hl-make-target">$(OBJ)</span>: <span class="hl-make-prereq">%.o</span>: <span class="hl-make-prereq">%.c</span>
+    $(<span class="hl-make-var">CC</span>) -c $&lt; -o $@</code></pre>
+</div>
+
+<div class="card">
+  <div class="card-title">📦 变量操作</div>
+<pre><code><span class="hl-make-var">VAR</span> := value          <span class="hl-comment"># 立即展开</span>
+<span class="hl-make-var">VAR</span> = value           <span class="hl-comment"># 递归展开</span>
+<span class="hl-make-var">VAR</span> ?= value          <span class="hl-comment"># 未定义时才赋值</span>
+<span class="hl-make-var">VAR</span> += value          <span class="hl-comment"># 追加</span>
+$(<span class="hl-make-var">VAR</span>)                  <span class="hl-comment"># 使用变量</span>
+${<span class="hl-make-var">VAR</span>}                  <span class="hl-comment"># 同上</span>
+
+<span class="hl-comment"># 常用函数</span>
+$(<span class="hl-make-var">wildcard</span>) pattern)         <span class="hl-comment"># 文件名匹配</span>
+$(<span class="hl-make-var">patsubst</span>) from,to,text)   <span class="hl-comment"># 模式替换</span>
+$(<span class="hl-make-var">subst</span>) from,to,text)       <span class="hl-comment"># 字符串替换</span>
+$(<span class="hl-make-var">foreach</span>) var,list,text)   <span class="hl-comment"># 循环</span>
+$(<span class="hl-make-var">addprefix</span>) prefix,list)   <span class="hl-comment"># 加前缀</span>
+$(<span class="hl-make-var">notdir</span>) path)             <span class="hl-comment"># 去掉路径，只保留文件名</span>
+$(<span class="hl-make-var">dir</span>) path)                <span class="hl-comment"># 提取路径部分</span>
+$(<span class="hl-make-var">basename</span>) name)           <span class="hl-comment"># 去掉扩展名</span>
+$(<span class="hl-make-var">suffix</span>) name)             <span class="hl-comment"># 提取扩展名</span></code></pre>
+</div>
+
+<div class="card">
+  <div class="card-title">⚡ 自动变量速查</div>
+  <table>
+    <tr><th>变量</th><th>含义</th><th>记忆技巧</th></tr>
+    <tr><td><code>$@</code></td><td>目标文件名</td><td>@ 像靶心 → 目标</td></tr>
+    <tr><td><code>$&lt;</code></td><td>第一个依赖</td><td>&lt; 像"小于" → 最小的/第一个</td></tr>
+    <tr><td><code>$^</code></td><td>所有依赖（去重）</td><td>^ 像"上标" → 全部</td></tr>
+    <tr><td><code>$?</code></td><td>比目标新的依赖</td><td>? 表示"有疑问的/变化的"</td></tr>
+    <tr><td><code>$*</code></td><td>模式匹配的部分</td><td>* 是通配符</td></tr>
+    <tr><td><code>$(@D)</code></td><td>目标的目录部分</td><td>D = Directory</td></tr>
+    <tr><td><code>$(@F)</code></td><td>目标的文件名部分</td><td>F = File</td></tr>
+  </table>
+</div>
+
+<div class="card">
+  <div class="card-title">🎯 嵌入式编译参数速查</div>
+  <table>
+    <tr><th>参数</th><th>值</th><th>说明</th></tr>
+    <tr><td><code>-mcpu</code></td><td><code>cortex-m0</code>/<code>m3</code>/<code>m4</code>/<code>m7</code></td><td>CPU 内核</td></tr>
+    <tr><td><code>-mthumb</code></td><td>（无值）</td><td>Thumb 指令集</td></tr>
+    <tr><td><code>-mfloat-abi</code></td><td><code>soft</code>/<code>softfp</code>/<code>hard</code></td><td>浮点 ABI</td></tr>
+    <tr><td><code>-mfpu</code></td><td><code>fpv4-sp-d16</code> 等</td><td>FPU 型号</td></tr>
+    <tr><td><code>-Os</code></td><td>（无值）</td><td>优化大小</td></tr>
+    <tr><td><code>-O0</code></td><td>（无值）</td><td>无优化（调试）</td></tr>
+    <tr><td><code>-g3</code></td><td>（无值）</td><td>包含宏定义的调试信息</td></tr>
+    <tr><td><code>-Wall</code></td><td>（无值）</td><td>开启所有常用警告</td></tr>
+    <tr><td><code>-Wextra</code></td><td>（无值）</td><td>开启额外警告</td></tr>
+    <tr><td><code>-MMD -MP</code></td><td>（无值）</td><td>自动生成头文件依赖</td></tr>
+    <tr><td><code>-Ipath</code></td><td>路径</td><td>头文件搜索路径</td></tr>
+    <tr><td><code>-DNAME</code></td><td>宏名</td><td>定义宏（<code>-DNAME=value</code>）</td></tr>
+    <tr><td><code>-Tfile.ld</code></td><td>链接脚本</td><td>指定链接脚本</td></tr>
+    <tr><td><code>--specs=xxx.specs</code></td><td>specs 文件</td><td>指定 C 库实现</td></tr>
+  </table>
+</div>
+
+<div class="card">
+  <div class="card-title">🔧 常用 make 命令</div>
+  <table>
+    <tr><th>命令</th><th>含义</th></tr>
+    <tr><td><code>make</code></td><td>构建默认目标（第一个目标）</td></tr>
+    <tr><td><code>make target</code></td><td>构建指定目标</td></tr>
+    <tr><td><code>make -j4</code></td><td>并行编译（4 个线程），大幅加速</td></tr>
+    <tr><td><code>make -B</code></td><td>强制重新编译所有目标</td></tr>
+    <tr><td><code>make -n</code></td><td>只打印命令，不执行（dry run，调试 Makefile 很有用）</td></tr>
+    <tr><td><code>make -C dir</code></td><td>切换到 dir 目录后再执行 make</td></tr>
+    <tr><td><code>make VAR=value</code></td><td>从命令行覆盖 Makefile 中的变量值</td></tr>
+    <tr><td><code>make --debug</code></td><td>打印调试信息（看 make 为什么重编某个目标）</td></tr>
+  </table>
+</div>
+
+<div class="tip">
+  <strong>终极技巧：</strong>当你的 Makefile 行为不符合预期时，用 <code>make -n</code>（dry run）看看 make 到底打算执行哪些命令，而不真正执行。这是调试 Makefile 的第一步。
+</div>
+
+<!-- ============================================================ -->
+<!-- 面包屑 -->
+<!-- ============================================================ -->
+<div class="breadcrumb">
+  <a href="javascript:history.back()">← 返回嵌入式教程主页</a>
+  <span class="sep">|</span>
+  <a href="#">嵌入式教程系列</a>
+  <span class="sep">/</span>
+  <span style="color:var(--t)">Makefile 细致教程</span>
+</div>
+
+<div style="text-align:center;margin-top:32px;color:var(--t2);font-size:13px;">
+  ⚙️ 嵌入式教程系列 · Makefile 细致教程 · 最后更新：2024
+</div>
+
+<h2 id="makefile-real-case">🛠️ 实战案例：带依赖自动生成的 Makefile</h2>
+
+<p>下面的 Makefile 自动处理头文件依赖，当 <code>.h</code> 文件被修改时，相关的 <code>.c</code> 文件会自动重新编译：</p>
+
+<pre><code># Makefile - 自动依赖生成版本
+# 适用于 STM32F103 项目
+
+# ===== 工具链配置 =====
+PREFIX = arm-none-eabi-
+CC = $(PREFIX)gcc
+OBJCOPY = $(PREFIX)objcopy
+SIZE = $(PREFIX)size
+
+# ===== 目标 MCU 配置 =====
+CPU = -mcpu=cortex-m3 -mthumb
+
+# ===== 编译参数 =====
+CFLAGS = $(CPU) -Os -Wall -Wextra -Werror
+CFLAGS += -ffunction-sections -fdata-sections  # 链接时删除未用代码
+CFLAGS += -MMD -MP   # 关键：自动生成 .d 依赖文件
+LDFLAGS = $(CPU) -T STM32F103C8.ld -Wl,--gc-sections -nostartfiles
+
+# ===== 源文件（自动查找）=====
+SRC = $(wildcard src/*.c)       # 自动匹配所有 .c 文件
+OBJ = $(SRC:.c=.o)             # 把 .c 替换成 .o
+DEP = $(SRC:.c=.d)             # 依赖文件列表
+
+# ===== 目标文件 =====
+TARGET = firmware
+
+# ===== 默认目标 =====
+all: $(TARGET).elf
+
+# ===== 链接规则 =====
+$(TARGET).elf: $(OBJ)
+	$(CC) $^ -o $@ $(LDFLAGS)
+	$(SIZE) $@
+
+# ===== 编译规则（自动推导）=====
+# 不需要手动写，make 会用内置规则
+# 但可以添加参数：
+%.o: %.c
+	$(CC) $(CFLAGS) -c $< -o $@
+
+# ===== 生成烧录文件 =====
+.PHONY: hex bin
+hex: $(TARGET).elf
+	$(OBJCOPY) -O ihex $< $(TARGET).hex
+
+bin: $(TARGET).elf
+	$(OBJCOPY) -O binary $< $(TARGET).bin
+
+# ===== 烧录目标 =====
+.PHONY: flash
+flash: $(TARGET).bin
+	st-flash write $< 0x8000000
+
+# ===== 清理 =====
+.PHONY: clean
+clean:
+	rm -f $(OBJ) $(DEP) $(TARGET).elf $(TARGET).bin $(TARGET).hex $(TARGET).map
+
+# ===== 包含依赖文件 ======
+# - 表示忽略不存在的错误（首次编译时 .d 不存在）
+-include $(DEP)
+</code></pre>
+
+<div class="tip">✅ <b>成果：</b>这是一个生产级 Makefile 模板。当你修改任何 .h 文件后，依赖它的 .c 文件会自动重新编译。配合 <a href="arm-gcc.html">ARM GCC 教程</a>学习编译参数，配合 <a href="flash-debug.html">烧录教程</a>一键烧录。</div>
+
+<div class="warn">⚠️ <b>常见坑：</b><code>-MMD -MP</code> 必须放在 CFLAGS 中，不是 LDFLAGS！前者是编译参数，后者是链接参数。放错位置会导致依赖文件不生成。</div>
+
+<h2 id="makefile-faq">❓ Makefile 常见问题 FAQ</h2>
+
+<div class="card">
+<div class="h"><span class="name">Makefile 常见问题</span><span class="tag o">FAQ</span></div>
+<div class="b">
+
+<h4>Q1：Makefile 报错 "missing separator" 是什么原因？</h4>
+<p>最常见的原因：<b>用了空格而不是 Tab</b>。Makefile 的命令行必须以 Tab 开头，不能用空格。在 VS Code 中，可以设置 "Insert Spaces" 为 false，或用 <code>Ctrl+Shift+P</code> → "Convert Indentation to Tabs"。</p>
+
+<h4>Q2：修改了 .h 文件，但 make 没有重新编译？</h4>
+<p>这是依赖没有正确设置。解决方法：① 加上 <code>-MMD -MP</code> 参数自动生成依赖；② 或手动添加 <code>main.o: main.h uart.h</code> 规则。推荐用方法①（见上面实战案例）。</p>
+
+<h4>Q3：make 报错 "Circular dependency dropped"？</h4>
+<p>存在循环依赖，如 A 依赖 B，B 依赖 A。常见于 <code>.PHONY: clean</code> 后又写了 <code>clean: all</code> 之类。检查依赖关系图，确保没有环路。</p>
+
+<h4>Q4：如何让 Makefile 支持并行编译？</h4>
+<pre><code># 方法1：命令行指定
+make -j4   # 同时执行 4 个编译任务
+
+# 方法2：Makefile 内设置（GNU Make 4.0+）
+MAKEFLAGS += -j$(nproc)   # 自动使用所有 CPU 核心
+</code></pre>
+
+<h4>Q5：如何判断一个目标是否为伪目标？</h4>
+<p>如果目标不生成文件（如 <code>clean</code>、<code>install</code>、<code>flash</code>），就应声明为 <code>.PHONY</code>。否则，如果目录下存在同名文件，make 会误判目标已存在而跳过执行。</p>
+
+<h4>Q6：Makefile 和 CMake 怎么选择？</h4>
+<p>小型项目用 Makefile 足够。大型项目或跨平台项目用 <a href="cmake.html">CMake</a>。初学者建议先学 Makefile 理解原理，再学 CMake 提高效率。两者可以并存：CMake 生成 Makefile，make 执行编译。</p>
+
+</div></div>
+
+</div><!-- /.container -->
+
+</body>
+</html>

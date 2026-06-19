@@ -1,0 +1,682 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0"><title>教程14: ESP32 WiFi物联网</title><style>:root{--bg:#0d1117;--bg2:#161b22;--bg3:#21262d;--br:#30363d;--t:#c9d1d9;--t2:#8b949e;--a:#58a6ff;--g:#3fb950;--o:#d29922;--r:#f85149;--p:#a371f7;--c1:#39c5cf}body{background:var(--bg);color:var(--t);font-family:system-ui,sans-serif;line-height:1.8;max-width:900px;margin:0 auto;padding:20px}h1{text-align:center;background:linear-gradient(135deg,var(--a),var(--p));-webkit-background-clip:text;-webkit-text-fill-color:transparent}h2{color:var(--a);border-bottom:2px solid var(--br);padding-bottom:6px;margin-top:32px}h3{color:var(--c1);margin-top:22px}pre{background:#1c2128;border:1px solid var(--br);border-radius:8px;padding:14px;overflow-x:auto;font-size:.84em}code{font-family:'Cascadia Code',Consolas,monospace}:not(pre)>code{background:var(--bg3);padding:2px 6px;border-radius:4px;color:var(--c1)}table{width:100%;border-collapse:collapse;margin:12px 0}th{background:var(--bg3);color:var(--a);padding:8px 12px;border:1px solid var(--br);text-align:left}td{padding:8px 12px;border:1px solid var(--br)}.note{background:rgba(88,166,255,.08);border-left:3px solid var(--a);border-radius:8px;padding:12px 16px;margin:12px 0}.warn{background:rgba(248,81,73,.08);border-left:3px solid var(--r);border-radius:8px;padding:12px 16px;margin:12px 0}.tip{background:rgba(63,185,80,.08);border-left:3px solid var(--g);border-radius:8px;padding:12px 16px;margin:12px 0}.step{background:var(--bg2);border:1px solid var(--br);border-radius:8px;padding:12px 16px;margin:10px 0}</style></head><body>
+
+<h1>教程14: ESP32 WiFi物联网</h1>
+
+<h2>📋 项目概述</h2>
+<p>本项目使用ESP32开发板构建完整的物联网(IoT)解决方案。包含WiFi联网、HTTP客户端请求、MQTT协议发布订阅、ThingSpeak云端数据记录以及OTA远程升级。学会将传感器数据上云、通过手机APP远程监控、以及后续的远程固件升级。</p>
+
+<h2>🔧 硬件清单</h2>
+<table>
+<tr><th>元件</th><th>数量</th><th>说明</th></tr>
+<tr><td>ESP32开发板(ESP-WROOM-32)</td><td>1</td><td>双核240MHz，含WiFi/BT</td></tr>
+<tr><td>DHT11 温湿度传感器</td><td>1</td><td>环境温度采集</td></tr>
+<tr><td>LED+220Ω电阻</td><td>1</td><td>WiFi状态指示</td></tr>
+<tr><td>面包板+杜邦线</td><td>1套</td><td>搭建电路</td></tr>
+<tr><td>Micro USB数据线</td><td>1</td><td>供电+程序下载</td></tr>
+</table>
+
+<h2>🔌 接线图</h2>
+<h3>接线总表</h3>
+<table>
+<tr><th>ESP32引脚</th><th>外设</th><th>说明</th></tr>
+<tr><td>GPIO4</td><td>DHT11 DATA</td><td>数据脚，接4.7K上拉到3.3V</td></tr>
+<tr><td>GPIO2</td><td>LED 阳极</td><td>内置LED(Flash)</td></tr>
+<tr><td>3.3V</td><td>DHT11 VCC</td><td>供电</td></tr>
+<tr><td>GND</td><td>DHT11 GND / LED 阴极</td><td>共地</td></tr>
+<tr><td>USB口</td><td>电脑USB</td><td>供电+下载+串口</td></tr>
+</table>
+
+<div class="note">
+<strong>📝 接线文字描述：</strong><br>
+ESP32开发板通过Micro USB线连接到电脑，既供电又提供串口通信和固件下载。DHT11传感器插在面包板上，VCC接ESP32的3.3V引脚，GND接GND。DATA引脚接GPIO4，同时在DATA和VCC之间接一个4.7KΩ上拉电阻（可选，部分模块已内置）。LED指示灯的长脚（阳极）串联220Ω电阻后接GPIO2，短脚（阴极）接GND，用于指示WiFi连接状态。注意ESP32的GPIO2在烧录时需要保持低电平（不接LED），所以LED可以用跳线帽或开关控制，烧录完成后接通。
+</div>
+
+<h2>📚 技术背景</h2>
+
+<h3>ESP32简介</h3>
+<p>ESP32是乐鑫科技推出的双核WiFi+蓝牙MCU，主频240MHz，内置520KB SRAM和4MB Flash，支持802.11 b/g/n WiFi和经典/低功耗蓝牙。Arduino框架下编程非常友好。</p>
+
+<h3>MQTT协议</h3>
+<p>MQTT(Message Queuing Telemetry Transport)是轻量级的发布/订阅模式物联网协议，基于TCP/IP。核心概念：Broker(服务器)、Topic(主题)、Publish(发布)、Subscribe(订阅)。支持QoS三个等级。</p>
+
+<h3>ThingSpeak云平台</h3>
+<p>ThingSpeak是MathWorks旗下的IoT分析平台，通过HTTP GET/POST上传数据，提供数据可视化图表和MATLAB分析。</p>
+
+<h3>OTA升级</h3>
+<p>OTA(Over-The-Air)升级允许ESP32通过WiFi网络远程更新固件，无需物理连接USB。ArduinoOTA库内置了安全鉴权。</p>
+
+<h2>🛠️ 分步骤操作指引</h2>
+
+<div class="step">
+<strong>步骤1：安装Arduino IDE和ESP32开发环境</strong><br>
+1. 下载安装Arduino IDE 2.x<br>
+2. 文件 → 首选项 → 附加开发板管理器网址添加：<code>https://espressif.github.io/arduino-esp32/package_esp32_index.json</code><br>
+3. 工具 → 开发板 → 开发板管理器 → 搜索"ESP32" → 安装esp32 by Espressif Systems<br>
+4. 选择开发板：ESP32 Dev Module<br>
+5. 安装所需库：工具 → 管理库 → 搜索安装<br>
+&nbsp;&nbsp;- DHT sensor library by Adafruit<br>
+&nbsp;&nbsp;- ArduinoJson by Benoit Blanchon<br>
+&nbsp;&nbsp;- PubSubClient by Nick O'Leary<br>
+&nbsp;&nbsp;- WiFiManager by tzapu (可选，简化连接)
+</div>
+
+<div class="step">
+<strong>步骤2：基础WiFi连接测试</strong><br>
+1. 编写WiFi连接程序<br>
+2. 验证连接状态<br>
+3. 打印获取的IP地址<br>
+4. 用手机ping ESP32的IP或浏览器访问
+</div>
+
+<div class="step">
+<strong>步骤3：DHT11传感器数据采集</strong><br>
+1. 使用Adafruit DHT传感器库<br>
+2. 每2秒采集一次<br>
+3. 串口打印温湿度数据<br>
+4. 验证数据准确性
+</div>
+
+<div class="step">
+<strong>步骤4：HTTP GET/POST请求</strong><br>
+1. 用HTTPClient库发送请求<br>
+2. GET请求获取网络时间<br>
+3. POST请求上传数据到ThingSpeak<br>
+4. 解析JSON响应
+</div>
+
+<div class="step">
+<strong>步骤5：MQTT发布订阅</strong><br>
+1. 连接MQTT Broker（推荐broker.emqx.io）<br>
+2. 发布温湿度数据<br>
+3. 订阅控制命令主题<br>
+4. 实现远程LED控制
+</div>
+
+<div class="step">
+<strong>步骤6：ThingSpeak云平台配置</strong><br>
+1. 注册ThingSpeak账号(https://thingspeak.com)<br>
+2. 创建Channel，设置Field1=温度, Field2=湿度<br>
+3. 获取Write API Key<br>
+4. 使用HTTP POST上传数据
+</div>
+
+<div class="step">
+<strong>步骤7：OTA升级配置</strong><br>
+1. 添加ArduinoOTA库<br>
+2. 设置升级密码<br>
+3. 程序中加入OTA处理循环<br>
+4. 在Arduino IDE中选择网络端口远程烧录
+</div>
+
+<h2>💻 完整代码</h2>
+
+<h3>esp32_iot.ino — 主程序</h3>
+<pre><code>#include &lt;WiFi.h&gt;
+#include &lt;HTTPClient.h&gt;
+#include &lt;WiFiClient.h&gt;
+#include &lt;PubSubClient.h&gt;
+#include &lt;DHT.h&gt;
+#include &lt;ArduinoOTA.h&gt;
+#include &lt;ArduinoJson.h&gt;
+
+/* =========== WiFi配置 =========== */
+const char* ssid     = "YourWiFiName";       // 替换为你的WiFi SSID
+const char* password = "YourWiFiPassword";    // 替换为你的WiFi密码
+
+/* =========== MQTT配置 =========== */
+const char* mqtt_server = "broker.emqx.io";  // 公共MQTT broker
+const int   mqtt_port   = 1883;
+const char* mqtt_client_id = "esp32_dht11_001";
+const char* mqtt_pub_topic  = "esp32/sensor/dht11";   // 发布主题
+const char* mqtt_sub_topic  = "esp32/cmd/led";         // 订阅主题
+
+/* =========== ThingSpeak配置 =========== */
+const char* thingspeak_server = "api.thingspeak.com";
+String      thingspeak_api_key = "YOUR_WRITE_API_KEY_HERE"; // 替换为你的Write API Key
+
+/* =========== DHT11配置 =========== */
+#define DHTPIN 4        // GPIO4
+#define DHTTYPE DHT11   // DHT11传感器
+DHT dht(DHTPIN, DHTTYPE);
+
+/* =========== LED配置 =========== */
+#define LED_PIN 2       // GPIO2 (内置LED)
+#define WIFI_LED_PIN 22 // 外部LED(可选)
+
+/* =========== 全局对象 =========== */
+WiFiClient wifi_client;
+PubSubClient mqtt_client(wifi_client);
+
+/* =========== 状态变量 =========== */
+unsigned long last_sensor_read = 0;
+unsigned long last_mqtt_pub    = 0;
+unsigned long last_thingspeak  = 0;
+const unsigned long sensor_interval   = 2000;  // 传感器采集间隔 ms
+const unsigned long mqtt_interval     = 10000; // MQTT发布间隔 ms
+const unsigned long thingspeak_interval = 20000; // ThingSpeak上传间隔 ms
+
+float temperature = 0.0f;
+float humidity    = 0.0f;
+bool  led_state   = false;
+
+/* =========== WiFi连接 =========== */
+void setup_wifi()
+{
+    Serial.print("Connecting to WiFi");
+    WiFi.begin(ssid, password);
+
+    int retry = 0;
+    while (WiFi.status() != WL_CONNECTED &amp;&amp; retry &lt; 30) {
+        delay(500);
+        Serial.print(".");
+        retry++;
+        // 闪烁LED指示连接状态
+        digitalWrite(LED_PIN, retry % 2);
+    }
+
+    if (WiFi.status() == WL_CONNECTED) {
+        Serial.println("\r\nWiFi connected!");
+        Serial.print("IP: ");
+        Serial.println(WiFi.localIP());
+        digitalWrite(LED_PIN, HIGH); // 连接成功LED常亮
+    } else {
+        Serial.println("\r\nWiFi connection failed!");
+    }
+}
+
+/* =========== MQTT回调处理 =========== */
+void mqtt_callback(char* topic, byte* payload, unsigned int length)
+{
+    Serial.print("MQTT message arrived [");
+    Serial.print(topic);
+    Serial.print("] ");
+
+    char msg[length + 1];
+    memcpy(msg, payload, length);
+    msg[length] = '\0';
+    Serial.println(msg);
+
+    /* 处理LED控制命令 */
+    if (strcmp(topic, mqtt_sub_topic) == 0) {
+        if (strcmp(msg, "ON") == 0) {
+            led_state = true;
+            digitalWrite(LED_PIN, HIGH);
+            Serial.println("LED ON");
+        } else if (strcmp(msg, "OFF") == 0) {
+            led_state = false;
+            digitalWrite(LED_PIN, LOW);
+            Serial.println("LED OFF");
+        } else if (strcmp(msg, "TOGGLE") == 0) {
+            led_state = !led_state;
+            digitalWrite(LED_PIN, led_state ? HIGH : LOW);
+            Serial.printf("LED TOGGLE: %s\r\n", led_state ? "ON" : "OFF");
+        }
+    }
+}
+
+/* =========== MQTT重连 =========== */
+void mqtt_reconnect()
+{
+    while (!mqtt_client.connected()) {
+        Serial.print("Attempting MQTT connection...");
+        if (mqtt_client.connect(mqtt_client_id)) {
+            Serial.println("connected");
+            mqtt_client.subscribe(mqtt_sub_topic);
+            Serial.print("Subscribed to: ");
+            Serial.println(mqtt_sub_topic);
+
+            // 发布上线通知
+            mqtt_client.publish(mqtt_pub_topic, "ESP32 online");
+        } else {
+            Serial.print("failed, rc=");
+            Serial.print(mqtt_client.state());
+            Serial.println(" retry in 5s");
+            delay(5000);
+        }
+    }
+}
+
+/* =========== 发布传感器数据到MQTT（JSON格式）=========== */
+void publish_sensor_mqtt()
+{
+    StaticJsonDocument&lt;200&gt; doc;
+    doc["temp"]     = temperature;
+    doc["humid"]    = humidity;
+    doc["timestamp"] = millis();
+
+    char buffer[256];
+    size_t n = serializeJson(doc, buffer);
+    mqtt_client.publish(mqtt_pub_topic, buffer, n);
+
+    Serial.print("MQTT publish: ");
+    Serial.println(buffer);
+}
+
+/* =========== 上传到ThingSpeak（HTTP GET）=========== */
+void upload_thingspeak()
+{
+    HTTPClient http;
+    String url = String("http://") + thingspeak_server +
+                 "/update?api_key=" + thingspeak_api_key +
+                 "&amp;field1=" + String(temperature) +
+                 "&amp;field2=" + String(humidity);
+
+    http.begin(url);
+    int http_code = http.GET();
+
+    if (http_code == HTTP_CODE_OK) {
+        String response = http.getString();
+        Serial.print("ThingSpeak OK, entry: ");
+        Serial.println(response);
+    } else {
+        Serial.print("ThingSpeak error: ");
+        Serial.println(http_code);
+    }
+
+    http.end();
+}
+
+/* =========== 获取网络时间（HTTP GET JSON）=========== */
+String get_ntp_time()
+{
+    HTTPClient http;
+    http.begin("http://worldtimeapi.org/api/ip");
+    int code = http.GET();
+
+    if (code == HTTP_CODE_OK) {
+        DynamicJsonDocument doc(1024);
+        deserializeJson(doc, http.getString());
+        String datetime = doc["datetime"].as&lt;String&gt;();
+        http.end();
+        return datetime.substring(0, 19); // "2026-06-16T18:45:00"
+    }
+    http.end();
+    return "N/A";
+}
+
+/* =========== DHT11传感器读取 =========== */
+void read_sensor()
+{
+    float h = dht.readHumidity();
+    float t = dht.readTemperature();
+
+    if (isnan(h) || isnan(t)) {
+        Serial.println("DHT11 read failed!");
+        return;
+    }
+
+    temperature = t;
+    humidity = h;
+
+    Serial.printf("Sensor: T=%.1f°C H=%.1f%%\r\n", t, h);
+}
+
+/* =========== ArduinoOTA配置 =========== */
+void setup_ota()
+{
+    ArduinoOTA.setHostname("esp32-sensor-001");
+    ArduinoOTA.setPassword("esp32ota123");  // 设置升级密码
+
+    ArduinoOTA
+    .onStart([]() {
+        String type = (ArduinoOTA.getCommand() == U_FLASH) ?
+                       "sketch" : "filesystem";
+        Serial.println("OTA Start: " + type);
+    })
+    .onEnd([]() {
+        Serial.println("\r\nOTA End");
+    })
+    .onProgress([](unsigned int progress, unsigned int total) {
+        Serial.printf("OTA: %u%%\r\n", (progress / (total / 100)));
+    })
+    .onError([](ota_error_t error) {
+        Serial.printf("OTA Error[%u]: ", error);
+        if (error == OTA_AUTH_ERROR)       Serial.println("Auth Failed");
+        else if (error == OTA_BEGIN_ERROR)  Serial.println("Begin Failed");
+        else if (error == OTA_CONNECT_ERROR) Serial.println("Connect Failed");
+        else if (error == OTA_RECEIVE_ERROR) Serial.println("Receive Failed");
+        else if (error == OTA_END_ERROR)    Serial.println("End Failed");
+    });
+
+    ArduinoOTA.begin();
+    Serial.println("OTA ready");
+}
+
+/* =========== setup =========== */
+void setup()
+{
+    Serial.begin(115200);
+    Serial.println("\r\n=== ESP32 IoT Sensor Station ===");
+
+    pinMode(LED_PIN, OUTPUT);
+    digitalWrite(LED_PIN, LOW);
+
+    dht.begin();
+    delay(1000);
+
+    setup_wifi();
+
+    /* 初始化MQTT */
+    mqtt_client.setServer(mqtt_server, mqtt_port);
+    mqtt_client.setCallback(mqtt_callback);
+
+    /* 初始化OTA */
+    setup_ota();
+}
+
+/* =========== loop =========== */
+void loop()
+{
+    unsigned long now = millis();
+
+    /* ===== 1. OTA处理 ===== */
+    ArduinoOTA.handle();
+
+    /* ===== 2. WiFi状态检查 ===== */
+    if (WiFi.status() != WL_CONNECTED) {
+        digitalWrite(LED_PIN, (now / 500) % 2);
+        Serial.println("WiFi disconnected, reconnecting...");
+        WiFi.reconnect();
+        delay(1000);
+        return;
+    }
+
+    /* ===== 3. MQTT连接维护 ===== */
+    if (!mqtt_client.connected()) {
+        mqtt_reconnect();
+    }
+    mqtt_client.loop();  // 处理MQTT消息
+
+    /* ===== 4. 传感器采集 ===== */
+    if (now - last_sensor_read &gt;= sensor_interval) {
+        read_sensor();
+        last_sensor_read = now;
+    }
+
+    /* ===== 5. MQTT发布 ===== */
+    if (now - last_mqtt_pub &gt;= mqtt_interval) {
+        publish_sensor_mqtt();
+        last_mqtt_pub = now;
+    }
+
+    /* ===== 6. ThingSpeak上传 ===== */
+    if (now - last_thingspeak &gt;= thingspeak_interval) {
+        upload_thingspeak();
+        last_thingspeak = now;
+    }
+
+    /* ===== 7. 串口命令处理 ===== */
+    if (Serial.available()) {
+        String cmd = Serial.readStringUntil('\n');
+        cmd.trim();
+        if (cmd == "time") {
+            String ntp = get_ntp_time();
+            Serial.println("NTP time: " + ntp);
+        } else if (cmd == "ping") {
+            Serial.println("pong");
+        } else if (cmd.startsWith("led")) {
+            String state = cmd.substring(3);
+            state.trim();
+            mqtt_client.publish(mqtt_sub_topic, state.c_str());
+        } else if (cmd == "status") {
+            Serial.printf("WiFi: %s (%ddBm)\r\n",
+                          WiFi.SSID(), WiFi.RSSI());
+            Serial.printf("MQTT: %s\r\n",
+                          mqtt_client.connected() ? "OK" : "Disconnected");
+            Serial.printf("Temp: %.1f  Humi: %.1f\r\n",
+                          temperature, humidity);
+        }
+    }
+
+    /* 主循环不做长延时，保证OTA和MQTT及时响应 */
+    delay(10);
+}
+
+/* WiFi事件处理（可选）*/
+void WiFiEvent(WiFiEvent_t event)
+{
+    switch (event) {
+    case ARDUINO_EVENT_WIFI_STA_DISCONNECTED:
+        Serial.println("WiFi disconnected");
+        break;
+    case ARDUINO_EVENT_WIFI_STA_GOT_IP:
+        Serial.print("Got IP: ");
+        Serial.println(WiFi.localIP());
+        break;
+    }
+}
+</code></pre>
+
+<h3>WiFiManager方式（免写WiFi账号密码）</h3>
+<pre><code>/* 如需用户通过手机配置WiFi（无需固件密码），改用WiFiManager */
+
+#include &lt;WiFiManager.h&gt;
+
+WiFiManager wm;
+
+void setup_wifi_manager()
+{
+    wm.setConfigPortalTimeout(120);  // 2分钟超时
+    bool res = wm.autoConnect("ESP32_Config");
+
+    if (res) {
+        Serial.println("WiFi connected via WiFiManager");
+    } else {
+        Serial.println("WiFiManager failed");
+    }
+}
+
+/* 重置WiFi配置：在loop中检测GPIO0按下 */
+if (digitalRead(0) == LOW) {
+    wm.resetSettings();
+    ESP.restart();
+}
+</code></pre>
+
+<h3>OTA升级操作步骤</h3>
+<pre><code>/* 首次有线烧录后，后续通过WiFi升级 */
+
+/* 步骤：
+1. 烧录包含OTA功能的固件到ESP32
+2. 确保ESP32已连接WiFi
+3. 在Arduino IDE中：
+   工具 → 端口 → 选择 "esp32-sensor-001 at 192.168.x.xxx"
+   （需等待几秒扫描到网络端口）
+4. 修改代码
+5. 点击上传按钮
+6. 输入OTA密码 "esp32ota123"
+7. 等待进度条走完，ESP32自动重启
+*/
+
+/* 如果下载失败的原因排查：
+1. ESP32与路由器的信号强度是否足够
+2. Flash分区是否足够大(需4MB以上)
+3. 升级过程不要断电
+4. 确保网络端口没有被防火墙屏蔽
+*/
+</code></pre>
+
+<h3>Flash分区配置</h3>
+<pre><code>/* 启用OTA需调整分区表 */
+
+/* Arduino IDE中选择:
+   工具 → Partition Scheme:
+   - "Default 4MB with OTA (1MB APP/1MB OTA)"
+   - 或 "Default 4MB with spiffs (1MB APP/1.5MB SPIFFS)"
+
+   OTA需要至少两个APP分区：一个运行当前固件，一个接收新固件。
+   烧录后Flash布局：
+   [bootloader][app0(1MB)][app1(1MB)][spiffs(1.5MB)][eeprom...]
+*/
+
+/* 提示: OTA升级时不要使用LoRa、蓝牙等其他无线操作，避免频谱干扰 */
+</code></pre>
+
+<h2>🧩 MQTT客户端测试</h2>
+
+<h3>手机端MQTT测试</h3>
+<pre><code>/* MQTT调试APP（推荐）：
+- Android: "MQTT Dashboard" / "IoT MQTT Panel"
+- iOS: "MQTTool" / "MQTT Explorer"
+
+测试步骤：
+1. 连接MQTT Broker: broker.emqx.io:1883
+2. 订阅主题: esp32/sensor/dht11
+   可以看到ESP32发布的JSON数据：
+   {"temp":25.3,"humid":60.1,"timestamp":12345678}
+
+3. 发布到主题: esp32/cmd/led
+   内容: "ON" → LED亮
+   内容: "OFF" → LED灭
+   内容: "TOGGLE" → LED翻转
+*/
+
+/* Node-RED集成 */
+/*
+[{"id":"esp32-mqtt","type":"mqtt in",
+  "topic":"esp32/sensor/dht11",
+  "server":"broker.emqx.io:1883"}]
+*/
+</code></pre>
+
+<h3>ThingSpeak图表查看</h3>
+<pre><code>/* ThingSpeak操作：
+
+1. 登录 https://thingspeak.com
+2. Channels → My Channels → New Channel
+   名称: ESP32 Temp Humidity
+   Field1: Temperature
+   Field2: Humidity
+   点击 Save Channel
+
+3. 复制 Write API Key → 替换代码中的 thingspeak_api_key
+
+4. 上传成功后，在ThingSpeak中查看图表：
+   Private View → 可见Field1和Field2的两个实时曲线图
+
+5. 数据导出：
+   点击 Channel Settings → Data Export → CSV/JSON
+
+6. 下载MATLAB Analysis示例代码进行数据分析
+*/
+</code></pre>
+
+<h3>完整MQTT通信流程</h3>
+<pre><code>ESP32                        MQTT Broker                 手机APP
+  │                              │                          │
+  │── CONNECT(client_id) ──────→│                          │
+  │←──── CONNACK ───────────────│                          │
+  │── SUBSCRIBE(esp32/cmd/led)─→│                          │
+  │←── SUBACK ──────────────────│                          │
+  │                             │                          │
+  │── PUBLISH(temp) ───────────→│──── PUBLISH(temp) ──────→│
+  │── PUBLISH(humid) ──────────→│──── PUBLISH(humid) ─────→│
+  │                             │                          │
+  │                             │←── PUBLISH(led=ON) ─────│
+  │←──── PUBLISH(led=ON) ──────│                          │
+  │(ESP32收到命令，控制LED)     │                          │
+</code></pre>
+
+<h2>❓ 常见问题排查</h2>
+
+<div class="warn">
+<strong>⚠️ 问题1：WiFi连接超时</strong><br>
+<strong>现象：</strong>WiFi始终无法连接，返回WL_CONNECT_FAILED<br>
+<strong>原因：</strong>WiFi密码错误、信号太弱、2.4G/5G兼容性<br>
+<strong>解决：</strong><br>
+1. 确认SSID和密码无误（特别注意大小写）<br>
+2. ESP32只支持2.4GHz WiFi，确认路由器开启了2.4G频段<br>
+3. 将ESP32靠近路由器（2米以内测试）<br>
+4. 使用WiFiManager库，手机端连接ESP32的热点配置WiFi<br>
+5. 检查路由器是否开启了MAC地址过滤
+</div>
+
+<div class="warn">
+<strong>⚠️ 问题2：MQTT断线重连</strong><br>
+<strong>现象：</strong>ESP32运行一段时间后MQTT断开无法恢复<br>
+<strong>原因：</strong>MQTT心跳超时、网络抖动、Broker主动断开<br>
+<strong>解决：</strong><br>
+1. 设置长KeepAlive：<code>mqtt_client.setKeepAlive(30)</code><br>
+2. 主循环中持续调用 <code>mqtt_client.loop()</code><br>
+3. 断线后自动重连：<code>mqtt_reconnect()</code><br>
+4. 使用本地MQTT Broker（如Mosquitto）代替公共Broker<br>
+5. 检查路由器是否阻止了1883端口
+</div>
+
+<div class="warn">
+<strong>⚠️ 问题3：OTA升级失败</strong><br>
+<strong>现象：</strong>OTA进度条到100%后报错，ESP32死机<br>
+<strong>原因：</strong>Flash分区不足、WiFi信号弱、固件过大<br>
+<strong>解决：</strong><br>
+1. 确保分区表选了OTA方案（工具 → Partition Scheme）<br>
+2. OTA固件大小必须 &lt; app分区大小（OTA预留1MB）<br>
+3. 升级时靠近路由器保证信号强度<br>
+4. 使用有线烧录(USB)恢复：按住BOOT键再按EN键进入下载模式<br>
+5. 前期开发建议先省略OTA，有线烧录稳定后再启用
+</div>
+
+<div class="warn">
+<strong>⚠️ 问题4：DHT11采集与WiFi冲突</strong><br>
+<strong>现象：</strong>WiFi连接期间DHT11读取失败率升高<br>
+<strong>原因：</strong>ESP32的WiFi射频干扰单总线时序<br>
+<strong>解决：</strong><br>
+1. 在WiFi不活跃时（如刚连接完）再采集，避开扫描/重连<br>
+2. 采集时降低WiFi功耗模式：<code>WiFi.setSleep(WIFI_PS_NONE)</code><br>
+3. 使用DHT22（精度更高，抗干扰更好）<br>
+4. 考虑用I2C接口的传感器替代DHT11
+</div>
+
+<div class="warn">
+<strong>⚠️ 问题5：ThingSpeak上传限制</strong><br>
+<strong>现象：</strong>数据上传失败或收到HTTP 403<br>
+<strong>原因：</strong>ThingSpeak限制免费账户每15秒最多1次上传<br>
+<strong>解决：</strong><br>
+1. 设置上传间隔 &ge; 20秒<br>
+2. 确认Write API Key正确<br>
+3. ThingSpeak免费账户每天最多8190条数据<br>
+4. 超过限制后，使用MQTT作为补充的数据通道<br>
+5. 可在ThingSpeak中查看响应码：0表示成功，负数表示错误
+</div>
+
+<div class="note">
+<strong>💡 ESP32调试技巧：</strong><br>
+1. 串口监视器波特率：115200<br>
+2. 使用 <code>Serial.printf()</code> 格式化输出（Arduino默认支持）<br>
+3. 开启Debug输出：<code>core_debug_level = 5</code>（platformio.ini）<br>
+4. 使用ESP32内置的FreeRTOS：<code>vTaskDelay(pdMS_TO_TICKS(1000))</code><br>
+5. 内存状态监控：<code>Serial.printf("Free heap: %u\r\n", ESP.getFreeHeap())</code><br>
+6. 可访问 http://ip 查看ESP32内置Web服务器内容（需实现WebServer库）
+</div>
+
+<div class="tip">
+<strong>✅ 进阶方向：</strong><br>
+1. 集成摄像头(OV2640)：实现WiFi摄像头<br>
+2. 添加BLE网关功能<br>
+3. 使用ESP-NOW实现多设备本地通信<br>
+4. 集成SD卡实现离线数据记录+在线同步<br>
+5. 使用PlatformIO替代Arduino IDE（项目管理更强大）<br>
+6. 对接阿里云IoT/Huawei IoT/OneNET等国内云平台
+</div>
+
+
+<hr><h2>❓ 常见问题 FAQ</h2>
+
+<div style="margin:12px 0;padding:12px 16px;background:var(--bg2);border-left:3px solid var(--a);border-radius:0 8px 8px 0">
+  <p style="font-weight:600;color:var(--c1);margin-bottom:4px">Q: WiFi连接不上？</p>
+  <p style="color:var(--t)">A: 1)SSID/密码正确 2)2.4GHz不是5GHz 3)WiFi.begin()后等WL_CONNECTED 4)路由器MAC过滤 5)ESP32离路由器太远</p>
+</div>
+
+<div style="margin:12px 0;padding:12px 16px;background:var(--bg2);border-left:3px solid var(--a);border-radius:0 8px 8px 0">
+  <p style="font-weight:600;color:var(--c1);margin-bottom:4px">Q: MQTT断线重连？</p>
+  <p style="color:var(--t)">A: 1)设setKeepAlive(60) 2)设setCleanSession(true) 3)loop()中检查连接状态 4)指数退避重连</p>
+</div>
+
+<hr><h2>🔗 相关教程</h2>
+<div style="display:flex;flex-wrap:wrap;gap:8px;margin:12px 0">
+<a href="#" onclick="parent.loadPage && parent.loadPage('esp32')" style="display:inline-block;padding:6px 14px;background:var(--bg3);border:1px solid var(--br);border-radius:6px;color:var(--a);text-decoration:none;font-size:.85em">ESP32开发 →</a>
+<a href="#" onclick="parent.loadPage && parent.loadPage('proj-freertos-station')" style="display:inline-block;padding:6px 14px;background:var(--bg3);border:1px solid var(--br);border-radius:6px;color:var(--a);text-decoration:none;font-size:.85em">FreeRTOS站 →</a>
+<a href="#" onclick="parent.loadPage && parent.loadPage('proj-dht11-monitor')" style="display:inline-block;padding:6px 14px;background:var(--bg3);border:1px solid var(--br);border-radius:6px;color:var(--a);text-decoration:none;font-size:.85em">温湿度 →</a>
+</div>
+
+</body></html>

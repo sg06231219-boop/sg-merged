@@ -1,0 +1,1100 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第8章：FreeRTOS入门 - 嵌入式小白完全指南</title>
+<style>
+:root{--bg:#0d1117;--bg2:#161b22;--bg3:#21262d;--br:#30363d;--t:#c9d1d9;--t2:#8b949e;--a:#58a6ff;--g:#3fb950;--o:#d2991d;--r:#f85149;--p:#a371f7;--c1:#39c5cf}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--t);line-height:1.8;max-width:880px;margin:0 auto;padding:14px}
+h1{font-size:1.55em;text-align:center;padding:16px 0;background:linear-gradient(135deg,var(--a),var(--p));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+h2{font-size:1.15em;color:var(--a);margin:30px 0 10px;padding-bottom:6px;border-bottom:2px solid var(--br)}
+h3{font-size:1.02em;color:var(--g);margin:18px 0 7px}
+h4{font-size:.95em;color:var(--o);margin:12px 0 5px}
+pre{background:#1c2128;border:1px solid var(--br);border-radius:8px;padding:12px 14px;overflow-x:auto;margin:8px 0 12px;font-size:.82em;line-height:1.6;white-space:pre-wrap;word-break:break-all;position:relative}
+code{font-family:'SF Mono','Fira Code',monospace}
+pre code{color:#e6edf3}
+.note{background:rgba(210,153,29,.08);border:1px solid rgba(210,153,29,.3);border-radius:8px;padding:10px 14px;margin:10px 0;font-size:.83em;color:var(--o)}
+.warn{background:rgba(248,81,73,.08);border:1px solid rgba(248,81,73,.3);border-radius:8px;padding:10px 14px;margin:10px 0;font-size:.83em;color:var(--r)}
+.tip{background:rgba(63,185,80,.06);border:1px solid rgba(63,185,80,.25);border-radius:8px;padding:10px 14px;margin:10px 0;font-size:.83em;color:var(--g)}
+.example{background:rgba(88,166,255,.06);border:1px solid rgba(88,166,255,.25);border-radius:8px;padding:10px 14px;margin:8px 0;font-size:.82em;color:var(--a)}
+.example b{color:var(--g)}
+.trouble{background:rgba(163,113,247,.06);border:1px solid rgba(163,113,247,.3);border-radius:8px;padding:10px 14px;margin:8px 0;font-size:.82em;color:var(--p)}
+.trouble b{color:var(--p)}
+.card{background:var(--bg2);border:1px solid var(--br);border-radius:10px;margin:14px 0;overflow:hidden}
+.card>.h{padding:10px 14px;background:var(--bg3);display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.card>.h>.name{font-weight:700;font-size:.9em;color:var(--t);font-family:monospace}
+.card>.h>.tag{font-size:.65em;padding:2px 8px;border-radius:8px;white-space:nowrap;border:1px solid var(--br);color:var(--t2)}
+.card>.h>.tag.g{background:rgba(63,185,80,.15);border-color:var(--g);color:var(--g)}
+.card>.h>.tag.y{background:rgba(210,153,29,.15);border-color:var(--o);color:var(--o)}
+.card>.h>.tag.r{background:rgba(248,81,73,.15);border-color:var(--r);color:var(--r)}
+.card>.h>.tag.b{background:rgba(88,166,255,.15);border-color:var(--a);color:var(--a)}
+.card>.h>.tag.p{background:rgba(163,113,247,.15);border-color:var(--p);color:var(--p)}
+.card>.b{padding:10px 14px;font-size:.87em}
+.card>.b>.desc{font-size:.92em;color:var(--t2);margin-bottom:8px}
+table{width:100%;border-collapse:collapse;margin:10px 0;font-size:.81em;background:var(--bg2);border-radius:8px;overflow:hidden;border:1px solid var(--br)}
+td,th{padding:8px 12px;border-bottom:1px solid var(--br);text-align:left}
+th{background:var(--bg3);color:var(--a);font-weight:600}
+tr:last-child td{border-bottom:none}
+.step{background:var(--bg3);border-radius:6px;padding:8px 13px;margin:6px 0;font-size:.83em}
+.step b{color:var(--a)}
+.summary{background:linear-gradient(135deg,rgba(88,166,255,.1),rgba(163,113,247,.1));border:1px solid var(--br);border-radius:10px;padding:12px 16px;margin:18px 0;font-size:.88em;color:var(--t)}
+.summary b{color:var(--a)}
+.analogy{background:rgba(57,197,207,.07);border-left:3px solid var(--c1);padding:8px 13px;margin:8px 0;font-size:.82em;color:var(--c1);border-radius:0 6px 6px 0}
+.analogy b{color:var(--c1)}
+.chnav{display:flex;justify-content:space-between;margin:30px 0 10px;gap:12px;border-top:1px solid var(--br);padding-top:16px;flex-wrap:wrap}
+.chnav a{flex:1;text-align:center;padding:10px 14px;background:var(--bg2);border:1px solid var(--br);border-radius:8px;color:var(--a);text-decoration:none;font-size:.85em;transition:all .2s;min-width:120px;cursor:pointer}
+.chnav a:hover{background:var(--bg3);border-color:var(--a)}
+.chnav .toc-link{flex:0;min-width:80px;background:var(--bg3);color:var(--t2)}
+.chnav .toc-link:hover{color:var(--a)}
+.copy-btn{position:absolute;top:4px;right:4px;padding:3px 10px;background:var(--bg3);border:1px solid var(--br);border-radius:5px;color:var(--t2);font-size:.72em;cursor:pointer;opacity:0;transition:opacity .2s}
+pre:hover .copy-btn{opacity:1}
+.copy-btn:hover{background:var(--a);color:var(--bg)}
+.copy-btn.copied{background:var(--g);color:var(--bg);border-color:var(--g)}
+@media(max-width:480px){body{padding:10px}h1{font-size:1.3em}h2{font-size:1.05em}pre{font-size:.75em}}
+</style>
+</head>
+<body>
+
+<h1>第8章：FreeRTOS入门</h1>
+<div class="summary"><b>📖 小白完全指南 · 8/14</b> | 阅读时间约15分钟</div>
+
+<p>裸机程序（super loop）就像<strong>一个人干所有事</strong>——烧水、切菜、炒菜、摆盘，只能一件一件来。RTOS让多个任务<strong>同时运行</strong>（实际是快速切换），就像雇了多个厨师各司其职。</p>
+
+<div class="analogy">💡 <b>类比：</b>RTOS就像<strong>餐厅后厨</strong>——任务(Task)=厨师（各干各的活），队列(Queue)=传菜窗口（任务间传递数据），信号量(Semaphore)=叫号器（通知"饭好了"），互斥量(Mutex)=独占灶台（同一时间只有一个厨师用），事件组(Event Group)=多个条件都满足才行动。</div>
+
+<h2>🔄 调度器原理</h2>
+
+<p>FreeRTOS的核心是调度器(Scheduler)——它负责决定<strong>哪个任务现在运行</strong>。理解调度器，就理解了RTOS的灵魂。</p>
+
+<h3>抢占式调度 vs 合作式调度</h3>
+
+<table>
+<tr><th>模式</th><th>切换时机</th><th>实时性</th><th>适用场景</th></tr>
+<tr><td>抢占式</td><td>高优先级就绪→立即抢占低优先级</td><td>高</td><td>绝大多数应用（默认）</td></tr>
+<tr><td>合作式</td><td>任务主动放弃CPU（调vTaskDelay/阻塞API/主动Yield）</td><td>低</td><td>极简单场景/资源极度受限</td></tr>
+</table>
+
+<pre><code>// FreeRTOSConfig.h 中切换调度模式
+#define configUSE_PREEMPTION    1   // 1=抢占式  0=合作式
+#define configUSE_TIME_SLICING  1   // 1=同优先级时间片轮转</code></pre>
+
+<div class="example"><b>抢占式示例：</b>低优先级TaskA正在运行，高优先级TaskB被中断唤醒→调度器<strong>立即暂停TaskA保存现场</strong>→运行TaskB→TaskB阻塞后恢复TaskA。TaskA完全不知道被打断过。</div>
+
+<h3>时间片轮转</h3>
+
+<p>当多个任务<strong>同优先级</strong>时，FreeRTOS采用时间片轮转：每个任务运行一个tick(默认1ms)，然后自动切换到下一个同优先级任务。</p>
+
+<pre><code>// 三个同优先级任务的时间片轮转
+// Task1(优先级1) → 运行1ms → Task2(优先级1) → 运行1ms → Task3(优先级1) → 运行1ms → Task1...
+// 如果高优先级Task0(优先级2)就绪，立即打断这个循环
+
+void vTimeSliceDemo(void) {
+    // 任务A、B、C都设为优先级1
+    xTaskCreate(vTaskA, "A", 256, NULL, 1, NULL);
+    xTaskCreate(vTaskB, "B", 256, NULL, 1, NULL);
+    xTaskCreate(vTaskC, "C", 256, NULL, 1, NULL);
+    // 三个任务会自动轮流执行，每个1ms
+}
+
+// 如果不想自动切换（任务独占CPU），vTaskDelay(1)主动让出</code></pre>
+
+<h2>📝 任务创建与管理</h2>
+
+<pre><code>#include "FreeRTOS.h"
+#include "task.h"
+
+// 任务1：LED闪烁
+void vLEDTask(void *pvParameters) {
+    while (1) {
+        HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13);
+        vTaskDelay(pdMS_TO_TICKS(500));  // 延时500ms
+    }
+}
+
+// 任务2：串口打印
+void vPrintTask(void *pvParameters) {
+    while (1) {
+        printf("System running, tick: %lu\n", xTaskGetTickCount());
+        vTaskDelay(pdMS_TO_TICKS(1000));
+    }
+}
+
+int main(void) {
+    HAL_Init();
+    SystemClock_Config();
+
+    // 创建任务（参数：函数、名称、栈大小、参数、优先级、句柄）
+    xTaskCreate(vLEDTask,    "LED",   128, NULL, 1, NULL);
+    xTaskCreate(vPrintTask,  "Print", 256, NULL, 2, NULL);
+
+    // 启动调度器
+    vTaskStartScheduler();
+
+    while (1) {}  // 永远不会到这里
+}</code></pre>
+
+<h3>任务状态机</h3>
+
+<p>每个任务在FreeRTOS中有四种状态：</p>
+
+<table>
+<tr><th>状态</th><th>含义</th><th>举例</th></tr>
+<tr><td>Running</td><td>正在使用CPU（只有一个任务）</td><td>当前执行代码的任务</td></tr>
+<tr><td>Ready</td><td>就绪等待CPU</td><td>被高优先级抢走的任务</td></tr>
+<tr><td>Blocked</td><td>等待事件（超时/信号量/队列）</td><td>vTaskDelay中、等信号量</td></tr>
+<tr><td>Suspended</td><td>挂起（不参与调度）</td><td>vTaskSuspend后</td></tr>
+</table>
+
+<pre><code>// 任务挂起与恢复
+TaskHandle_t xTaskHandle;
+
+void vControlTask(void *pv) {
+    while (1) {
+        // 挂起LED任务（停止闪烁）
+        vTaskSuspend(xTaskHandle);
+        vTaskDelay(pdMS_TO_TICKS(3000));  // 3秒不闪
+        
+        // 恢复LED任务
+        vTaskResume(xTaskHandle);
+        vTaskDelay(pdMS_TO_TICKS(3000));  // 3秒继续闪
+    }
+}
+
+// 主函数中保存句柄
+xTaskCreate(vLEDTask, "LED", 128, NULL, 1, &xTaskHandle);</code></pre>
+
+<h3>任务参数传递</h3>
+
+<pre><code>// 多个LED任务用同一个函数，靠参数区分引脚
+typedef struct {
+    GPIO_TypeDef *port;
+    uint16_t pin;
+    uint32_t delay_ms;
+} LedParams_t;
+
+void vGenericLEDTask(void *pvParameters) {
+    LedParams_t *params = (LedParams_t *)pvParameters;
+    while (1) {
+        HAL_GPIO_TogglePin(params->port, params->pin);
+        vTaskDelay(pdMS_TO_TICKS(params->delay_ms));
+    }
+}
+
+// 创建不同闪烁频率的LED任务
+LedParams_t led1 = {GPIOC, GPIO_PIN_13, 500};
+LedParams_t led2 = {GPIOC, GPIO_PIN_14, 200};
+LedParams_t led3 = {GPIOC, GPIO_PIN_15, 1000};
+
+xTaskCreate(vGenericLEDTask, "LED1", 128, &led1, 1, NULL);
+xTaskCreate(vGenericLEDTask, "LED2", 128, &led2, 1, NULL);
+xTaskCreate(vGenericLEDTask, "LED3", 128, &led3, 1, NULL);</code></pre>
+
+<div class="note">⚠️ <b>注意：</b>led1/led2/led3必须是全局变量或静态变量！不能是main函数的局部变量——main函数在调度器启动后可能被回收。</div>
+
+<h2>📊 队列（Queue）详解</h2>
+
+<p>队列是FreeRTOS任务间通信的主力工具。它是一个FIFO缓冲区，一个任务往里放，另一个从里取，天然线程安全。</p>
+
+<div class="analogy">💡 <b>类比：</b>队列像<b>传送带</b>——生产者把零件放在传送带上，消费者从另一端取走。传送带有固定容量，放满了就停，取空了就等。</div>
+
+<pre><code>// 创建队列：存放10个float值
+QueueHandle_t sensor_queue;
+sensor_queue = xQueueCreate(10, sizeof(float));
+
+// 任务A：发送数据（生产者）
+void vSensorTask(void* pv) {
+    float temp;
+    for (;;) {
+        temp = read_temperature();
+        // 发送到队列，等最多100ms
+        if (xQueueSend(sensor_queue, &temp, pdMS_TO_TICKS(100)) != pdTRUE) {
+            // 队列满了！消费者太慢
+            printf("Queue full! Dropping data.\n");
+        }
+        vTaskDelay(pdMS_TO_TICKS(1000));  // 1秒采样一次
+    }
+}
+
+// 任务B：接收数据（消费者）
+void vDisplayTask(void* pv) {
+    float temp;
+    for (;;) {
+        // 阻塞等待数据（无限等）
+        if (xQueueReceive(sensor_queue, &temp, portMAX_DELAY) == pdTRUE) {
+            printf("温度: %.1f°C\n", temp);
+            // 处理数据...
+        }
+    }
+}</code></pre>
+
+<h3>队列API变体与选择指南</h3>
+
+<table>
+<tr><th>API</th><th>行为</th><th>适用场景</th></tr>
+<tr><td><code>xQueueSend</code></td><td>队列满则等待超时</td><td>一般发送（别名xQueueSendToBack）</td></tr>
+<tr><td><code>xQueueSendToBack</code></td><td>发送到队尾</td><td>常规FIFO发送</td></tr>
+<tr><td><code>xQueueSendToFront</code></td><td>发送到队首（插队）</td><td>紧急消息/高优先级数据</td></tr>
+<tr><td><code>xQueueOverwrite</code></td><td>队列满则覆盖最旧数据（队列长度只能为1）</td><td>只关心最新值（如最新传感器读数）</td></tr>
+<tr><td><code>xQueuePeek</code></td><td>读取但不移除</td><td>预览下一个数据，多个消费者</td></tr>
+<tr><td><code>xQueueReceive</code></td><td>读取并移除</td><td>一般接收</td></tr>
+<tr><td><code>xQueueSendFromISR</code></td><td>中断中发送</td><td>中断服务程序中推数据</td></tr>
+<tr><td><code>xQueueReceiveFromISR</code></td><td>中断中接收（几乎不用）</td><td>一般不推荐</td></tr>
+</table>
+
+<h3>队列集 (Queue Set)</h3>
+
+<p>当一个任务需要<strong>同时等待多个队列</strong>时，可以用队列集——一个Select/Poll模式。</p>
+
+<pre><code>// 队列集：同时等待多个数据源
+QueueSetHandle_t xQueueSet;
+QueueHandle_t xTempQueue, xHumQueue, xPressQueue;
+
+void setup_queue_set(void) {
+    xTempQueue = xQueueCreate(5, sizeof(float));
+    xHumQueue  = xQueueCreate(5, sizeof(float));
+    xPressQueue = xQueueCreate(3, sizeof(float));
+    
+    // 创建队列集（能容纳所有队列的句柄）
+    xQueueSet = xQueueCreateSet(3);
+    
+    // 把队列添加到集合
+    xQueueAddToSet(xTempQueue, xQueueSet);
+    xQueueAddToSet(xHumQueue, xQueueSet);
+    xQueueAddToSet(xPressQueue, xQueueSet);
+}
+
+void vAggregatorTask(void *pv) {
+    for (;;) {
+        // 等待任意一个队列有数据
+        QueueHandle_t xActiveQueue = xQueueSelectFromSet(
+            xQueueSet, portMAX_DELAY);
+        
+        float data;
+        if (xQueueReceive(xActiveQueue, &data, 0) == pdTRUE) {
+            if (xActiveQueue == xTempQueue) {
+                printf("温度: %.1f°C\n", data);
+            } else if (xActiveQueue == xHumQueue) {
+                printf("湿度: %.1f%%\n", data);
+            } else if (xActiveQueue == xPressQueue) {
+                printf("气压: %.1f hPa\n", data);
+            }
+        }
+    }
+}</code></pre>
+
+<h2>🔐 信号量（Semaphore）详解</h2>
+
+<div class="analogy">💡 <b>类比：</b>二值信号量像<b>一个令牌</b>——拿到令牌的才能进入临界区，其他人排队。计数信号量像<b>停车场的车位</b>——有几个空位就能进几辆车。</div>
+
+<h3>二值信号量：任务同步</h3>
+
+<pre><code>// 中断通知任务：按键中断 → 信号量 → 处理任务
+SemaphoreHandle_t xButtonSem;
+
+// ISR中释放信号量（只能Give，不能Take！）
+void HAL_GPIO_EXTI_Callback(uint16_t pin) {
+    if (pin == BUTTON_PIN) {
+        BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+        xSemaphoreGiveFromISR(xButtonSem, &xHigherPriorityTaskWoken);
+        portYIELD_FROM_ISR(xHigherPriorityTaskWoken);  // 唤醒高优先级
+    }
+}
+
+// 任务中等待信号量
+void vButtonTask(void *p) {
+    while (1) {
+        if (xSemaphoreTake(xButtonSem, portMAX_DELAY)) {
+            handle_button_press();  // 处理按键
+        }
+    }
+}
+
+// 初始化
+xButtonSem = xSemaphoreCreateBinary();  // 初始状态=0（未释放）</code></pre>
+
+<h3>计数信号量：管理多个资源</h3>
+
+<pre><code>// 管理5个DMA通道的计数信号量
+SemaphoreHandle_t xDmaSem;
+xDmaSem = xSemaphoreCreateCounting(5, 5);  // 最大5，初始5
+
+// 使用DMA前获取
+if (xSemaphoreTake(xDmaSem, pdMS_TO_TICKS(100)) == pdTRUE) {
+    start_dma_transfer(buffer, size);
+    // 传输完成中断中归还：xSemaphoreGiveFromISR(xDmaSem, ...)
+}
+// 超时=所有DMA都在忙，等待或报错</code></pre>
+
+<h3>互斥量（Mutex）：保护共享资源</h3>
+
+<pre><code>// 保护I2C总线（多任务共享）
+SemaphoreHandle_t xI2cMutex;
+
+void vTempSensorTask(void *pv) {
+    for (;;) {
+        if (xSemaphoreTake(xI2cMutex, pdMS_TO_TICKS(50)) == pdTRUE) {
+            read_temp_via_i2c();       // 使用I2C
+            xSemaphoreGive(xI2cMutex); // 释放
+        }
+        vTaskDelay(pdMS_TO_TICKS(1000));
+    }
+}
+
+void vOledDisplayTask(void *pv) {
+    for (;;) {
+        if (xSemaphoreTake(xI2cMutex, pdMS_TO_TICKS(50)) == pdTRUE) {
+            oled_refresh_via_i2c();    // 使用I2C
+            xSemaphoreGive(xI2cMutex); // 释放
+        }
+        vTaskDelay(pdMS_TO_TICKS(100));
+    }
+}
+
+// 创建互斥量
+xI2cMutex = xSemaphoreCreateMutex();</code></pre>
+
+<h3>信号量 vs 互斥量（Mutex）</h3>
+
+<div class="warn">⚠ <b>关键区别：</b>用互斥量(Mutex)而不是二值信号量做资源互斥！Mutex有<b>优先级继承</b>机制（防止优先级反转），二值信号量没有。</div>
+
+<table>
+<tr><th>特性</th><th>二值信号量</th><th>互斥量(Mutex)</th></tr>
+<tr><td>用途</td><td>任务同步（通知信号）</td><td>资源互斥（保护临界区）</td></tr>
+<tr><td>优先级继承</td><td>❌ 无</td><td>✅ 有（自动提升持有者优先级）</td></tr>
+<tr><td>递归锁</td><td>❌ 不支持</td><td>✅ 支持(xSemaphoreCreateRecursiveMutex)</td></tr>
+<tr><td>ISR中使用</td><td>✅ 可以Give</td><td>❌ 不能（只能任务间使用）</td></tr>
+<tr><td>典型场景</td><td>ISR通知任务"数据就绪"</td><td>保护I2C/SPI/串口等共享外设</td></tr>
+</table>
+
+<div class="card">
+<div class="h"><span class="name">优先级反转问题详解</span><span class="tag r">进阶</span></div>
+<div class="b">
+<div class="desc">
+<b>场景：</b>三个任务 A(优先级低)、B(优先级中)、C(优先级高)<br>
+① A获取锁 → ② C就绪想拿锁(C被阻塞等A释放锁) → ③ B就绪抢占A → ④ A放不了锁 → ⑤ C被B无限期阻塞！<br><br>
+<b>用二值信号量的结果：</b>高优先级C被低优先级B饿死 = <b>优先级反转</b><br>
+<b>用Mutex的结果：</b>Mutex检测到C在等锁 → 临时将A优先级提升到C的级别 → A快速完成→释放锁→C获取→A降回原优先级<br>
+这就是<b>优先级继承(Priority Inheritance)</b>——Mutex自动解决优先级反转。
+</div></div></div>
+
+<h2>🏴 事件组（Event Group）</h2>
+
+<p>事件组是FreeRTOS中最强大的同步机制之一：一个任务可以等待<strong>多个事件中的任意一个或全部</strong>。不需要多个信号量。</p>
+
+<div class="analogy">💡 <b>类比：</b>事件组像<b>机场登机</b>——需要身份证(bit0)+登机牌(bit1)+安检通过(bit2)全满足才能登机。少任何一个都不行。也可以设置成"任一条件满足"就出发（VIP通道）。</div>
+
+<pre><code>// 事件组：等待多个条件
+EventGroupHandle_t xSystemEvent;
+
+#define EVENT_WIFI_READY   (1 << 0)
+#define EVENT_SD_READY     (1 << 1)
+#define EVENT_SENSOR_OK    (1 << 2)
+#define EVENT_TIME_SYNC    (1 << 3)
+
+void vInitTask(void *pv) {
+    // 等待所有初始化完成（AND所有位）
+    EventBits_t uxBits = xEventGroupWaitBits(
+        xSystemEvent,
+        EVENT_WIFI_READY | EVENT_SD_READY | EVENT_SENSOR_OK | EVENT_TIME_SYNC,
+        pdTRUE,           // 等待后清除这些位
+        pdTRUE,           // 等待所有位(AND)，pdFALSE=任一(OR)
+        pdMS_TO_TICKS(10000)  // 超时10秒
+    );
+    
+    if ((uxBits & (EVENT_WIFI_READY | EVENT_SD_READY | EVENT_SENSOR_OK | EVENT_TIME_SYNC))
+        == (EVENT_WIFI_READY | EVENT_SD_READY | EVENT_SENSOR_OK | EVENT_TIME_SYNC)) {
+        printf("All systems ready!\n");
+    } else {
+        printf("Init timeout! Missing: WiFi=%d SD=%d Sensor=%d Time=%d\n",
+            !!(uxBits & EVENT_WIFI_READY),
+            !!(uxBits & EVENT_SD_READY),
+            !!(uxBits & EVENT_SENSOR_OK),
+            !!(uxBits & EVENT_TIME_SYNC));
+    }
+}
+
+// 各个模块初始化完成后设置对应位
+void wifi_ready(void) {
+    xEventGroupSetBits(xSystemEvent, EVENT_WIFI_READY);
+}
+void sd_ready(void) {
+    xEventGroupSetBits(xSystemEvent, EVENT_SD_READY);
+}
+
+// 中断中设置事件
+void some_isr(void) {
+    BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+    xEventGroupSetBitsFromISR(xSystemEvent, EVENT_TIME_SYNC, &xHigherPriorityTaskWoken);
+    portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
+}</code></pre>
+
+<h3>事件组 vs 信号量 vs 队列</h3>
+
+<table>
+<tr><th>机制</th><th>适用</th><th>不适用</th></tr>
+<tr><td>队列</td><td>传递数据、FIFO</td><td>只发通知不带数据</td></tr>
+<tr><td>二值信号量</td><td>单事件同步</td><td>多事件AND/OR等待</td></tr>
+<tr><td>计数信号量</td><td>资源池管理</td><td>传递复杂状态</td></tr>
+<tr><td>事件组</td><td>多条件同步（等待多个事件）</td><td>传递数据（不能带数据）</td></tr>
+<tr><td>任务通知</td><td>轻量任务间通知（见下一节）</td><td>一对多广播</td></tr>
+</table>
+
+<h2>📬 任务通知（Task Notification）</h2>
+
+<p>任务通知是FreeRTOS最高效的同步方式——<strong>无需创建队列/信号量/事件组对象</strong>，每个任务自带一个通知值。</p>
+
+<div class="tip">💡 <b>性能对比：</b>任务通知比二值信号量快<strong>45%</strong>，比队列快<strong>60%</strong>，且零RAM开销（不需要创建内核对象）。但只适用于<strong>一对一</strong>的通信。</div>
+
+<pre><code>// 任务通知：最轻量的任务间通信
+TaskHandle_t xSensorTaskHandle;
+
+// 中断/任务A：发送通知给任务B
+void vNotifySender(void *pv) {
+    for (;;) {
+        vTaskDelay(pdMS_TO_TICKS(500));
+        // 发送通知（增量方式）
+        xTaskNotifyGive(xSensorTaskHandle);
+        // 或者带值发送：
+        // xTaskNotify(xSensorTaskHandle, (1<<0), eSetBits);
+    }
+}
+void HAL_GPIO_EXTI_Callback(uint16_t pin) {
+    BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+    vTaskNotifyGiveFromISR(xSensorTaskHandle, &xHigherPriorityTaskWoken);
+    portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
+}
+
+// 任务B：等待通知
+void vSensorTask(void *pv) {
+    // 保存自己的句柄
+    xSensorTaskHandle = xTaskGetCurrentTaskHandle();
+    
+    for (;;) {
+        // 等待通知（与信号量语义相同）
+        ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
+        // 收到通知，采集数据
+        read_all_sensors();
+    }
+}
+
+// 带值通知：发送ADC值
+void vAdcIsrNotify(void) {
+    uint16_t adc_val = ADC1->DR;
+    BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+    xTaskNotifyFromISR(xProcessTaskHandle, adc_val, 
+                       eSetValueWithOverwrite, &xHigherPriorityTaskWoken);
+    portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
+}</code></pre>
+
+<h2>⏱ 软件定时器</h2>
+
+<p>FreeRTOS软件定时器不需要单独的任务——由Daemon任务统一管理回调。</p>
+
+<pre><code>// 不需要单独任务！FreeRTOS Daemon任务帮你执行回调
+TimerHandle_t led_timer;
+
+void led_timer_callback(TimerHandle_t xTimer) {
+    HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin);  // 每秒翻转LED
+}
+
+void create_timers(void) {
+    led_timer = xTimerCreate(
+        "LED_Blink",                   // 名称
+        pdMS_TO_TICKS(1000),           // 周期1000ms
+        pdTRUE,                        // 自动重载（周期性）
+        (void*)0,                      // 定时器ID
+        led_timer_callback             // 回调函数
+    );
+    xTimerStart(led_timer, 0);  // 启动
+}
+
+// 一次性定时器：超时后自动删除
+TimerHandle_t oneshot = xTimerCreate("Oneshot",
+    pdMS_TO_TICKS(5000), pdFALSE, (void*)0, callback);
+xTimerStart(oneshot, 0);
+// 5秒后callback执行一次，定时器自毁
+
+// 动态修改定时器周期
+void set_faster_blink(void) {
+    xTimerChangePeriod(led_timer, pdMS_TO_TICKS(100), 0);
+    // LED从1秒闪烁变为0.1秒闪烁
+}</code></pre>
+
+<div class="warn">⚠ <b>软件定时器的限制：</b>回调在Daemon任务中执行，不能调用阻塞API（vTaskDelay/xQueueReceive等）。回调执行时间应尽可能短（<1ms），否则影响其他定时器精度。</div>
+
+<h2>🔍 FreeRTOS调试与监控</h2>
+
+<h3>任务运行时统计</h3>
+
+<pre><code>// FreeRTOSConfig.h 中启用
+#define configUSE_TRACE_FACILITY             1
+#define configUSE_STATS_FORMATTING_FUNCTIONS 1
+#define configGENERATE_RUN_TIME_STATS        1
+#define portCONFIGURE_TIMER_FOR_RUN_TIME_STATS()  // 配置高分辨率定时器
+#define portGET_RUN_TIME_COUNTER_VALUE()      __HAL_TIM_GET_COUNTER(&htim2)
+
+// 打印任务列表
+void print_task_list(void) {
+    char buf[1024];
+    vTaskList(buf);
+    printf("Name      State Prio Stack Free #\n");
+    printf("%s\n", buf);
+    // 输出示例：
+    // LED        R    1    86    5
+    // Print      B    2    212   2
+    // IDLE       R    0    72    1
+}
+
+// 打印CPU使用率
+void print_cpu_usage(void) {
+    char buf[1024];
+    vTaskGetRunTimeStats(buf);
+    printf("Task    AbsTime     %%Time\n");
+    printf("%s\n", buf);
+}</code></pre>
+
+<h3>Trace Hook函数</h3>
+
+<pre><code>// 任务切换回调：用于系统可视化
+void vApplicationTickHook(void) {
+    // 每个tick调用，用于精确计时
+    // 注意：在中断上下文中执行！
+}
+
+// 内存分配失败回调
+void vApplicationMallocFailedHook(void) {
+    // 进入死循环，方便GDB定位
+    __disable_irq();
+    while (1) {
+        __BKPT(0);  // 触发调试器断点
+    }
+}
+
+// 栈溢出回调
+void vApplicationStackOverflowHook(TaskHandle_t xTask, char *pcTaskName) {
+    printf("STACK OVERFLOW in task: %s!\n", pcTaskName);
+    __disable_irq();
+    while (1);
+}</code></pre>
+
+<h2>📨 流缓冲区与消息缓冲区</h2>
+
+<p>队列适合传递固定大小的数据块，但有时你需要像串口一样<strong>流式传输字节</strong>。FreeRTOS从v10.0.0开始提供Stream Buffer和Message Buffer。</p>
+
+<div class="analogy">💡 <b>类比：</b>队列像<b>固定规格的快递箱</b>——只能放统一尺寸的包裹。Stream Buffer像<b>水管</b>——任意字节流都行，Message Buffer是带换行的水管（每次发一条完整消息）。</div>
+
+<pre><code>// Stream Buffer：流式传输任意长度字节
+// 适合：串口数据桥接、传感器原始字节流、音频流
+
+StreamBufferHandle_t xStreamBuf;
+
+// 创建1024字节的流缓冲区，触发级别为1（有1字节就唤醒接收任务）
+xStreamBuf = xStreamBufferCreate(1024, 1);
+
+// 生产者：写入字节流
+void vUartRxTask(void *pv) {
+    uint8_t buf[64];
+    for (;;) {
+        size_t len = HAL_UART_Receive(&huart2, buf, sizeof(buf), portMAX_DELAY);
+        // 写入Stream Buffer（可能阻塞如果空间不够）
+        size_t sent = xStreamBufferSend(xStreamBuf, buf, len, pdMS_TO_TICKS(100));
+        if (sent < len) {
+            printf("Stream buffer full! Dropped %d bytes\n", len - sent);
+        }
+    }
+}
+
+// 消费者：读取字节流
+void vProcessTask(void *pv) {
+    uint8_t buf[128];
+    for (;;) {
+        // 阻塞等待任意数量字节
+        size_t received = xStreamBufferReceive(xStreamBuf, buf, sizeof(buf), portMAX_DELAY);
+        // 处理received个字节...
+        process_bytes(buf, received);
+    }
+}</code></pre>
+
+<pre><code>// Message Buffer：以消息为单位的流缓冲
+// 适合：变长日志、JSON字符串、AT指令响应
+
+MessageBufferHandle_t xMsgBuf;
+xMsgBuf = xMessageBufferCreate(2048);  // 2048字节缓冲
+
+// 生产者：发送一条完整消息（内部自动加分隔符）
+void vLoggerTask(void *pv) {
+    char msg[256];
+    for (;;) {
+        snprintf(msg, sizeof(msg), 
+                 "{\"temp\":%.1f,\"hum\":%.1f,\"time\":%lu}",
+                 read_temp(), read_hum(), xTaskGetTickCount());
+        xMessageBufferSend(xMsgBuf, msg, strlen(msg), pdMS_TO_TICKS(100));
+        vTaskDelay(pdMS_TO_TICKS(5000));
+    }
+}
+
+// 消费者：整条接收（不会截断）
+void vUploadTask(void *pv) {
+    char buf[512];
+    for (;;) {
+        size_t len = xMessageBufferReceive(xMsgBuf, buf, sizeof(buf), portMAX_DELAY);
+        // 确保恰好收到一条完整消息
+        buf[len] = '\0';  // 安全终止
+        mqtt_publish(buf, len);
+    }
+}
+
+// ⚠ 消息缓冲区自动在每条消息末尾添加分隔符（内部实现），
+// 接收时自动去掉。发送端不需要手动加分隔符。</code></pre>
+
+<div class="tip">💡 <b>Stream vs Message Buffer选择：</b>Stream适合连续字节流（UART桥接、音频数据），Message适合离散消息（JSON日志、AT指令响应）。Message Buffer保证每次Receive返回完整一条消息，不会截断。</div>
+
+<h2>🔒 临界区与挂起调度器</h2>
+
+<p>有时候你需要保护一段代码不被中断或任务切换打断。FreeRTOS提供了两种机制。</p>
+
+<pre><code>// 临界区（Critical Section）：屏蔽中断，最严格保护
+// ⚠ 只能在极短代码段使用（<1μs）！长时间的临界区破坏系统实时性
+
+void safe_counter_increment(void) {
+    taskENTER_CRITICAL();  // 关中断（或关优先级低于configMAX_SYSCALL_INTERRUPT_PRIORITY的中断）
+    global_counter++;       // 原子操作
+    taskEXIT_CRITICAL();   // 恢复中断
+}
+
+// 从ISR中使用
+void TIM1_UP_IRQHandler(void) {
+    UBaseType_t uxSavedInterruptStatus;
+    uxSavedInterruptStatus = taskENTER_CRITICAL_FROM_ISR();
+    critical_data++;
+    taskEXIT_CRITICAL_FROM_ISR(uxSavedInterruptStatus);
+}</code></pre>
+
+<pre><code>// 挂起调度器：禁止任务切换但允许中断
+// 比临界区更轻量，适合较长代码段
+
+void safe_multi_step_update(void) {
+    vTaskSuspendAll();  // 挂起调度器（当前任务不会被抢占）
+    
+    // 这段代码不会被其他任务打断（但中断仍可发生）
+    sensor_data[0] = read_sensor_1();
+    sensor_data[1] = read_sensor_2();
+    sensor_data[2] = read_sensor_3();
+    data_ready = pdTRUE;
+    
+    xTaskResumeAll();   // 恢复调度器（可能立即触发上下文切换）
+    // ⚠ 如果xTaskResumeAll返回pdTRUE，说明有高优先级任务就绪
+}
+
+// ⚠ 挂起调度器期间不能调用会阻塞的API（vTaskDelay/xQueueReceive等）
+//    否则可能导致调度器永久挂起！</code></pre>
+
+<div class="warn">⚠ <b>临界区vs挂起调度器选型：</b><br>
+• <b>临界区(taskENTER_CRITICAL)：</b>保护<strong>被ISR和任务同时访问</strong>的变量（如ISR中更新的计数器），代码<1μs<br>
+• <b>挂起调度器(vTaskSuspendAll)：</b>保护<strong>仅任务间共享</strong>的数据，代码可稍长但绝不能调阻塞API<br>
+• <b>互斥量(xSemaphoreTake)：</b>保护任务间共享的<strong>耗时操作</strong>（如I2C通信），最安全<br>
+• 能用互斥量解决就不要用临界区/挂起调度器！</div>
+
+<h2>🛠 常见问题排查</h2>
+
+<div class="trouble"><b>🔍 问题1：任务创建后不运行</b><br>
+❌ <b>症状：</b>创建了3个任务,只有1个在运行。<br>
+✅ <b>排查：</b><br>
+1. <code>vTaskStartScheduler()</code> 之前没有创建任何任务？调度器不会创建任务<br>
+2. 检查优先级是否合理——高优先级任务一直"Running"→低优先级永远得不到CPU<br>
+3. 高优先级任务是否有<code>vTaskDelay()</code>或阻塞调用？没有=死循环=饿死其他任务<br>
+4. 用<code>vTaskList()</code>查看所有任务的运行状态<br>
+✅ <b>修复：</b>确保每个高优先级任务都有阻塞调用，让出CPU给低优先级。</div>
+
+<div class="trouble"><b>🔍 问题2：HardFault / 程序跑飞</b><br>
+❌ <b>症状：</b>程序不定期崩溃，HardFault_Handler。<br>
+✅ <b>排查：</b><br>
+1. <b>任务栈溢出（最常见！）：</b><code>uxTaskGetStackHighWaterMark(NULL)</code>接近0<br>
+2. <b>中断中使用阻塞API：</b>ISR中调用了xQueueReceive等<br>
+3. <b>互斥量未释放：</b>某个任务拿了锁但忘了Give<br>
+4. <b>动态内存耗尽：</b>heap太小，xTaskCreate返回NULL<br>
+✅ <b>修复：</b><br>
+1. 增大任务栈（printf密集的任务至少512字）<br>
+2. 启用<code>configCHECK_FOR_STACK_OVERFLOW = 2</code><br>
+3. 检查所有Take都有对应的Give<br>
+4. 增大<code>configTOTAL_HEAP_SIZE</code>或用heap_4.c</div>
+
+<div class="trouble"><b>🔍 问题3：队列数据丢失</b><br>
+❌ <b>症状：</b>传感器读数偶尔丢失。<br>
+✅ <b>排查：</b><br>
+1. 生产者使用<code>xQueueSend</code>但队列满了——检查返回值不是<code>pdTRUE</code><br>
+2. 消费者处理太慢，队列积压<br>
+3. 中断中以不安全速率发送<br>
+✅ <b>修复：</b><br>
+1. 增加队列长度<br>
+2. 如果只关心最新值，用<code>xQueueOverwrite</code>代替<br>
+3. 消费者任务提高优先级</div>
+
+<div class="trouble"><b>🔍 问题4：vTaskDelay时间不准</b><br>
+❌ <b>症状：</b><code>vTaskDelay(1000)</code>实际延时不是1000ms。<br>
+✅ <b>排查：</b><br>
+1. <code>configTICK_RATE_HZ</code>不是1000？手动改过SysTick配置？<br>
+2. 更高优先级中断打断了SysTick？<br>
+3. 时钟配置错误导致系统时钟不准<br>
+✅ <b>修复：</b><br>
+1. 确认<code>configCPU_CLOCK_HZ</code>和<code>configTICK_RATE_HZ</code>匹配实际硬件<br>
+2. 用示波器测量SysTick频率</div>
+
+<div class="trouble"><b>🔍 问题5：HAL_Delay与FreeRTOS冲突</b><br>
+❌ <b>症状：</b>在FreeRTOS任务中调用HAL_Delay后系统卡死。<br>
+✅ <b>原因：</b>HAL_Delay基于轮询等待SysTick计数——它不会阻塞任务让出CPU，反而空耗CPU导致同优先级和低优先级任务饿死。<br>
+✅ <b>修复：</b>任务中用<code>vTaskDelay(pdMS_TO_TICKS(ms))</code>替代所有<code>HAL_Delay(ms)</code>。初始化代码中（调度器启动前）可以继续用HAL_Delay。</div>
+
+<h2>🧵 完整实战项目：多任务传感器站</h2>
+
+<div class="card">
+<div class="h"><span class="name">项目目标</span><span class="tag g">实战</span></div>
+<div class="b">
+<div class="desc">
+<b>搭建一个完整的多任务数据采集系统：</b><br>
+• Task1 (优先级3): 温度传感器读取(1Hz)，通过队列发送<br>
+• Task2 (优先级2): OLED显示刷新(10Hz)<br>
+• Task3 (优先级2): 串口数据上报(1Hz)<br>
+• Task4 (优先级1): LED心跳指示(2Hz)<br>
+• 用互斥量保护I2C总线(Task1和Task2共享)<br>
+• 用队列传递传感器数据<br>
+• 用事件组协调系统启动
+</div></div></div>
+
+<pre><code>// 完整项目：main.c
+#include "FreeRTOS.h"
+#include "task.h"
+#include "queue.h"
+#include "semphr.h"
+#include "event_groups.h"
+
+// === 全局对象 ===
+QueueHandle_t xSensorQueue;
+SemaphoreHandle_t xI2cMutex;
+EventGroupHandle_t xSystemEvent;
+
+#define EVT_SENSOR_OK   (1 << 0)
+#define EVT_DISPLAY_OK  (1 << 1)
+#define EVT_UART_OK     (1 << 2)
+
+// === 数据结构 ===
+typedef struct {
+    float temperature;
+    float humidity;
+    uint32_t timestamp;
+} SensorData_t;
+
+// === Task1: 传感器采集 (优先级3, 最高) ===
+void vSensorTask(void *pv) {
+    SensorData_t data;
+    
+    // 初始化传感器
+    if (bme280_init()) {
+        xEventGroupSetBits(xSystemEvent, EVT_SENSOR_OK);
+    }
+    
+    for (;;) {
+        // 获取I2C使用权
+        if (xSemaphoreTake(xI2cMutex, pdMS_TO_TICKS(100)) == pdTRUE) {
+            data.temperature = bme280_read_temp();
+            data.humidity    = bme280_read_humidity();
+            data.timestamp   = xTaskGetTickCount();
+            xSemaphoreGive(xI2cMutex);
+            
+            // 发送数据到显示任务和上报任务
+            xQueueOverwrite(xSensorQueue, &data);  // 只保留最新数据
+        }
+        
+        vTaskDelay(pdMS_TO_TICKS(1000));  // 1Hz
+    }
+}
+
+// === Task2: OLED显示 (优先级2) ===
+void vDisplayTask(void *pv) {
+    SensorData_t data;
+    oled_init();
+    xEventGroupSetBits(xSystemEvent, EVT_DISPLAY_OK);
+    
+    for (;;) {
+        // 非阻塞获取最新数据
+        if (xQueuePeek(xSensorQueue, &data, 0) == pdTRUE) {
+            if (xSemaphoreTake(xI2cMutex, pdMS_TO_TICKS(50)) == pdTRUE) {
+                oled_show_data(data.temperature, data.humidity);
+                xSemaphoreGive(xI2cMutex);
+            }
+        }
+        vTaskDelay(pdMS_TO_TICKS(100));  // 10Hz刷新
+    }
+}
+
+// === Task3: 串口上报 (优先级2) ===
+void vReportTask(void *pv) {
+    SensorData_t data;
+    xEventGroupSetBits(xSystemEvent, EVT_UART_OK);
+    
+    for (;;) {
+        if (xQueueReceive(xSensorQueue, &data, pdMS_TO_TICKS(5000)) == pdTRUE) {
+            printf("[%lu] T=%.1f°C H=%.1f%%\r\n",
+                   data.timestamp, data.temperature, data.humidity);
+        }
+        // 不需要vTaskDelay——xQueueReceive已经阻塞等待
+    }
+}
+
+// === Task4: 心跳LED (优先级1, 最低) ===
+void vHeartbeatTask(void *pv) {
+    for (;;) {
+        HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13);
+        vTaskDelay(pdMS_TO_TICKS(500));  // 2Hz
+    }
+}
+
+// === 主函数 ===
+int main(void) {
+    HAL_Init();
+    SystemClock_Config();
+    MX_GPIO_Init();
+    MX_I2C1_Init();
+    MX_USART1_UART_Init();
+    
+    // 创建IPC对象
+    xSensorQueue = xQueueCreate(1, sizeof(SensorData_t));  // 队列长度1+覆盖
+    xI2cMutex    = xSemaphoreCreateMutex();
+    xSystemEvent = xEventGroupCreate();
+    
+    if (xSensorQueue && xI2cMutex && xSystemEvent) {
+        // 创建任务（优先级从高到低）
+        xTaskCreate(vSensorTask,    "Sensor",  512, NULL, 3, NULL);
+        xTaskCreate(vDisplayTask,   "Display", 384, NULL, 2, NULL);
+        xTaskCreate(vReportTask,    "Report",  512, NULL, 2, NULL);
+        xTaskCreate(vHeartbeatTask, "Beat",    128, NULL, 1, NULL);
+        
+        // 等待系统初始化完成
+        EventBits_t uxBits = xEventGroupWaitBits(
+            xSystemEvent,
+            EVT_SENSOR_OK | EVT_DISPLAY_OK | EVT_UART_OK,
+            pdTRUE, pdTRUE, pdMS_TO_TICKS(5000));
+        
+        if (uxBits & EVT_SENSOR_OK) printf("Sensor OK\n");
+        if (uxBits & EVT_DISPLAY_OK) printf("Display OK\n");
+        if (uxBits & EVT_UART_OK) printf("UART OK\n");
+        
+        // 启动调度器
+        vTaskStartScheduler();
+    }
+    
+    // 初始化失败
+    printf("Failed to create RTOS objects!\n");
+    while (1);
+}</code></pre>
+
+<h3>栈大小估算表</h3>
+
+<table>
+<tr><th>任务类型</th><th>推荐栈（字）</th><th>说明</th></tr>
+<tr><td>简单LED闪烁</td><td>128</td><td>循环+GPIO，无复杂局部变量</td></tr>
+<tr><td>传感器读取</td><td>256 ~ 384</td><td>含I2C/SPI栈帧</td></tr>
+<tr><td>显示任务</td><td>384 ~ 512</td><td>含字体缓冲</td></tr>
+<tr><td>printf密集任务</td><td>512 ~ 768</td><td>printf内部需大缓冲</td></tr>
+<tr><td>WiFi/BLE协议栈</td><td>1024 ~ 4096</td><td>网络缓冲</td></tr>
+<tr><td>文件系统操作</td><td>512 ~ 1024</td><td>FATFS内部工作区</td></tr>
+</table>
+
+<div class="tip">💡 <b>栈大小调优技巧：</b>先用偏大的值让系统跑起来 → 用<code>uxTaskGetStackHighWaterMark()</code>查看实际峰值 → 设置为峰值的1.3倍作为最终值。不要猜，要测量！</div>
+
+<h2>🤖 FreeRTOS移植到STM32</h2>
+
+<p>上面的代码假设FreeRTOS已经在项目中。实际需要以下步骤：</p>
+
+<div class="step"><b>步骤1：</b>下载FreeRTOS源码：<code>github.com/FreeRTOS/FreeRTOS</code>（或从 <code>freertos.org</code> 下载）</div>
+<div class="step"><b>步骤2：</b>拷贝核心文件到项目：</div>
+<pre><code>FreeRTOS/Source/      → 复制到你的项目
+├── tasks.c           ← 必须
+├── queue.c           ← 必须
+├── list.c            ← 必须
+├── timers.c          ← 可选（软件定时器）
+├── event_groups.c    ← 可选（事件组）
+├── stream_buffer.c   ← 可选（流缓冲）
+├── include/          ← 头文件目录
+├── portable/
+│   ├── MemMang/heap_4.c  ← 必须（内存管理方案4，推荐）
+│   └── GCC/ARM_CM3/      ← 必须（Cortex-M3移植文件）
+│       ├── port.c
+│       └── portmacro.h</code></pre>
+<div class="step"><b>步骤3：</b>创建 <code>FreeRTOSConfig.h</code>（配置文件，关键参数）：</div>
+<pre><code>// FreeRTOSConfig.h - STM32F103C8T6 完整配置
+#ifndef FREERTOS_CONFIG_H
+#define FREERTOS_CONFIG_H
+
+#define configUSE_PREEMPTION             1
+#define configUSE_TIME_SLICING           1
+#define configCPU_CLOCK_HZ               72000000UL
+#define configTICK_RATE_HZ               1000
+#define configMAX_PRIORITIES             8
+#define configMINIMAL_STACK_SIZE         128
+#define configTOTAL_HEAP_SIZE            (15 * 1024)
+#define configMAX_TASK_NAME_LEN          16
+#define configUSE_16_BIT_TICKS           0
+#define configIDLE_SHOULD_YIELD          1
+
+// 功能开关
+#define configUSE_MUTEXES                1
+#define configUSE_COUNTING_SEMAPHORES    1
+#define configUSE_RECURSIVE_MUTEXES      1
+#define configUSE_TASK_NOTIFICATIONS     1
+#define configUSE_TRACE_FACILITY         1
+#define configUSE_STATS_FORMATTING_FUNCTIONS 1
+#define configUSE_TIMERS                 1
+#define configTIMER_TASK_PRIORITY        4
+#define configTIMER_QUEUE_LENGTH         10
+#define configTIMER_TASK_STACK_DEPTH     256
+
+// 钩子函数
+#define configCHECK_FOR_STACK_OVERFLOW   2
+#define configUSE_MALLOC_FAILED_HOOK     1
+#define configUSE_IDLE_HOOK              0
+#define configUSE_TICK_HOOK              0
+
+// 中断优先级（Cortex-M特有：越低数值=越高优先级）
+#define configKERNEL_INTERRUPT_PRIORITY          (15 << 4)
+#define configMAX_SYSCALL_INTERRUPT_PRIORITY     (5 << 4)
+// 解释：优先级0~4可以调用FreeRTOS API（FromISR）
+//       优先级5~15不能调用FreeRTOS API
+
+// 钩子函数声明
+void vApplicationStackOverflowHook(TaskHandle_t, char*);
+void vApplicationMallocFailedHook(void);
+
+#define INCLUDE_vTaskPrioritySet          1
+#define INCLUDE_uxTaskPriorityGet         1
+#define INCLUDE_vTaskDelete               1
+#define INCLUDE_vTaskSuspend              1
+#define INCLUDE_xTaskGetCurrentTaskHandle 1
+#define INCLUDE_vTaskDelayUntil           1
+#define INCLUDE_eTaskGetState             1
+#define INCLUDE_uxTaskGetStackHighWaterMark 1
+
+#endif</code></pre>
+<div class="step"><b>步骤4：</b>修改 <code>stm32f1xx_it.c</code>，把SysTick中断改为调用FreeRTOS：</div>
+<pre><code>// 替换原有的 SysTick_Handler
+void SysTick_Handler(void) {
+    if (xTaskGetSchedulerState() != taskSCHEDULER_NOT_STARTED) {
+        xPortSysTickHandler();  // FreeRTOS的Tick处理
+    }
+    HAL_IncTick();  // 保留HAL库的Tick
+}
+
+// SVC_Handler和PendSV_Handler也必须交给FreeRTOS
+void SVC_Handler(void) {
+    vPortSVCHandler();
+}
+void PendSV_Handler(void) {
+    xPortPendSVHandler();
+}</code></pre>
+
+<div class="warn">⚠ <b>HAL_Delay与FreeRTOS冲突：</b>HAL_Delay用轮询方式等待SysTick，在FreeRTOS任务中调用会<strong>阻塞整个系统</strong>！解决方案：<br>
+① 在任务中用 <code>vTaskDelay(pdMS_TO_TICKS(ms))</code> 代替 <code>HAL_Delay(ms)</code><br>
+② 在中断中可以用HAL_Delay（但不推荐，中断应尽快返回）<br>
+③ 如果必须用HAL_Delay，确保调用它的代码不在FreeRTOS任务内（如SystemClock_Config等初始化函数）<br>
+④ 替代方案：把HAL库的超时参数改为0（非阻塞），自己用RTOS延时控制时序</div>
+<div class="step"><b>步骤5：</b>在CMakeLists.txt/Makefile中添加源文件，编译即可</div>
+
+<pre><code># CMakeLists.txt 中添加 FreeRTOS 源文件
+set(FREERTOS_SOURCES
+    FreeRTOS/Source/tasks.c
+    FreeRTOS/Source/queue.c
+    FreeRTOS/Source/list.c
+    FreeRTOS/Source/timers.c
+    FreeRTOS/Source/event_groups.c
+    FreeRTOS/Source/portable/MemMang/heap_4.c
+    FreeRTOS/Source/portable/GCC/ARM_CM3/port.c
+)
+add_executable(${PROJECT_NAME}.elf ${SOURCES} ${FREERTOS_SOURCES})</code></pre>
+
+<div class="tip">💡 <b>更简单的方式：</b>CubeMX可以直接添加FreeRTOS！<code>Middleware → FREERTOS → Interface: CMSIS_V1</code>，生成代码已包含FreeRTOS。PlatformIO也支持 <code>lib_deps = FreeRTOS</code>。</div>
+
+<h2>📐 进阶：内存管理方案选择</h2>
+
+<p>FreeRTOS提供5种内存分配方案（heap_1 ~ heap_5），选对方案很重要：</p>
+
+<table>
+<tr><th>方案</th><th>特点</th><th>适用</th></tr>
+<tr><td>heap_1.c</td><td>只能分配不能释放，最简单</td><td>不删除任务的场景</td></tr>
+<tr><td>heap_2.c</td><td>可释放但不合并碎片</td><td>频繁创建删除同大小任务</td></tr>
+<tr><td>heap_3.c</td><td>包装标准malloc/free（线程安全）</td><td>需要标准库内存分配</td></tr>
+<tr><td>heap_4.c</td><td>可释放+相邻块合并（⭐推荐）</td><td>大多数场景</td></tr>
+<tr><td>heap_5.c</td><td>同heap_4 + 跨多块不连续内存</td><td>有外部RAM的复杂系统</td></tr>
+</table>
+
+<pre><code>// 运行时监控堆使用情况
+size_t get_free_heap(void) {
+    return xPortGetFreeHeapSize();
+}
+size_t get_min_free_heap(void) {
+    return xPortGetMinimumEverFreeHeapSize();
+}
+// 定期打印，发现内存泄漏：最小剩余堆在持续减少！</code></pre>
+
+<h2>🎯 实战练习</h2>
+
+<div class="tip">📝 <b>练习1：多任务LED流水灯</b><br>
+创建4个LED任务，优先级各不相同。观察抢占行为。然后用<code>vTaskList()</code>确认每个任务的状态。<br><br>
+📝 <b>练习2：传感器数据管道</b><br>
+用队列传递温度数据：采集任务→滤波任务(滑动平均)→显示任务。三个任务形成数据处理流水线。<br><br>
+📝 <b>练习3：电梯模拟器</b><br>
+用状态机+事件组实现一个简化电梯控制器：楼层按钮(事件位)、开关门状态、运行方向。<br><br>
+📝 <b>练习4：CPU使用率监控</b><br>
+用vTaskGetRunTimeStats()监控每个任务的CPU占用，尝试优化高占用任务。<br><br>
+📝 <b>练习5：I2C总线仲裁</b><br>
+用互斥量保护I2C总线，两个任务分别访问不同的I2C传感器，验证数据完整性。</div>
+
+<h2>📋 知识点回顾</h2>
+<div class="summary">
+<b>✅ FreeRTOS核心IPC全览：</b><br>
+• <b>队列：</b>任务间数据传递，FIFO，线程安全——传数据用这个<br>
+• <b>二值信号量：</b>任务/ISR同步（通知信号）——发通知用这个<br>
+• <b>互斥量(Mutex)：</b>资源互斥，有优先级继承——保护共享资源用这个<br>
+• <b>计数信号量：</b>管理多个同类资源——资源池用这个<br>
+• <b>事件组：</b>多条件同步(AND/OR)——等待多个事件用这个<br>
+• <b>任务通知：</b>最轻量一对一通信——追求性能用这个<br>
+• <b>软件定时器：</b>不需要单独任务，Daemon任务执行回调<br>
+<b>⚠ 关键原则：</b><br>
+• 资源互斥用Mutex，不要用二值信号量<br>
+• ISR中只能Give信号量，不能Take<br>
+• 永远不要在高优先级ISR里调用阻塞API<br>
+• 队列满时不丢数据用xQueueSend，只关心最新值用xQueueOverwrite<br>
+• 每个任务必须有阻塞点（vTaskDelay/队列等待/信号量等待）<br>
+• 任务栈用uxTaskGetStackHighWaterMark()测量，不要猜<br>
+<b>📏 优先级设计准则：</b><br>
+• 硬实时(电机控制) → 最高<br>
+• 数据采集 → 中高<br>
+• UI/显示 → 中<br>
+• 后台/日志 → 低<br>
+• 永不阻塞的一般任务 → 最低
+</div>
+
+<div class="chnav">
+<a onclick="window.parent.loadPage('guide-ch07')">← 第7章</a>
+<a class="toc-link" onclick="window.parent.loadPage('guide')">📑 目录</a>
+<a onclick="window.parent.loadPage('guide-ch09')">第9章 →</a>
+</div>
+
+<script>
+document.querySelectorAll('pre').forEach(pre => {
+  const btn = document.createElement('button');
+  btn.className = 'copy-btn';
+  btn.textContent = 'Copy';
+  btn.onclick = () => {
+    navigator.clipboard.writeText(pre.textContent).then(() => {
+      btn.textContent = 'Copied!';
+      btn.classList.add('copied');
+      setTimeout(() => { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 1500);
+    });
+  };
+  pre.appendChild(btn);
+});
+</script>
+</body>
+</html>

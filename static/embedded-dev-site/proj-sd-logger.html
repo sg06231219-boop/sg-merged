@@ -1,0 +1,843 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0"><title>教程13: SD卡数据记录仪</title><style>:root{--bg:#0d1117;--bg2:#161b22;--bg3:#21262d;--br:#30363d;--t:#c9d1d9;--t2:#8b949e;--a:#58a6ff;--g:#3fb950;--o:#d29922;--r:#f85149;--p:#a371f7;--c1:#39c5cf}body{background:var(--bg);color:var(--t);font-family:system-ui,sans-serif;line-height:1.8;max-width:900px;margin:0 auto;padding:20px}h1{text-align:center;background:linear-gradient(135deg,var(--a),var(--p));-webkit-background-clip:text;-webkit-text-fill-color:transparent}h2{color:var(--a);border-bottom:2px solid var(--br);padding-bottom:6px;margin-top:32px}h3{color:var(--c1);margin-top:22px}pre{background:#1c2128;border:1px solid var(--br);border-radius:8px;padding:14px;overflow-x:auto;font-size:.84em}code{font-family:'Cascadia Code',Consolas,monospace}:not(pre)>code{background:var(--bg3);padding:2px 6px;border-radius:4px;color:var(--c1)}table{width:100%;border-collapse:collapse;margin:12px 0}th{background:var(--bg3);color:var(--a);padding:8px 12px;border:1px solid var(--br);text-align:left}td{padding:8px 12px;border:1px solid var(--br)}.note{background:rgba(88,166,255,.08);border-left:3px solid var(--a);border-radius:8px;padding:12px 16px;margin:12px 0}.warn{background:rgba(248,81,73,.08);border-left:3px solid var(--r);border-radius:8px;padding:12px 16px;margin:12px 0}.tip{background:rgba(63,185,80,.08);border-left:3px solid var(--g);border-radius:8px;padding:12px 16px;margin:12px 0}.step{background:var(--bg2);border:1px solid var(--br);border-radius:8px;padding:12px 16px;margin:10px 0}</style></head><body>
+
+<h1>教程13: SD卡数据记录仪</h1>
+
+<h2>📋 项目概述</h2>
+<p>本项目构建一个基于STM32F103C8T6的数据记录仪，使用SPI接口连接SD卡，通过FatFS文件系统实现数据存储、CSV格式化、文件管理和串口导出。学会嵌入式存储的完整技术栈：SPI协议→FatFS移植→文件系统操作→中文编码处理。</p>
+
+<h2>🔧 硬件清单</h2>
+<table>
+<tr><th>元件</th><th>数量</th><th>说明</th></tr>
+<tr><td>STM32F103C8T6 最小系统板</td><td>1</td><td>主控</td></tr>
+<tr><td>SD卡模块(带电平转换)</td><td>1</td><td>SPI接口，含3.3V稳压</td></tr>
+<tr><td>Micro SD卡</td><td>1</td><td>建议16GB以下，FAT32格式</td></tr>
+<tr><td>DHT11 温湿度传感器</td><td>1</td><td>（可选）记录环境数据</td></tr>
+<tr><td>USB转TTL模块</td><td>1</td><td>串口调试/导出数据</td></tr>
+<tr><td>杜邦线</td><td>若干</td><td>母对母</td></tr>
+</table>
+
+<h2>🔌 接线图</h2>
+<h3>接线总表</h3>
+<table>
+<tr><th>STM32引脚</th><th>SD卡模块</th><th>说明</th></tr>
+<tr><td>PA5</td><td>CLK</td><td>SPI1_SCK 时钟</td></tr>
+<tr><td>PA6</td><td>DO (MISO)</td><td>数据输出</td></tr>
+<tr><td>PA7</td><td>DI (MOSI)</td><td>数据输入</td></tr>
+<tr><td>PA4</td><td>CS</td><td>片选，低电平选中</td></tr>
+<tr><td>3.3V</td><td>VCC</td><td>供电(SD卡需要稳定3.3V)</td></tr>
+<tr><td>GND</td><td>GND</td><td>共地</td></tr>
+<tr><td>PA0</td><td>DHT11 DATA</td><td>（可选）温湿度采集</td></tr>
+<tr><td>PA9</td><td>USB-TTL RX</td><td>串口TX</td></tr>
+<tr><td>PA10</td><td>USB-TTL TX</td><td>串口RX</td></tr>
+</table>
+
+<div class="note">
+<strong>📝 接线文字描述：</strong><br>
+SD卡模块推荐使用带电平转换和3.3V稳压的成品模块，可以直接接5V供电。STM32使用硬件SPI1：PA5(SCK)、PA6(MISO)、PA7(MOSI) 三根线与SD卡模块对应连接。PA4作为软件GPIO片选，连接到SD卡模块的CS脚（部分模块标注为CS）。确保STM32和SD卡模块共地。SD卡模块的VCC接5V或3.3V均可（有稳压模块的情况下）。串口连接PA9/PA10用于调试和数据导出。
+</div>
+
+<div class="warn">
+<strong>⚠️ 注意：</strong>SD卡必须使用3.3V电平信号，不要将5V信号直接连接到SD卡（会损坏SD卡）。建议购买自带电平转换的SD卡模块。
+</div>
+
+<h2>📚 技术背景</h2>
+
+<h3>SPI协议</h3>
+<p>SPI(Serial Peripheral Interface)是一种同步串行通信协议，4根线：SCLK(时钟)、MOSI(主出从入)、MISO(主入从出)、CS(片选)。STM32的SPI1挂在APB2总线上，最大速率18MHz。</p>
+
+<h3>FatFS文件系统</h3>
+<p>FatFS是一个轻量级的FAT文件系统实现，广泛用于嵌入式设备。它隐藏了底层的存储操作，提供标准C文件API（f_open、f_write、f_close等），支持FAT12/FAT16/FAT32。</p>
+
+<h3>SD卡初始化流程</h3>
+<pre><code>1. GPIO/SPI初始化
+2. 至少74个SCLK时钟（CS=1）
+3. CMD0 → GO_IDLE_STATE（软件复位，进入SPI模式）
+4. CMD8 → SEND_IF_COND（检查SD卡版本，V2以上才支持）
+5. ACMD41 → SD_SEND_OP_COND（初始化，循环等待直到ready）
+6. CMD58 → READ_OCR（检查CCS位，确定是SDHC还是SDSC）
+7. SPI模式初始化完成
+</code></pre>
+
+<h3>FatFS核心API</h3>
+<pre><code>f_mount()    // 挂载文件系统
+f_open()     // 打开/创建文件
+f_write()    // 写入数据
+f_read()     // 读取数据
+f_sync()     // 同步缓冲区到磁盘
+f_close()    // 关闭文件
+f_mkfs()     // 创建文件系统
+f_opendir()  // 打开目录
+f_readdir()  // 读取目录项
+f_unlink()   // 删除文件
+f_stat()     // 获取文件信息
+</code></pre>
+
+<h2>🛠️ 分步骤操作指引</h2>
+
+<div class="step">
+<strong>步骤1：准备SD卡</strong><br>
+1. 使用电脑将SD卡格式化为FAT32文件系统<br>
+2. Windows下：右键格式化 → 文件系统选择FAT32 → 开始<br>
+3. 建议使用8GB以下SD卡，兼容性最好<br>
+4. 如果SD卡超过32GB，可能需要特殊处理
+</div>
+
+<div class="step">
+<strong>步骤2：CubeMX配置</strong><br>
+1. SYS → Debug: Serial Wire<br>
+2. RCC → HSE: Crystal, Clock: 72MHz<br>
+3. SPI1 → Mode: Full Duplex Master<br>
+&nbsp;&nbsp;Parameter: Prescaler=256, Baud Rate=281.25KBits/s（低速初始化用）<br>
+4. PA4 → GPIO_Output (SD卡CS)<br>
+5. USART1 → Async, 115200<br>
+6. 可选：PA0 → GPIO_Input (DHT11)
+</div>
+
+<div class="step">
+<strong>步骤3：添加FatFS中间件</strong><br>
+1. Middleware → FATFS → Mode: User-defined<br>
+2. FatFS → SD Card Detection: Disabled<br>
+3. Platform Settings → SPI: SPI1, CS: PA4<br>
+4. 生成代码<br>
+5. 修改 <code>user_diskio.c</code> 中的SPI函数适配HAL库
+</div>
+
+<div class="step">
+<strong>步骤4：修改user_diskio.c</strong><br>
+用HAL_SPI_Transmit/Receive替换原来的标准SPI调用，实现DISKIO层的4个必需函数：<code>disk_initialize</code>、<code>disk_read</code>、<code>disk_write</code>、<code>disk_ioctl</code>。
+</div>
+
+<div class="step">
+<strong>步骤5：SD卡初始化与格式化测试</strong><br>
+1. 先测试 <code>f_mount()</code> 是否成功<br>
+2. 如果失败，调用 <code>f_mkfs()</code> 重新格式化<br>
+3. 创建测试文件并写入字符串<br>
+4. 取出SD卡在电脑上验证
+</div>
+
+<div class="step">
+<strong>步骤6：完整日志功能</strong><br>
+1. 实现CSV格式数据写入<br>
+2. 添加时间戳（可用RTC或上电计时）<br>
+3. 实现文件轮转（超过N条创建新文件）<br>
+4. 实现串口命令查看/导出文件列表
+</div>
+
+<h2>💻 完整代码</h2>
+
+<h3>sd_card.h — SD卡驱动头文件</h3>
+<pre><code>#ifndef __SD_CARD_H
+#define __SD_CARD_H
+
+#include "main.h"
+#include "ff.h"
+
+#define SD_CS_PORT GPIOA
+#define SD_CS_PIN  GPIO_PIN_4
+
+FRESULT SD_Init(void);
+FRESULT SD_Mount(void);
+FRESULT SD_Unmount(void);
+FRESULT SD_CreateFile(const char *filename);
+FRESULT SD_WriteLine(FIL *fil, const char *line);
+FRESULT SD_ReadFileList(void);
+FRESULT SD_ReadFileContent(const char *filename);
+uint32_t SD_GetFreeSpace(void);
+
+#endif
+</code></pre>
+
+<h3>sd_card.c — SD卡操作实现</h3>
+<pre><code>#include "sd_card.h"
+#include "spi.h"
+#include "gpio.h"
+#include &lt;string.h&gt;
+
+static FATFS fs;           // 文件系统对象
+static uint8_t mounted = 0;
+
+/* SD卡类型 */
+typedef enum {
+    SD_TYPE_UNKNOWN = 0,
+    SD_TYPE_MMC,
+    SD_TYPE_V1,
+    SD_TYPE_V2,
+    SD_TYPE_V2_SC
+} SD_TypeDef_t;
+
+static SD_TypeDef_t SD_Type = SD_TYPE_UNKNOWN;
+
+/* CS片选控制 */
+#define SD_CS_LOW()   HAL_GPIO_WritePin(SD_CS_PORT, SD_CS_PIN, GPIO_PIN_RESET)
+#define SD_CS_HIGH()  HAL_GPIO_WritePin(SD_CS_PORT, SD_CS_PIN, GPIO_PIN_SET)
+
+/* SPI发送接收（单字节）*/
+uint8_t SD_SendByte(uint8_t data)
+{
+    uint8_t rx;
+    HAL_SPI_TransmitReceive(&amp;hspi1, &amp;data, &amp;rx, 1, HAL_MAX_DELAY);
+    return rx;
+}
+
+/* SPI发送多字节 */
+void SD_SendBuffer(uint8_t *buf, uint16_t size)
+{
+    HAL_SPI_Transmit(&amp;hspi1, buf, size, HAL_MAX_DELAY);
+}
+
+/* SPI接收多字节 */
+void SD_ReceiveBuffer(uint8_t *buf, uint16_t size)
+{
+    memset(buf, 0xFF, size);
+    HAL_SPI_Receive(&amp;hspi1, buf, size, HAL_MAX_DELAY);
+}
+
+/* 等待SD卡响应（R1格式）*/
+uint8_t SD_WaitResponse(void)
+{
+    uint8_t response;
+    uint16_t timeout = 100;
+    do {
+        response = SD_SendByte(0xFF);
+        timeout--;
+    } while ((response &amp; 0x80) &amp;&amp; timeout);
+    return response;
+}
+
+/* SD卡命令 */
+uint8_t SD_SendCommand(uint8_t cmd, uint32_t arg)
+{
+    uint8_t crc = 0xFF;
+
+    /* 计算CMD0的CRC */
+    if (cmd == 0x00) crc = 0x95;
+    /* 计算CMD8的CRC: 0x87 for arg=0x1AA */
+    if (cmd == 0x08) crc = 0x87;
+
+    uint8_t buf[6];
+    buf[0] = cmd | 0x40;
+    buf[1] = (arg &gt;&gt; 24) &amp; 0xFF;
+    buf[2] = (arg &gt;&gt; 16) &amp; 0xFF;
+    buf[3] = (arg &gt;&gt; 8) &amp; 0xFF;
+    buf[4] = arg &amp; 0xFF;
+    buf[5] = crc;
+
+    SD_SendBuffer(buf, 6);
+    return SD_WaitResponse();
+}
+
+/* 初始化SD卡 */
+FRESULT SD_Init(void)
+{
+    uint8_t response;
+    uint16_t timeout;
+
+    /* GPIO初始化 */
+    SD_CS_HIGH();
+    HAL_Delay(10);
+
+    /* 发送74+时钟脉冲 */
+    for (int i = 0; i &lt; 10; i++) SD_SendByte(0xFF);
+
+    /* CMD0: GO_IDLE_STATE */
+    SD_CS_LOW();
+    response = SD_SendCommand(0x00, 0);
+    SD_CS_HIGH();
+    if (response != 0x01) {
+        printf("SD: CMD0 failed, response=0x%02X\r\n", response);
+        return FR_DISK_ERR;
+    }
+
+    SD_CS_LOW();
+
+    /* CMD8: SEND_IF_COND (检查SDv2) */
+    response = SD_SendCommand(0x08, 0x1AA);
+    if (response == 0x01) {
+        /* SDv2: 接受响应R7 */
+        uint8_t buf[4];
+        SD_ReceiveBuffer(buf, 4);
+        if (buf[2] == 0x01 &amp;&amp; buf[3] == 0xAA) {
+            SD_Type = SD_TYPE_V2;
+        }
+    } else {
+        SD_Type = SD_TYPE_V1;
+    }
+    SD_CS_HIGH();
+    SD_SendByte(0xFF);
+
+    /* ACMD41: SD_SEND_OP_COND */
+    timeout = 1000;
+    do {
+        SD_CS_LOW();
+        SD_SendCommand(0x37, 0);  // CMD55
+        SD_WaitResponse();
+        SD_CS_HIGH();
+        SD_SendByte(0xFF);
+
+        SD_CS_LOW();
+        uint32_t arg = (SD_Type == SD_TYPE_V2) ? 0x40000000 : 0;
+        response = SD_SendCommand(0x29, arg);  // ACMD41
+        SD_CS_HIGH();
+        SD_SendByte(0xFF);
+        timeout--;
+        HAL_Delay(1);
+    } while (response != 0x00 &amp;&amp; timeout &gt; 0);
+
+    if (timeout == 0) {
+        printf("SD: ACMD41 timeout\r\n");
+        return FR_DISK_ERR;
+    }
+
+    /* CMD58: 读取OCR，检查SDHC */
+    if (SD_Type == SD_TYPE_V2) {
+        SD_CS_LOW();
+        response = SD_SendCommand(0x3A, 0);
+        uint8_t ocr[4];
+        SD_ReceiveBuffer(ocr, 4);
+        SD_CS_HIGH();
+        SD_SendByte(0xFF);
+        if (ocr[0] &amp; 0x40) {
+            SD_Type = SD_TYPE_V2_SC; // SDHC
+        }
+    }
+
+    /* 提高SPI速度 */
+    SPI1-&gt;CR1 &amp;= ~SPI_CR1_BR_Msk;
+    SPI1-&gt;CR1 |= (SPI_BAUDRATEPRESCALER_8 &lt;&lt; SPI_CR1_BR_Pos); // 9MHz
+
+    printf("SD Init OK, Type=%d\r\n", SD_Type);
+    return FR_OK;
+}
+
+/* 挂载文件系统 */
+FRESULT SD_Mount(void)
+{
+    FRESULT res = f_mount(&amp;fs, "", 1);
+    if (res != FR_OK) {
+        printf("f_mount failed: %d\r\n", res);
+        return res;
+    }
+    mounted = 1;
+    printf("SD mounted successfully\r\n");
+    return FR_OK;
+}
+
+FRESULT SD_Unmount(void)
+{
+    if (mounted) {
+        f_mount(NULL, "", 0);
+        mounted = 0;
+    }
+    return FR_OK;
+}
+
+/* 创建文件 */
+FRESULT SD_CreateFile(const char *filename)
+{
+    FIL fil;
+    FRESULT res = f_open(&amp;fil, filename, FA_CREATE_ALWAYS | FA_WRITE);
+    if (res != FR_OK) {
+        printf("f_open failed: %d\r\n", res);
+        return res;
+    }
+    f_close(&amp;fil);
+    printf("File created: %s\r\n", filename);
+    return FR_OK;
+}
+
+/* 写入一行 */
+FRESULT SD_WriteLine(FIL *fil, const char *line)
+{
+    UINT bw;
+    FRESULT res = f_write(fil, line, strlen(line), &amp;bw);
+    f_sync(fil);  // 立即同步到磁盘，防止掉电丢失
+    return res;
+}
+
+/* 读取文件列表 */
+FRESULT SD_ReadFileList(void)
+{
+    DIR dir;
+    FILINFO fno;
+    FRESULT res;
+
+    res = f_opendir(&amp;dir, "/");
+    if (res != FR_OK) {
+        printf("f_opendir failed: %d\r\n", res);
+        return res;
+    }
+
+    printf("\r\n=== SD Card Files ===\r\n");
+    for (;;) {
+        res = f_readdir(&amp;dir, &amp;fno);
+        if (res != FR_OK || fno.fname[0] == 0) break;
+        printf("  %s  (%lu bytes)\r\n", fno.fname, fno.fsize);
+    }
+    f_closedir(&amp;dir);
+    printf("======================\r\n");
+    return FR_OK;
+}
+
+/* 读取文件内容 */
+FRESULT SD_ReadFileContent(const char *filename)
+{
+    FIL fil;
+    FRESULT res;
+    char buf[128];
+
+    res = f_open(&amp;fil, filename, FA_READ);
+    if (res != FR_OK) {
+        printf("Cannot open file: %s\r\n", filename);
+        return res;
+    }
+
+    printf("\r\n=== %s ===\r\n", filename);
+    while (f_gets(buf, sizeof(buf), &amp;fil)) {
+        printf("%s", buf);
+    }
+    printf("\r\n=== End ===\r\n");
+
+    f_close(&amp;fil);
+    return FR_OK;
+}
+
+/* 获取剩余空间(MB) */
+uint32_t SD_GetFreeSpace(void)
+{
+    FATFS *pfs;
+    DWORD fre_clust;
+    FRESULT res = f_getfree("", &amp;fre_clust, &amp;pfs);
+    if (res != FR_OK) return 0;
+    uint32_t total = (pfs-&gt;csize * fre_clust) / 2048; // 单位MB
+    return total;
+}
+</code></pre>
+
+<h3>main.c — 主程序</h3>
+<pre><code>#include "main.h"
+#include "sd_card.h"
+#include "usart.h"
+#include &lt;stdio.h&gt;
+#include &lt;string.h&gt;
+#include &lt;time.h&gt;
+
+#define LOG_INTERVAL_MS  5000   // 每5秒记录一次
+#define MAX_FILE_LINES  1000    // 每个文件最大1000行
+
+int fputc(int ch, FILE *f)
+{
+    HAL_UART_Transmit(&amp;huart1, (uint8_t *)&amp;ch, 1, HAL_MAX_DELAY);
+    return ch;
+}
+
+/* 简化DHT11读取(详细见教程10) */
+extern uint8_t DHT11_Read(float *temp, float *humid);
+extern uint8_t DHT11_Init(void);
+
+/* 时间戳: 上电毫秒数 */
+uint32_t GetTick(void)
+{
+    return HAL_GetTick();
+}
+
+/* 格式化时间字符串 */
+void FormatTimestamp(char *buf, size_t len)
+{
+    uint32_t ms = HAL_GetTick();
+    uint32_t sec = ms / 1000;
+    uint32_t min = sec / 60;
+    uint32_t hr  = min / 60;
+    uint32_t day = hr / 24;
+
+    snprintf(buf, len, "%03ldd%02ld:%02ld:%02ld.%03ld",
+             day, hr % 24, min % 60, sec % 60, ms % 1000);
+}
+
+/* 生成文件名: LOG_001.csv, LOG_002.csv ... */
+void GenerateLogFilename(char *buf, size_t len, uint16_t *fileIndex)
+{
+    FRESULT res;
+    FILINFO fno;
+    DIR dir;
+
+    res = f_opendir(&amp;dir, "/");
+    if (res == FR_OK) {
+        uint16_t maxIdx = 0;
+        while (f_readdir(&amp;dir, &amp;fno) == FR_OK &amp;&amp; fno.fname[0] != 0) {
+            if (strncmp(fno.fname, "LOG_", 4) == 0 &amp;&amp;
+                strstr(fno.fname, ".csv") != NULL) {
+                uint16_t idx;
+                if (sscanf(fno.fname + 4, "%hu.csv", &amp;idx) == 1) {
+                    if (idx &gt; maxIdx) maxIdx = idx;
+                }
+            }
+        }
+        f_closedir(&amp;dir);
+        *fileIndex = maxIdx + 1;
+    } else {
+        *fileIndex = 1;
+    }
+
+    snprintf(buf, len, "LOG_%03d.csv", *fileIndex);
+}
+
+/* 写入CSV头部 */
+void WriteCSVHeader(FIL *fil)
+{
+    char header[] = "Timestamp,Temperature(C),Humidity(%),Notes\r\n";
+    UINT bw;
+    f_write(fil, header, strlen(header), &amp;bw);
+    f_sync(fil);
+}
+
+int main(void)
+{
+    HAL_Init();
+    SystemClock_Config();
+    MX_GPIO_Init();
+    MX_SPI1_Init();
+    MX_USART1_UART_Init();
+
+    printf("\r\n========== SD Card Data Logger ==========\r\n");
+
+    /* SD卡初始化 */
+    if (SD_Init() != FR_OK) {
+        printf("SD Init FAILED! Check wiring.\r\n");
+        while (1) HAL_Delay(1000);
+    }
+
+    if (SD_Mount() != FR_OK) {
+        printf("SD Mount FAILED!\r\n");
+        while (1) HAL_Delay(1000);
+    }
+
+    /* 创建日志文件 */
+    uint16_t fileIndex;
+    char filename[32];
+    GenerateLogFilename(filename, sizeof(filename), &amp;fileIndex);
+
+    FIL logFile;
+    FRESULT res = f_open(&amp;logFile, filename,
+                         FA_OPEN_APPEND | FA_WRITE | FA_READ);
+    if (res != FR_OK) {
+        f_open(&amp;logFile, filename, FA_CREATE_ALWAYS | FA_WRITE);
+    }
+
+    /* 如果是新文件，写CSV头 */
+    if (f_size(&amp;logFile) == 0) {
+        WriteCSVHeader(&amp;logFile);
+    }
+
+    uint32_t lineCount = 0;
+    uint32_t lastLogTime = 0;
+    char ts_buf[32];
+    char csv_buf[128];
+
+    printf("Logging to: %s\r\n", filename);
+    printf("Free space: %lu MB\r\n", SD_GetFreeSpace());
+    printf("Start logging...\r\n");
+
+    while (1) {
+        uint32_t now = HAL_GetTick();
+
+        if (now - lastLogTime &gt;= LOG_INTERVAL_MS) {
+            lastLogTime = now;
+
+            /* 读取传感器(如果有) */
+            float temp = 25.0f;
+            float humid = 60.0f;
+            // DHT11_Read(&amp;temp, &amp;humid); // 取消注释启用DHT11
+
+            /* 格式化时间戳 */
+            FormatTimestamp(ts_buf, sizeof(ts_buf));
+
+            /* 构造CSV行 */
+            snprintf(csv_buf, sizeof(csv_buf),
+                     "%s,%.1f,%.1f,Auto log\r\n",
+                     ts_buf, temp, humid);
+
+            /* 写入SD卡 */
+            UINT bw;
+            res = f_write(&amp;logFile, csv_buf, strlen(csv_buf), &amp;bw);
+
+            /* 立即同步，防止掉电丢失数据 */
+            f_sync(&amp;logFile);
+
+            lineCount++;
+            printf("[%05lu] %s (lines=%lu)\r\n",
+                   now/1000, csv_buf, lineCount);
+
+            /* 检查文件大小 */
+            if (lineCount &gt;= MAX_FILE_LINES) {
+                f_close(&amp;logFile);
+                GenerateLogFilename(filename, sizeof(filename), &amp;fileIndex);
+                f_open(&amp;logFile, filename,
+                       FA_OPEN_APPEND | FA_WRITE | FA_READ);
+                WriteCSVHeader(&amp;logFile);
+                lineCount = 0;
+                printf("New file: %s\r\n", filename);
+            }
+
+            /* 检查剩余空间 */
+            uint32_t freeMB = SD_GetFreeSpace();
+            if (freeMB &lt; 10) {
+                printf("WARNING: Low storage! %lu MB left\r\n", freeMB);
+            }
+        }
+
+        /* 串口命令处理 */
+        uint8_t ch;
+        if (HAL_UART_Receive(&amp;huart1, &amp;ch, 1, 0) == HAL_OK) {
+            if (ch == 'l') {
+                SD_ReadFileList();
+            } else if (ch == 'f') {
+                printf("Free space: %lu MB\r\n", SD_GetFreeSpace());
+            } else if (ch == 'r') {
+                SD_ReadFileContent(filename);
+            } else if (ch == 's') {
+                f_sync(&amp;logFile);
+                printf("Data synced to disk.\r\n");
+            } else if (ch == 'h') {
+                printf("Commands: l=list f=free r=read s=sync h=help\r\n");
+            }
+        }
+
+        HAL_Delay(100);
+    }
+}
+</code></pre>
+
+<h3>user_diskio.c — FatFS底层接口</h3>
+<pre><code>/* 由CubeMX生成的user_diskio.c，需修改disk_read/disk_write使用HAL SPI */
+
+/* diskio.h 中的底层函数实现 */
+
+#include "ff.h"
+#include "diskio.h"
+#include "spi.h"
+#include "gpio.h"
+
+#define SD_CS_PORT GPIOA
+#define SD_CS_PIN  GPIO_PIN_4
+#define SD_CS_LOW()   HAL_GPIO_WritePin(SD_CS_PORT, SD_CS_PIN, GPIO_PIN_RESET)
+#define SD_CS_HIGH()  HAL_GPIO_WritePin(SD_CS_PORT, SD_CS_PIN, GPIO_PIN_SET)
+
+DSTATUS disk_initialize(BYTE pdrv)
+{
+    return 0; // 已在main中初始化
+}
+
+DSTATUS disk_status(BYTE pdrv)
+{
+    return 0;
+}
+
+DRESULT disk_read(BYTE pdrv, BYTE *buff, DWORD sector, UINT count)
+{
+    SD_CS_LOW();
+
+    /* CMD17: READ_SINGLE_BLOCK */
+    SD_SendCommand(0x51, sector);
+
+    /* 等待数据块起始标记0xFE */
+    uint8_t retry = 100;
+    while (SD_SendByte(0xFF) != 0xFE &amp;&amp; retry--) {
+        HAL_Delay(1);
+    }
+
+    /* 读取数据 */
+    for (UINT i = 0; i &lt; count; i++) {
+        for (DWORD j = 0; j &lt; 512; j++) {
+            *(buff++) = SD_SendByte(0xFF);
+        }
+        if (i &lt; count - 1) {
+            /* 多块读取需发送CMD18 */
+        }
+    }
+
+    /* 读取CRC16 */
+    SD_SendByte(0xFF); SD_SendByte(0xFF);
+
+    SD_CS_HIGH();
+    SD_SendByte(0xFF);
+    return RES_OK;
+}
+
+DRESULT disk_write(BYTE pdrv, const BYTE *buff, DWORD sector, UINT count)
+{
+    SD_CS_LOW();
+
+    if (count == 1) {
+        /* CMD24: WRITE_SINGLE_BLOCK */
+        SD_SendCommand(0x58, sector);
+        SD_SendByte(0xFF);
+
+        /* 数据块开始标记 */
+        SD_SendByte(0xFE);
+
+        /* 写入512字节 */
+        for (DWORD i = 0; i &lt; 512; i++) {
+            SD_SendByte(*(buff++));
+        }
+
+        /* 伪CRC */
+        SD_SendByte(0xFF); SD_SendByte(0xFF);
+
+        /* 等待编程完成 */
+        uint8_t resp = SD_SendByte(0xFF);
+        if ((resp &amp; 0x05) != 0x05) {
+            SD_CS_HIGH();
+            return RES_ERROR;
+        }
+
+        while (SD_SendByte(0xFF) == 0x00); // 等待完成
+    }
+
+    SD_CS_HIGH();
+    SD_SendByte(0xFF);
+    return RES_OK;
+}
+
+DRESULT disk_ioctl(BYTE pdrv, BYTE cmd, void *buff)
+{
+    DRESULT res = RES_OK;
+
+    switch (cmd) {
+    case CTRL_SYNC:
+        SD_CS_LOW();
+        while (SD_SendByte(0xFF) != 0xFF);
+        SD_CS_HIGH();
+        break;
+    case GET_SECTOR_SIZE:
+        *(WORD *)buff = 512;
+        break;
+    case GET_BLOCK_SIZE:
+        *(DWORD *)buff = 1;
+        break;
+    case MMC_GET_TYPE:
+        *(BYTE *)buff = 0x02; // SDv2
+        break;
+    case MMC_GET_CSD:
+        // 返回CSD寄存器内容
+        break;
+    case MMC_GET_OCR:
+        *(BYTE *)buff = 0x40; // 3.3V
+        break;
+    default:
+        res = RES_PARERR;
+        break;
+    }
+    return res;
+}
+</code></pre>
+
+<h3>中文文件名支持</h3>
+<pre><code>/* SFN(8.3短文件名)限制下，中文名会变成乱码 */
+/* 解决方案1: 只使用ASCII文件名（推荐） */
+f_open(&amp;fil, "LOG_001.csv", FA_OPEN_APPEND | FA_WRITE);
+
+/* 解决方案2: 使用Unicode + 长文件名(LFN) */
+/* 在ffconf.h中启用:
+   #define FF_USE_LFN 3        // 动态堆栈长文件名
+   #define FF_MAX_LFN 255      // 最大文件名长度
+   #define FF_LFN_UNICODE 1    // Unicode支持
+*/
+
+/* 解决方案3: 使用数字编号+时间戳命名 */
+char filename[32];
+uint32_t now = HAL_GetTick() / 1000; // 秒
+snprintf(filename, sizeof(filename), "D%06lu.csv", now);
+f_open(&amp;fil, filename, FA_CREATE_ALWAYS | FA_WRITE);
+</code></pre>
+
+<h2>❓ 常见问题排查</h2>
+
+<div class="warn">
+<strong>⚠️ 问题1：SD卡初始化失败</strong><br>
+<strong>现象：</strong>f_mount返回FR_DISK_ERR，或ACMD41超时<br>
+<strong>原因：</strong>供电不足、SPI速率太高、接线错误<br>
+<strong>解决：</strong><br>
+1. 供电问题：STM32的3.3V输出电流有限，SD卡需要200mA峰值电流。加一个独立3.3V稳压器或用带稳压的SD卡模块。<br>
+2. SPI速率：初始化时使用低速SPI（&lt;400kHz），初始化完成后再提速<br>
+3. 接线检查：确认MISO/MOSI没有接反，CS是否连接<br>
+4. SD卡问题：尝试换一张SD卡，或用读卡器在电脑上测试是否正常<br>
+5. 示波器检查：观察CS和MOSI引脚，确认有信号输出
+</div>
+
+<div class="warn">
+<strong>⚠️ 问题2：文件写入后丢失</strong><br>
+<strong>现象：</strong>掉电后再上电，文件为空或不存在<br>
+<strong>原因：</strong>数据还在FatFS缓冲区中，未实际写入磁盘<br>
+<strong>解决：</strong><br>
+1. 每次写入后调用 <code>f_sync()</code> 立即同步到磁盘<br>
+2. 关闭文件前必须调用 <code>f_close()</code><br>
+3. 检查SD卡写保护开关是否打开<br>
+4. 某些廉价SD卡写入性能差，写入后需要等待较长时间<br>
+5. 在掉电前，系统应主动关闭/同步文件
+</div>
+
+<div class="warn">
+<strong>⚠️ 问题3：中文文件名乱码</strong><br>
+<strong>现象：</strong>文件名显示为"Θά??? .csv"之类的乱码<br>
+<strong>原因：</strong>SD卡使用GBK/FAT编码，Windows使用UTF-8/Cp936<br>
+<strong>解决：</strong><br>
+1. 最简单方案：避免使用中文文件名，全部使用ASCII字符<br>
+2. 使用数字编号命名：<code>snprintf(filename, "DATA_%03d.CSV", index)</code><br>
+3. 如果必须支持中文，需要在ffconf.h启用长文件名(LFN)支持，并确保编码一致<br>
+4. Windows下可以用字符映射表输入Unicode编码的字母代替中文
+</div>
+
+<div class="warn">
+<strong>⚠️ 问题4：SD卡在写入时变慢</strong><br>
+<strong>现象：</strong>写入越来越慢，最后卡死<br>
+<strong>原因：</strong>FatFS内部碎片整理，或SD卡接近写满<br>
+<strong>解决：</strong><br>
+1. 定期用电脑格式化SD卡，清除碎片<br>
+2. 写之前先检查剩余空间<br>
+3. 使用文件轮转，超过N条创建新文件<br>
+4. 某些SD卡不支持大范围随机写入，优先使用顺序写入<br>
+5. 降低SPI速率到2MHz左右
+</div>
+
+<div class="warn">
+<strong>⚠️ 问题5：FatFS版本兼容问题</strong><br>
+<strong>现象：</strong>编译报错"undefined reference to disk_xxx"<br>
+<strong>原因：</strong>FatFS配置与实际代码不匹配<br>
+<strong>解决：</strong><br>
+1. CubeMX生成FatFS后，user_diskio.c中的函数必须完整实现<br>
+2. ffconf.h中的 <code>_USE_MKFS</code>、<code>_FS_READONLY</code> 等宏要匹配<br>
+3. 确保 <code>BYTE pdrv</code> 参数返回0（单存储设备）<br>
+4. 可以从ST官方例程中复制完整的user_diskio.c
+</div>
+
+<div class="tip">
+<strong>✅ 数据安全技巧：</strong><br>
+1. 每次写入前调用 <code>f_sync()</code><br>
+2. 使用两段式写入：先写.tmp，完成后rename<br>
+3. 日志文件使用循环缓冲区（旧数据覆盖）<br>
+4. 记录CRC校验码，读取时验证完整性<br>
+5. 定期导出数据，防止SD卡损坏丢失
+</div>
+
+
+<hr><h2>❓ 常见问题 FAQ</h2>
+
+<div style="margin:12px 0;padding:12px 16px;background:var(--bg2);border-left:3px solid var(--a);border-radius:0 8px 8px 0">
+  <p style="font-weight:600;color:var(--c1);margin-bottom:4px">Q: SD卡初始化失败？</p>
+  <p style="color:var(--t)">A: 1)SPI模式需先发80个时钟 2)供电3.3V（某些卡需5V） 3)换一张卡试试（卡兼容性问题常见） 4)FatFS版本要新</p>
+</div>
+
+<div style="margin:12px 0;padding:12px 16px;background:var(--bg2);border-left:3px solid var(--a);border-radius:0 8px 8px 0">
+  <p style="font-weight:600;color:var(--c1);margin-bottom:4px">Q: 写入速度慢？</p>
+  <p style="color:var(--t)">A: 1)单次写入512字节对齐 2)用f_sync()代替频繁f_close() 3)SD卡Class等级影响写入速度 4)避免频繁打开关闭文件</p>
+</div>
+
+<hr><h2>🔗 相关教程</h2>
+<div style="display:flex;flex-wrap:wrap;gap:8px;margin:12px 0">
+<a href="#" onclick="parent.loadPage && parent.loadPage('proj-freertos-station')" style="display:inline-block;padding:6px 14px;background:var(--bg3);border:1px solid var(--br);border-radius:6px;color:var(--a);text-decoration:none;font-size:.85em">FreeRTOS站 →</a>
+<a href="#" onclick="parent.loadPage && parent.loadPage('proj-dht11-monitor')" style="display:inline-block;padding:6px 14px;background:var(--bg3);border:1px solid var(--br);border-radius:6px;color:var(--a);text-decoration:none;font-size:.85em">温湿度 →</a>
+<a href="#" onclick="parent.loadPage && parent.loadPage('proj-bootloader-iap')" style="display:inline-block;padding:6px 14px;background:var(--bg3);border:1px solid var(--br);border-radius:6px;color:var(--a);text-decoration:none;font-size:.85em">Bootloader →</a>
+</div>
+
+</body></html>

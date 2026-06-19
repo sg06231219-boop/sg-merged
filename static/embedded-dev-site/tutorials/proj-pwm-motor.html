@@ -1,0 +1,518 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0"><title>教程5：直流电机PWM控制 - STM32嵌入式开发</title><style>:root{--bg:#0d1117;--bg2:#161b22;--bg3:#21262d;--br:#30363d;--t:#c9d1d9;--t2:#8b949e;--a:#58a6ff;--g:#3fb950;--o:#d29922;--r:#f85149;--p:#a371f7;--c1:#39c5cf}body{background:var(--bg);color:var(--t);font-family:system-ui,sans-serif;line-height:1.8;max-width:900px;margin:0 auto;padding:20px}h1{text-align:center;background:linear-gradient(135deg,var(--a),var(--p));-webkit-background-clip:text;-webkit-text-fill-color:transparent}h2{color:var(--a);border-bottom:2px solid var(--br);padding-bottom:6px;margin-top:32px}h3{color:var(--c1);margin-top:22px}pre{background:#1c2128;border:1px solid var(--br);border-radius:8px;padding:14px;overflow-x:auto;font-size:.84em}code{font-family:'Cascadia Code',Consolas,monospace}:not(pre)>code{background:var(--bg3);padding:2px 6px;border-radius:4px;color:var(--c1)}table{width:100%;border-collapse:collapse;margin:12px 0}th{background:var(--bg3);color:var(--a);padding:8px 12px;border:1px solid var(--br);text-align:left}td{padding:8px 12px;border:1px solid var(--br)}.note{background:rgba(88,166,255,.08);border-left:3px solid var(--a);border-radius:8px;padding:12px 16px;margin:12px 0}.warn{background:rgba(248,81,73,.08);border-left:3px solid var(--r);border-radius:8px;padding:12px 16px;margin:12px 0}.tip{background:rgba(63,185,80,.08);border-left:3px solid var(--g);border-radius:8px;padding:12px 16px;margin:12px 0}.step{background:var(--bg2);border:1px solid var(--br);border-radius:8px;padding:12px 16px;margin:10px 0}</style></head><body>
+<h1>🔧 教程5：直流电机PWM控制</h1>
+<p style="text-align:center;color:var(--t2)">STM32F103C8T6 + L298N + 直流电机 | HAL库实战</p>
+
+<h2>📖 你将学到什么</h2>
+<ul>
+<li>定时器PWM原理与占空比计算</li>
+<li>使用HAL库输出PWM波形</li>
+<li>L298N驱动板的控制逻辑</li>
+<li>按键中断实现调速</li>
+<li>串口设定目标转速</li>
+</ul>
+
+<h2>🧰 硬件清单</h2>
+<table>
+<tr><th>元件</th><th>数量</th><th>说明</th></tr>
+<tr><td>STM32F103C8T6 最小系统板</td><td>1</td><td>Blue Pill</td></tr>
+<tr><td>L298N 电机驱动模块</td><td>1</td><td>双H桥驱动</td></tr>
+<tr><td>直流减速电机</td><td>1</td><td>TT马达或类似</td></tr>
+<tr><td>12V 电源</td><td>1</td><td>为L298N供电</td></tr>
+<tr><td>按键</td><td>2</td><td>加速/减速</td></tr>
+<tr><td>杜邦线</td><td>若干</td><td>公对公/公对母</td></tr>
+</table>
+
+<h2>🔬 PWM原理详解</h2>
+
+<h3>什么是PWM？</h3>
+<p>PWM（Pulse Width Modulation，脉宽调制）是一种通过改变脉冲的<strong>占空比</strong>来等效改变输出电压的技术。</p>
+
+<div class="note">
+<strong>占空比（Duty Cycle）</strong> = 高电平时间 / 周期时间 × 100%<br>
+例如：周期10ms，高电平6ms → 占空比60% → 等效输出电压 = 3.6V（5V × 60%）
+</div>
+
+<h3>占空比与转速的关系</h3>
+<table>
+<tr><th>占空比</th><th>CCR值(PSC=71,ARR=999)</th><th>等效电压</th><th>电机状态</th></tr>
+<tr><td>0%</td><td>0</td><td>0V</td><td>停止</td></tr>
+<tr><td>25%</td><td>250</td><td>1V</td><td>低速</td></tr>
+<tr><td>50%</td><td>500</td><td>2V</td><td>中速</td></tr>
+<tr><td>75%</td><td>750</td><td>3V</td><td>高速</td></tr>
+<tr><td>100%</td><td>999</td><td>4V</td><td>最高速</td></tr>
+</table>
+
+<h3>定时器PWM频率计算</h3>
+<pre><code>PWM频率 = TIM时钟 / ((PSC+1) × (ARR+1))
+
+STM32F103 TIM3 时钟 = 72MHz
+设置 PSC = 71, ARR = 999:
+PWM频率 = 72000000 / (72 × 1000) = 1000Hz = 1kHz
+
+这是一个适合电机控制的频率（通常1~20kHz）</code></pre>
+
+<h2>🔌 接线图</h2>
+
+<h3>接线说明</h3>
+<pre><code>STM32F103C8T6          L298N驱动板
+─────────────          ────────────
+PA6 (TIM3_CH1) ──────── ENA (PWM调速)
+PA0 (GPIO)     ──────── IN1 (方向控制1)
+PA1 (GPIO)     ──────── IN2 (方向控制2)
+
+L298N驱动板             外部
+─────────────          ──────
+12V+         ────────  12V电源正极
+GND          ────────  12V电源负极 & STM32 GND
+OUT1         ────────  电机端子A
+OUT2         ────────  电机端子B
+
+STM32F103C8T6          按键
+─────────────          ────
+PB0 (GPIO_EXTI) ────── 加速按键→GND
+PB1 (GPIO_EXTI) ────── 减速按键→GND
+
+STM32F103C8T6          USB-TTL
+─────────────          ────────
+PA9  (USART1_TX) ───── RX
+PA10 (USART1_RX) ───── TX</code></pre>
+
+<div class="warn">
+<strong>⚠ 重要：</strong>L298N的GND必须与STM32的GND共地，否则PWM信号无法正确识别！12V电源只接L298N的12V输入，不要接到STM32的5V或3.3V。
+</div>
+
+<h3>L298N控制逻辑</h3>
+<table>
+<tr><th>IN1</th><th>IN2</th><th>ENA</th><th>电机状态</th></tr>
+<tr><td>1</td><td>0</td><td>PWM</td><td>正转（速度由PWM决定）</td></tr>
+<tr><td>0</td><td>1</td><td>PWM</td><td>反转（速度由PWM决定）</td></tr>
+<tr><td>0</td><td>0</td><td>X</td><td>自由停止</td></tr>
+<tr><td>1</td><td>1</td><td>X</td><td>急刹车（短路制动）</td></tr>
+</table>
+
+<h2>📝 分步操作指引</h2>
+
+<div class="step">
+<strong>Step 1：CubeMX 项目配置</strong><br>
+1. 打开STM32CubeMX，选择STM32F103C8T6芯片<br>
+2. 配置时钟：HSE→PLL→72MHz<br>
+3. 配置TIM3 CH1为PWM Generation CH1<br>
+4. 配置PA0、PA1为GPIO_Output<br>
+5. 配置PB0、PB1为GPIO_EXTI（下降沿触发）<br>
+6. 配置USART1为Asynchronous（115200/8-N-1）<br>
+7. 配置NVIC使能EXTI0和EXTI1中断
+</div>
+
+<div class="step">
+<strong>Step 2：TIM3 PWM参数设置</strong><br>
+在CubeMX的TIM3配置页面：<br>
+- Prescaler (PSC): 71<br>
+- Counter Period (ARR): 999<br>
+- Pulse (CCR): 0（初始占空比0%）<br>
+- CH1 Mode: PWM Generation CH1<br>
+- Pulse Width: 从0开始
+</div>
+
+<div class="step">
+<strong>Step 3：生成代码并编写业务逻辑</strong><br>
+1. 点击Generate Code生成项目<br>
+2. 在main.c中添加用户代码<br>
+3. 编译并下载到开发板
+</div>
+
+<div class="step">
+<strong>Step 4：测试验证</strong><br>
+1. 上电后电机应静止<br>
+2. 按加速键电机开始正转<br>
+3. 按减速键降低转速<br>
+4. 通过串口发送 <code>SPEED:500</code> 可设定转速<br>
+5. 串口发送 <code>DIR:REV</code> 反转
+</div>
+
+<h2>💻 完整代码</h2>
+
+<h3>main.c — 核心业务逻辑</h3>
+<pre><code>/* USER CODE BEGIN Includes */
+#include &lt;stdio.h&gt;
+#include &lt;string.h&gt;
+#include &lt;stdlib.h&gt;
+/* USER CODE END Includes */
+
+/* USER CODE BEGIN PV */
+// 电机方向枚举
+typedef enum {
+    MOTOR_STOP = 0,
+    MOTOR_FWD,
+    MOTOR_REV
+} MotorDir_t;
+
+// 全局变量
+volatile uint16_t g_duty = 0;          // 当前占空比 (0~999)
+volatile MotorDir_t g_dir = MOTOR_STOP; // 当前方向
+volatile uint8_t g_speed_changed = 0;   // 速度变化标志
+
+#define DUTY_STEP  50    // 每次调速步进值
+#define DUTY_MAX   999   // 最大占空比
+#define DUTY_MIN   0     // 最小占空比
+/* USER CODE END PV */
+
+/* USER CODE BEGIN 0 */
+
+// 重定向printf到USART1
+#ifdef __GNUC__
+int __io_putchar(int ch)
+#else
+int fputc(int ch, FILE *f)
+#endif
+{
+    HAL_UART_Transmit(&amp;huart1, (uint8_t *)&amp;ch, 1, HAL_MAX_DELAY);
+    return ch;
+}
+
+// 设置电机方向
+void Motor_SetDirection(MotorDir_t dir)
+{
+    switch(dir) {
+        case MOTOR_FWD:
+            HAL_GPIO_WritePin(GPIOA, GPIO_PIN_0, GPIO_PIN_SET);    // IN1 = 1
+            HAL_GPIO_WritePin(GPIOA, GPIO_PIN_1, GPIO_PIN_RESET);  // IN2 = 0
+            break;
+        case MOTOR_REV:
+            HAL_GPIO_WritePin(GPIOA, GPIO_PIN_0, GPIO_PIN_RESET);  // IN1 = 0
+            HAL_GPIO_WritePin(GPIOA, GPIO_PIN_1, GPIO_PIN_SET);    // IN2 = 1
+            break;
+        case MOTOR_STOP:
+        default:
+            HAL_GPIO_WritePin(GPIOA, GPIO_PIN_0, GPIO_PIN_RESET);  // IN1 = 0
+            HAL_GPIO_WritePin(GPIOA, GPIO_PIN_1, GPIO_PIN_RESET);  // IN2 = 0
+            break;
+    }
+    g_dir = dir;
+}
+
+// 设置PWM占空比
+void Motor_SetDuty(uint16_t duty)
+{
+    if (duty &gt; DUTY_MAX) duty = DUTY_MAX;
+    g_duty = duty;
+    __HAL_TIM_SET_COMPARE(&amp;htim3, TIM_CHANNEL_1, duty);
+    
+    // 占空比为0时停止电机
+    if (duty == 0) {
+        Motor_SetDirection(MOTOR_STOP);
+    } else if (g_dir == MOTOR_STOP) {
+        // 有占空比但没方向时默认正转
+        Motor_SetDirection(MOTOR_FWD);
+    }
+}
+
+// 串口接收缓冲区
+uint8_t g_rx_buf[64];
+volatile uint8_t g_rx_flag = 0;
+
+// 串口接收完成回调
+void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
+{
+    if (huart-&gt;Instance == USART1) {
+        g_rx_flag = 1;
+        HAL_UART_Receive_IT(&amp;huart1, g_rx_buf, 1);
+    }
+}
+
+// 解析串口命令
+void Parse_UART_Command(uint8_t *buf)
+{
+    // 格式: SPEED:500 或 DIR:REV 或 DIR:FWD 或 STOP
+    if (strncmp((char*)buf, "SPEED:", 6) == 0) {
+        int val = atoi((char*)(buf + 6));
+        if (val &gt;= 0 &amp;&amp; val &lt;= 999) {
+            Motor_SetDuty((uint16_t)val);
+            printf("Duty set to %d\r\n", val);
+        }
+    }
+    else if (strncmp((char*)buf, "DIR:FWD", 7) == 0) {
+        Motor_SetDirection(MOTOR_FWD);
+        printf("Direction: Forward\r\n");
+    }
+    else if (strncmp((char*)buf, "DIR:REV", 7) == 0) {
+        Motor_SetDirection(MOTOR_REV);
+        printf("Direction: Reverse\r\n");
+    }
+    else if (strncmp((char*)buf, "STOP", 4) == 0) {
+        Motor_SetDuty(0);
+        printf("Motor stopped\r\n");
+    }
+}
+
+// 外部中断回调 — 按键调速
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
+{
+    if (GPIO_Pin == GPIO_PIN_0) {  // PB0 加速
+        if (g_duty + DUTY_STEP &lt;= DUTY_MAX) {
+            Motor_SetDuty(g_duty + DUTY_STEP);
+        }
+        g_speed_changed = 1;
+    }
+    else if (GPIO_Pin == GPIO_PIN_1) {  // PB1 减速
+        if (g_duty &gt;= DUTY_STEP) {
+            Motor_SetDuty(g_duty - DUTY_STEP);
+        } else {
+            Motor_SetDuty(0);
+        }
+        g_speed_changed = 1;
+    }
+}
+/* USER CODE END 0 */
+
+int main(void)
+{
+    HAL_Init();
+    SystemClock_Config();
+    MX_GPIO_Init();
+    MX_TIM3_Init();
+    MX_USART1_UART_Init();
+
+    /* USER CODE BEGIN 2 */
+    // 启动PWM输出
+    HAL_TIM_PWM_Start(&amp;htim3, TIM_CHANNEL_1);
+    
+    // 初始占空比为0，电机静止
+    Motor_SetDuty(0);
+    Motor_SetDirection(MOTOR_STOP);
+    
+    // 启动串口接收中断
+    HAL_UART_Receive_IT(&amp;huart1, g_rx_buf, 1);
+    
+    printf("Motor PWM Control Ready!\r\n");
+    printf("Commands: SPEED:0~999, DIR:FWD, DIR:REV, STOP\r\n");
+    /* USER CODE END 2 */
+
+    /* USER CODE BEGIN WHILE */
+    while (1)
+    {
+        // 串口命令处理
+        if (g_rx_flag) {
+            g_rx_flag = 0;
+            Parse_UART_Command(g_rx_buf);
+        }
+        
+        // 按键调速后打印当前状态
+        if (g_speed_changed) {
+            g_speed_changed = 0;
+            printf("Duty: %d/999 (%.1f%%)\r\n", g_duty, (float)g_duty / 9.99f);
+        }
+        
+        HAL_Delay(10);
+    }
+    /* USER CODE END WHILE */
+}</code></pre>
+
+<h3>CubeMX TIM3 配置（参考）</h3>
+<pre><code>// 在CubeMX中配置TIM3后，生成的初始化代码大致如下：
+// mx_tim3.c 中的关键参数
+
+htim3.Instance = TIM3;
+htim3.Init.Prescaler = 71;          // PSC = 71 → 72MHz/72 = 1MHz 计数频率
+htim3.Init.CounterMode = TIM_COUNTERMODE_UP;
+htim3.Init.Period = 999;             // ARR = 999 → 1MHz/1000 = 1kHz PWM
+htim3.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+htim3.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_ENABLE;
+
+// Channel 1 PWM 配置
+sConfigOC.OCMode = TIM_OCMODE_PWM1;
+sConfigOC.Pulse = 0;                 // 初始CCR = 0 → 0%占空比
+sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
+sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;</code></pre>
+
+<h2>❓ 常见问题排查</h2>
+
+<h3>问题1：电机不转</h3>
+<div class="warn">
+<strong>可能原因与解决方案：</strong><br>
+1. <strong>ENA没有PWM信号</strong> — 最常见！ENA必须接收PWM波才能调速，单纯接高电平只能全速运行。用示波器或逻辑分析仪检查PA6是否有PWM输出。<br>
+2. <strong>忘记调用 HAL_TIM_PWM_Start()</strong> — 这是新手最常犯的错误！配置好定时器后必须手动启动。<br>
+3. <strong>12V电源未连接</strong> — L298N需要独立供电，仅靠STM32的3.3V无法驱动电机。<br>
+4. <strong>IN1/IN2都为0</strong> — 两个方向引脚都为低时电机自由停止，需要设置一个为高。
+</div>
+
+<h3>问题2：转向反了</h3>
+<div class="note">
+<strong>解决方案：</strong>交换IN1和IN2的接线，或者在代码中交换 <code>GPIO_PIN_SET</code> 和 <code>GPIO_PIN_RESET</code>。也可以直接交换电机接OUT1/OUT2的两根线。
+</div>
+
+<h3>问题3：转速不稳定</h3>
+<div class="tip">
+<strong>解决方案：</strong><br>
+1. 确认电源供电稳定，12V电源功率足够<br>
+2. 在L298N的12V和GND之间并联一个100μF电解电容 + 0.1μF陶瓷电容<br>
+3. 如果需要精确转速控制，加入<strong>PID算法</strong>，使用编码器反馈实际转速：<br>
+<pre><code>// 简易PID结构
+typedef struct {
+    float Kp, Ki, Kd;
+    float target;      // 目标转速
+    float feedback;    // 实际转速(编码器)
+    float error, last_error, integral;
+    float output;      // PID输出 → CCR
+} PID_t;
+
+float PID_Calculate(PID_t *pid, float feedback)
+{
+    pid-&gt;feedback = feedback;
+    pid-&gt;error = pid-&gt;target - feedback;
+    pid-&gt;integral += pid-&gt;error;
+    
+    // 积分限幅
+    if (pid-&gt;integral &gt; 500) pid-&gt;integral = 500;
+    if (pid-&gt;integral &lt; -500) pid-&gt;integral = -500;
+    
+    pid-&gt;output = pid-&gt;Kp * pid-&gt;error
+                + pid-&gt;Ki * pid-&gt;integral
+                + pid-&gt;Kd * (pid-&gt;error - pid-&gt;last_error);
+    
+    pid-&gt;last_error = pid-&gt;error;
+    return pid-&gt;output;
+}</code></pre>
+</div>
+
+<h3>问题4：L298N发热严重</h3>
+<div class="warn">
+L298N效率较低（压降约2V），长时间大电流运行会发热。建议：<br>
+1. 加装散热片<br>
+2. 控制电流不超过1A（L298N单路最大2A）<br>
+3. 如需更高效率，可换用DRV8833或TB6612驱动模块
+</div>
+
+<h3>问题5：串口命令无响应</h3>
+<div class="note">
+1. 检查波特率是否匹配（默认115200）<br>
+2. 确认TX/RX交叉连接（STM32 TX→TTL RX）<br>
+3. 检查是否调用了 <code>HAL_UART_Receive_IT()</code> 启动接收<br>
+4. 确认命令格式正确，如 <code>SPEED:500</code>（大写）
+</div>
+
+<h2>🎯 进阶练习</h2>
+<ol>
+<li>添加OLED显示当前占空比和方向</li>
+<li>使用编码器实现闭环PID转速控制</li>
+<li>实现平滑加速（线性斜坡），避免突然加速导致的机械冲击</li>
+<li>将L298N换成TB6612，对比驱动效率</li>
+<li>实现双电机差速控制，为小车项目做准备</li>
+</ol>
+
+
+
+<h2>⚡ 电机驱动芯片深度对比</h2>
+<table>
+<tr><th>芯片</th><th>通道</th><th>峰值电流</th><th>Rds(on)</th><th>压降@1A</th><th>PWM频率</th><th>价格</th><th>适用场景</th></tr>
+<tr><td>L298N</td><td>2路H桥</td><td>2A</td><td>—(BJT)</td><td>~2.5V</td><td>&le;25kHz</td><td>¥5</td><td>教学/低速</td></tr>
+<tr><td>TB6612FNG</td><td>2路H桥</td><td>3.2A</td><td>0.5&Omega;</td><td>~0.5V</td><td>&le;100kHz</td><td>¥8</td><td>小型机器人</td></tr>
+<tr><td>DRV8833</td><td>2路H桥</td><td>2A</td><td>0.36&Omega;</td><td>~0.36V</td><td>&le;50kHz</td><td>¥6</td><td>低功耗</td></tr>
+<tr><td>L9110S</td><td>1路H桥</td><td>0.8A</td><td>—(BJT)</td><td>~2V</td><td>&le;10kHz</td><td>¥2</td><td>微型电机</td></tr>
+<tr><td>BTN7971B</td><td>半桥×2</td><td>70A</td><td>7m&Omega;</td><td>~0.007V</td><td>&le;25kHz</td><td>¥35</td><td>大功率竞赛</td></tr>
+</table>
+
+<div class="note">
+<strong>为什么L298N效率低？</strong> 它是BJT达林顿管结构，饱和压降Vce(sat)约1.8-2.5V。12V供电时，电机实际得到仅9.5V，效率约79%，其余变成热量。而MOSFET驱动的TB6612 Rds(on)仅0.5&Omega;，1A时压降仅0.5V，效率约96%。
+</div>
+
+<h2>🧮 死区时间 (Dead-Time) 详解</h2>
+<p>H桥在同一半桥的两个MOSFET/BJT之间切换时，如果控制信号没有延时，会瞬间短路（直通/shoot-through），烧毁驱动芯片。</p>
+
+<pre><code>// STM32高级定时器死区插入 - TIM1/TIM8支持
+// 死区时间 = DTG[7:0] × Tdtg
+// Tdtg = tDTS (当 DTG[7:5]=000), tDTS = 1/72MHz = 13.89ns
+
+void TIM1_DeadTime_Config(uint8_t deadtime_ns) {
+    // 死区时间 = deadtime_ns / 13.89ns ≈ deadtime_ns * 72 / 1000
+    uint32_t dtg = (deadtime_ns * 72) / 1000;
+    if (dtg > 0x7F) dtg = 0x7F;  // 最大127 → ~1.76&mu;s
+    TIM1->BDTR = (TIM1->BDTR & ~TIM_BDTR_DTG) | (dtg & TIM_BDTR_DTG);
+    TIM1->BDTR |= TIM_BDTR_MOE;  // 主输出使能
+    TIM_CCxNCmd(TIM1, TIM_Channel_1, TIM_CCxN_Enable);  // 互补输出
+}
+
+// 典型值: 100-500ns 用于MOSFET, 1-2&mu;s 用于BJT
+// 太小→直通风险, 太大→输出失真</code></pre>
+
+<div class="warn">
+<strong>L298N需要死区吗？</strong> L298N的BJT开关速度慢（&mu;s级），自带"天然死区"，所以接IN1/IN2反向控制时不需要额外插入死区。但换用MOSFET驱动器时必须配置！
+</div>
+
+<h2>📐 电机电流采样与保护</h2>
+<pre><code>// 使用ADC采样L298N的电流检测引脚(ISENA/ISENB)
+// ISEN输出 = 电机电流 × Rsense × 增益
+// 典型Rsense=0.5&Omega;, V_ISEN = I_motor × 0.5V/A
+
+void Motor_CurrentMonitor(void) {
+    HAL_ADC_Start(&hadc1);
+    if (HAL_ADC_PollForConversion(&hadc1, 10) == HAL_OK) {
+        uint32_t adc_val = HAL_ADC_GetValue(&hadc1);
+        float voltage = adc_val * 3.3f / 4096.0f;
+        float current = voltage / 0.5f;  // I = V / Rsense
+        
+        // 过流保护 - 超过2A立即停止
+        if (current > 2.0f) {
+            TIM3->CCR1 = 0;  // PWM=0
+            HAL_GPIO_WritePin(IN1_GPIO_Port, IN1_Pin, GPIO_PIN_RESET);
+            HAL_GPIO_WritePin(IN2_GPIO_Port, IN2_Pin, GPIO_PIN_RESET);
+        }
+    }
+}
+
+// 也可使用STM32内部比较器(COMP)实现硬件级过流保护
+// COMP1_INP → ISEN信号, COMP1_INM → DAC设定阈值
+// 触发BRK刹车功能 → 硬件自动关闭PWM输出 → 延迟<100ns</code></pre>
+
+<h2>🔄 无刷直流电机(BLDC)入门</h2>
+<p>BLDC电机效率更高(85-95%)、寿命更长，是无人机/电动车的主流选择。控制方式分为：</p>
+<table>
+<tr><th>控制方式</th><th>复杂度</th><th>效率</th><th>噪音</th><th>应用</th></tr>
+<tr><td>六步换相(6-step)</td><td>低</td><td>中</td><td>大(转矩波动)</td><td>风扇/水泵</td></tr>
+<tr><td>正弦波控制</td><td>中</td><td>高</td><td>小</td><td>家用电器</td></tr>
+<tr><td>FOC (矢量控制)</td><td>高</td><td>最高</td><td>最低</td><td>机器人/电动车</td></tr>
+</table>
+
+<div class="tip">
+<strong>从有刷到无刷的学习路径：</strong> 有刷PWM → 理解换相原理 → 六步换相(Hall传感器) → 反电动势检测(无传感器) → FOC(Clark/Park变换+电流环+速度环) → MTPA(最大转矩电流比)
+</div>
+
+<h2>🔬 用逻辑分析仪调试PWM信号</h2>
+<pre><code>调试步骤:
+1. 逻辑分析仪CH0接PWM输出引脚(如PA6=TIM3_CH1)
+2. 设置采样率≥10MHz (1kHz PWM需要至少100x采样率)
+3. 触发模式: 上升沿触发
+4. 测量: 周期→验证频率, 高电平宽度/周期→验证占空比
+
+常见异常:
+- 占空比不随CCR变化 → 检查CCR是否更新到影子寄存器(TIM预装载)
+- 频率不是期望值 → 检查PSC/ARR计算, 确认TIM时钟源(APB1=36MHz或APB2=72MHz?)
+- 输出一直为高/低 → 检查GPIO复用功能配置, AFIO重映射</code></pre>
+
+<h2>📊 电机控制性能指标</h2>
+<table>
+<tr><th>指标</th><th>定义</th><th>典型值(L298N)</th><th>优秀值(FOC)</th></tr>
+<tr><td>转速精度</td><td>实际/目标转速误差</td><td>±5% (开环)</td><td>±0.1% (闭环)</td></tr>
+<tr><td>调速比</td><td>最高/最低稳定转速</td><td>10:1</td><td>1000:1</td></tr>
+<tr><td>转矩响应</td><td>负载突变→恢复时间</td><td>500ms</td><td>10ms</td></tr>
+<tr><td>低速爬行</td><td>最低稳定转速</td><td>~100RPM</td><td>~1RPM</td></tr>
+</table><hr><h2>❓ 常见问题 FAQ</h2>
+
+<div style="margin:12px 0;padding:12px 16px;background:var(--bg2);border-left:3px solid var(--a);border-radius:0 8px 8px 0">
+  <p style="font-weight:600;color:var(--c1);margin-bottom:4px">Q: 电机不转？</p>
+  <p style="color:var(--t)">A: 1)PWM频率太高/太低（1~20kHz合适） 2)L298N使能脚未拉高 3)供电不足（电机需要独立电源）</p>
+</div>
+
+<div style="margin:12px 0;padding:12px 16px;background:var(--bg2);border-left:3px solid var(--a);border-radius:0 8px 8px 0">
+  <p style="font-weight:600;color:var(--c1);margin-bottom:4px">Q: 电机啸叫？</p>
+  <p style="color:var(--t)">A: PWM频率在人耳范围(20Hz~20kHz)，改到20kHz以上听不到。但太高开关损耗大，折中选16~25kHz。</p>
+</div>
+
+<hr><h2>🔗 相关教程</h2>
+<div style="display:flex;flex-wrap:wrap;gap:8px;margin:12px 0">
+<a href="#" onclick="parent.loadPage && parent.loadPage('proj-servo-control')" style="display:inline-block;padding:6px 14px;background:var(--bg3);border:1px solid var(--br);border-radius:6px;color:var(--a);text-decoration:none;font-size:.85em">舵机 →</a>
+<a href="#" onclick="parent.loadPage && parent.loadPage('proj-stepper-motor')" style="display:inline-block;padding:6px 14px;background:var(--bg3);border:1px solid var(--br);border-radius:6px;color:var(--a);text-decoration:none;font-size:.85em">步进电机 →</a>
+<a href="#" onclick="parent.loadPage && parent.loadPage('proj-smart-car')" style="display:inline-block;padding:6px 14px;background:var(--bg3);border:1px solid var(--br);border-radius:6px;color:var(--a);text-decoration:none;font-size:.85em">智能小车 →</a>
+</div>
+
+</body></html>

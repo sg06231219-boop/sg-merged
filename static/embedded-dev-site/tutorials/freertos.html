@@ -1,0 +1,2382 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FreeRTOS 细致教程 - 嵌入式小白入门指南</title>
+    <style>
+        :root {
+            --bg: #0d1117;
+            --bg2: #161b22;
+            --bg3: #21262d;
+            --br: #30363d;
+            --t: #c9d1d9;
+            --t2: #8b949e;
+            --a: #58a6ff;
+            --g: #3fb950;
+            --o: #d29922;
+            --r: #f85149;
+            --p: #a371f7;
+            --c1: #39c5cf;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            background: var(--bg);
+            color: var(--t);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans SC', sans-serif;
+            line-height: 1.7;
+            padding-top: 60px;
+        }
+        
+        .nav-top {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 60px;
+            background: var(--bg2);
+            border-bottom: 1px solid var(--br);
+            display: flex;
+            align-items: center;
+            padding: 0 24px;
+            z-index: 1000;
+            backdrop-filter: blur(10px);
+        }
+        
+        .nav-top h1 {
+            font-size: 18px;
+            color: var(--t);
+            font-weight: 600;
+        }
+        
+        .nav-top .nav-links {
+            margin-left: auto;
+            display: flex;
+            gap: 16px;
+        }
+        
+        .nav-top .nav-links a {
+            color: var(--t2);
+            text-decoration: none;
+            font-size: 14px;
+            transition: color 0.2s;
+        }
+        
+        .nav-top .nav-links a:hover {
+            color: var(--a);
+        }
+        
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 40px 24px 80px;
+        }
+        
+        h1, h2, h3, h4 {
+            color: var(--t);
+            margin-top: 32px;
+            margin-bottom: 16px;
+        }
+        
+        h1 {
+            font-size: 32px;
+            border-bottom: 2px solid var(--p);
+            padding-bottom: 12px;
+        }
+        
+        h2 {
+            font-size: 26px;
+            color: var(--a);
+            border-left: 4px solid var(--a);
+            padding-left: 12px;
+            margin-top: 48px;
+        }
+        
+        h3 {
+            font-size: 20px;
+            color: var(--c1);
+            margin-top: 28px;
+        }
+        
+        h4 {
+            font-size: 16px;
+            color: var(--o);
+        }
+        
+        p {
+            margin-bottom: 16px;
+            color: var(--t);
+        }
+        
+        code {
+            background: var(--bg3);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'Fira Code', 'Consolas', monospace;
+            font-size: 14px;
+            color: var(--c1);
+        }
+        
+        pre {
+            background: var(--bg3);
+            border: 1px solid var(--br);
+            border-radius: 8px;
+            padding: 16px;
+            overflow-x: auto;
+            margin: 16px 0;
+        }
+        
+        pre code {
+            background: none;
+            padding: 0;
+            font-size: 13px;
+            line-height: 1.5;
+            color: var(--t);
+        }
+        
+        .comment { color: var(--t2); }
+        .keyword { color: var(--p); }
+        .type { color: var(--c1); }
+        .function { color: var(--a); }
+        .string { color: var(--g); }
+        .number { color: var(--o); }
+        
+        .note {
+            background: linear-gradient(135deg, rgba(88, 166, 255, 0.1), rgba(88, 166, 255, 0.05));
+            border-left: 4px solid var(--a);
+            padding: 16px 20px;
+            margin: 20px 0;
+            border-radius: 0 8px 8px 0;
+        }
+        
+        .note::before {
+            content: "📌 笔记";
+            display: block;
+            font-weight: 600;
+            color: var(--a);
+            margin-bottom: 8px;
+        }
+        
+        .warn {
+            background: linear-gradient(135deg, rgba(248, 81, 73, 0.1), rgba(248, 81, 73, 0.05));
+            border-left: 4px solid var(--r);
+            padding: 16px 20px;
+            margin: 20px 0;
+            border-radius: 0 8px 8px 0;
+        }
+        
+        .warn::before {
+            content: "⚠️ 警告";
+            display: block;
+            font-weight: 600;
+            color: var(--r);
+            margin-bottom: 8px;
+        }
+        
+        .tip {
+            background: linear-gradient(135deg, rgba(63, 185, 80, 0.1), rgba(63, 185, 80, 0.05));
+            border-left: 4px solid var(--g);
+            padding: 16px 20px;
+            margin: 20px 0;
+            border-radius: 0 8px 8px 0;
+        }
+        
+        .tip::before {
+            content: "💡 技巧";
+            display: block;
+            font-weight: 600;
+            color: var(--g);
+            margin-bottom: 8px;
+        }
+        
+        .analogy {
+            background: linear-gradient(135deg, rgba(163, 113, 247, 0.1), rgba(163, 113, 247, 0.05));
+            border-left: 4px solid var(--p);
+            padding: 16px 20px;
+            margin: 20px 0;
+            border-radius: 0 8px 8px 0;
+        }
+        
+        .analogy::before {
+            content: "🎯 类比理解";
+            display: block;
+            font-weight: 600;
+            color: var(--p);
+            margin-bottom: 8px;
+        }
+        
+        .step {
+            background: var(--bg2);
+            border: 1px solid var(--br);
+            padding: 20px;
+            margin: 16px 0;
+            border-radius: 8px;
+            position: relative;
+        }
+        
+        .step::before {
+            content: attr(data-step);
+            position: absolute;
+            top: -12px;
+            left: 16px;
+            background: var(--o);
+            color: var(--bg);
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-weight: 600;
+            font-size: 12px;
+        }
+        
+        .card {
+            background: var(--bg2);
+            border: 1px solid var(--br);
+            border-radius: 12px;
+            padding: 24px;
+            margin: 24px 0;
+            transition: border-color 0.3s, transform 0.3s;
+        }
+        
+        .card:hover {
+            border-color: var(--a);
+            transform: translateY(-2px);
+        }
+        
+        .card h4 {
+            margin-top: 0;
+            color: var(--a);
+        }
+        
+        .tag {
+            display: inline-block;
+            background: var(--bg3);
+            color: var(--t2);
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            margin: 4px;
+        }
+        
+        .tag.green { background: rgba(63, 185, 80, 0.2); color: var(--g); }
+        .tag.blue { background: rgba(88, 166, 255, 0.2); color: var(--a); }
+        .tag.orange { background: rgba(210, 153, 34, 0.2); color: var(--o); }
+        .tag.red { background: rgba(248, 81, 73, 0.2); color: var(--r); }
+        .tag.purple { background: rgba(163, 113, 247, 0.2); color: var(--p); }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            background: var(--bg2);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        
+        th, td {
+            padding: 12px 16px;
+            text-align: left;
+            border-bottom: 1px solid var(--br);
+        }
+        
+        th {
+            background: var(--bg3);
+            color: var(--a);
+            font-weight: 600;
+        }
+        
+        td {
+            color: var(--t);
+        }
+        
+        tr:last-child td {
+            border-bottom: none;
+        }
+        
+        ul, ol {
+            margin: 12px 0 12px 24px;
+        }
+        
+        li {
+            margin: 8px 0;
+            color: var(--t);
+        }
+        
+        .breadcrumb {
+            background: var(--bg2);
+            border-top: 1px solid var(--br);
+            padding: 16px 24px;
+            text-align: center;
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+        }
+        
+        .breadcrumb a {
+            color: var(--t2);
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+        
+        .breadcrumb a:hover {
+            color: var(--a);
+        }
+        
+        .breadcrumb span {
+            color: var(--t2);
+            margin: 0 8px;
+        }
+        
+        .toc {
+            background: var(--bg2);
+            border: 1px solid var(--br);
+            border-radius: 12px;
+            padding: 24px;
+            margin: 24px 0;
+        }
+        
+        .toc h3 {
+            margin-top: 0;
+            margin-bottom: 16px;
+            color: var(--p);
+        }
+        
+        .toc ul {
+            list-style: none;
+            margin: 0;
+        }
+        
+        .toc li {
+            margin: 8px 0;
+        }
+        
+        .toc a {
+            color: var(--t2);
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+        
+        .toc a:hover {
+            color: var(--a);
+        }
+        
+        .code-title {
+            background: var(--bg3);
+            border: 1px solid var(--br);
+            border-bottom: none;
+            border-radius: 8px 8px 0 0;
+            padding: 8px 16px;
+            font-size: 13px;
+            color: var(--t2);
+            margin-bottom: 0;
+        }
+        
+        .code-title + pre {
+            border-radius: 0 0 8px 8px;
+            margin-top: 0;
+        }
+        
+        .comparison-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            margin: 20px 0;
+        }
+        
+        @media (max-width: 768px) {
+            .comparison-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        .comparison-item {
+            background: var(--bg2);
+            border: 1px solid var(--br);
+            border-radius: 8px;
+            padding: 20px;
+        }
+        
+        .comparison-item h4 {
+            margin-top: 0;
+        }
+        
+        .flow-diagram {
+            background: var(--bg2);
+            border: 1px solid var(--br);
+            border-radius: 12px;
+            padding: 24px;
+            text-align: center;
+            margin: 20px 0;
+        }
+        
+        .flow-diagram .flow-step {
+            display: inline-block;
+            background: var(--bg3);
+            border: 1px solid var(--br);
+            padding: 12px 24px;
+            border-radius: 8px;
+            margin: 8px;
+            color: var(--t);
+        }
+        
+        .flow-diagram .arrow {
+            color: var(--a);
+            font-size: 20px;
+            margin: 0 8px;
+        }
+        
+        .badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 600;
+            margin-left: 8px;
+        }
+        
+        .badge.new { background: var(--g); color: var(--bg); }
+        .badge.advanced { background: var(--p); color: white; }
+        .badge.important { background: var(--r); color: white; }
+    </style>
+</head>
+<body>
+    <nav class="nav-top">
+        <h1>📚 FreeRTOS 细致教程</h1>
+        <div class="nav-links">
+            <a href="#toc">目录</a>
+            <a href="#section1">RTOS概念</a>
+            <a href="#section12">速查表</a>
+        </div>
+    </nav>
+    
+    <div class="container">
+        <h1>FreeRTOS 细致教程</h1>
+        <p style="color: var(--t2); font-size: 14px;">面向嵌入式小白的全面入门指南 | 从零掌握实时操作系统</p>
+        
+        <div class="toc" id="toc">
+            <h3>📖 目录</h3>
+            <ul>
+                <li>1. <a href="#section1">RTOS概念</a> - 为什么需要RTOS、裸机vs RTOS、任务调度原理</li>
+                <li>2. <a href="#section2">FreeRTOS移植</a> - CubeMX/手动移植/PlatformIO三种方式</li>
+                <li>3. <a href="#section3">任务管理</a> - 创建、优先级、状态机、删除</li>
+                <li>4. <a href="#section4">队列通信</a> - 多任务数据传递</li>
+                <li>5. <a href="#section5">信号量</a> - 二值与计数信号量</li>
+                <li>6. <a href="#section6">互斥量</a> - 优先级反转与继承</li>
+                <li>7. <a href="#section7">软件定时器</a> - 单次与周期定时</li>
+                <li>8. <a href="#section8">中断处理</a> - 中断安全规则</li>
+                <li>9. <a href="#section9">内存管理</a> - heap方案与栈溢出检测</li>
+                <li>10. <a href="#section10">与HAL共存</a> - STM32 HAL库适配</li>
+                <li>11. <a href="#section11">调试技巧</a> - 问题排查指南</li>
+                <li>12. <a href="#section12">速查表</a> - API快速参考</li>
+            </ul>
+        </div>
+        
+        <!-- ==================== 第1章 RTOS概念 ==================== -->
+        <h2 id="section1">1. RTOS概念</h2>
+        
+        <h3>1.1 为什么需要RTOS？</h3>
+        <p>在嵌入式系统开发中，当你的程序变得越来越复杂时，传统的"裸机"编程方式会遇到很多问题。RTOS（Real-Time Operating System，实时操作系统）就是为了解决这些问题而诞生的。</p>
+        
+        <div class="analogy">
+            <p><strong>想象一个餐厅厨房：</strong></p>
+            <p>• <strong>裸机编程</strong>就像一个厨师必须按顺序做完所有事：先洗菜→切菜→炒菜→上菜→洗碗→擦桌子...如果突然有VIP客人来了，也得等当前的事情做完才能响应。</p>
+            <p>• <strong>RTOS编程</strong>就像有多个厨师（任务）同时工作，还有个厨师长（调度器）在协调：洗菜工专心洗菜，炒菜师傅专心炒菜，VIP来了厨师长立马安排专人服务，其他厨师继续干活。</p>
+        </div>
+        
+        <h4>裸机编程的痛点</h4>
+        <div class="card">
+            <ul>
+                <li><strong>阻塞等待问题：</strong>延时函数（如 <code>HAL_Delay()</code>）会完全阻塞CPU，期间无法响应任何事件</li>
+                <li><strong>功能耦合严重：</strong>所有功能写在一个 <code>while(1)</code> 里，代码难以维护和扩展</li>
+                <li><strong>实时性差：</strong>紧急事件无法立即响应，必须等当前代码执行完毕</li>
+                <li><strong>资源管理混乱：</strong>多个模块共享变量时，需要手动管理访问顺序，容易出错</li>
+            </ul>
+        </div>
+        
+        <h4>RTOS带来的优势</h4>
+        <div class="card">
+            <ul>
+                <li><strong>多任务并发：</strong>多个任务"同时"运行，CPU利用率大幅提升</li>
+                <li><strong>实时响应：</strong>高优先级任务可以抢占CPU，保证关键任务的时效性</li>
+                <li><strong>模块解耦：</strong>每个功能独立成任务，代码结构清晰，易于维护</li>
+                <li><strong>丰富的同步机制：</strong>信号量、互斥量、队列等，让任务间通信变得简单可靠</li>
+            </ul>
+        </div>
+        
+        <h3>1.2 裸机 vs RTOS 对比</h3>
+        <table>
+            <tr>
+                <th>特性</th>
+                <th>裸机编程</th>
+                <th>RTOS编程</th>
+            </tr>
+            <tr>
+                <td>执行模式</td>
+                <td>顺序执行，死循环</td>
+                <td>多任务并行，抢占调度</td>
+            </tr>
+            <tr>
+                <td>延时处理</td>
+                <td>CPU空转等待</td>
+                <td>任务阻塞，CPU执行其他任务</td>
+            </tr>
+            <tr>
+                <td>事件响应</td>
+                <td>轮询检测，延迟不确定</td>
+                <td>中断+信号量，实时响应</td>
+            </tr>
+            <tr>
+                <td>代码结构</td>
+                <td>单一大循环，耦合严重</td>
+                <td>任务独立，模块化清晰</td>
+            </tr>
+            <tr>
+                <td>资源开销</td>
+                <td>极低，无额外开销</td>
+                <td>需要RAM存储任务栈和内核数据</td>
+            </tr>
+            <tr>
+                <td>开发难度</td>
+                <td>简单程序容易，复杂程序困难</td>
+                <td>需要学习RTOS概念，但复杂项目更易管理</td>
+            </tr>
+        </table>
+        
+        <div class="note">
+            <p><strong>什么时候该用RTOS？</strong></p>
+            <p>• 系统需要同时处理多个独立功能（如：按键扫描+显示刷新+传感器采集+通信）</p>
+            <p>• 对实时性有要求（必须在指定时间内响应事件）</p>
+            <p>• 代码复杂度较高，裸机难以维护</p>
+            <p><strong>什么时候不需要RTOS？</strong></p>
+            <p>• 简单的单一功能程序（如：一个LED闪烁、简单的传感器读取）</p>
+            <p>• RAM资源极度有限（FreeRTOS最小需要几KB RAM）</p>
+            <p>• 对成本极其敏感的低端MCU</p>
+        </div>
+        
+        <h3>1.3 任务调度原理</h3>
+        <p>RTOS的核心是<strong>任务调度器</strong>（Scheduler）。它负责决定哪个任务获得CPU的使用权。</p>
+        
+        <h4>基本概念</h4>
+        <ul>
+            <li><strong>任务（Task）：</strong>一个独立的执行单元，拥有自己的栈空间和优先级</li>
+            <li><strong>调度器（Scheduler）：</strong>决定何时切换任务、切换到哪个任务的内核组件</li>
+            <li><strong>上下文切换（Context Switch）：</strong>保存当前任务状态、恢复下一个任务状态的过程</li>
+            <li><strong>时间片（Time Slice）：</strong>每个任务获得CPU的时间配额，通常由SysTick中断触发</li>
+        </ul>
+        
+        <div class="flow-diagram">
+            <div class="flow-step">任务A运行</div>
+            <span class="arrow">→</span>
+            <div class="flow-step">时间片到期/阻塞</div>
+            <span class="arrow">→</span>
+            <div class="flow-step">上下文切换</div>
+            <span class="arrow">→</span>
+            <div class="flow-step">任务B运行</div>
+        </div>
+        
+        <h4>调度器工作流程</h4>
+        <div class="step" data-step="步骤1">
+            <p><strong>SysTick中断触发</strong></p>
+            <p>每隔固定时间（如1ms），系统定时器产生中断，通知调度器检查是否需要切换任务。</p>
+        </div>
+        
+        <div class="step" data-step="步骤2">
+            <p><strong>检查就绪任务</strong></p>
+            <p>调度器在就绪列表中查找优先级最高的任务。如果当前运行任务不是最高优先级，或者时间片用完，则触发切换。</p>
+        </div>
+        
+        <div class="step" data-step="步骤3">
+            <p><strong>保存当前任务上下文</strong></p>
+            <p>将当前任务的寄存器值（R0-R15、xPSR等）保存到它的栈中，记录栈指针位置。</p>
+        </div>
+        
+        <div class="step" data-step="步骤4">
+            <p><strong>恢复下一个任务上下文</strong></p>
+            <p>从目标任务的栈中恢复寄存器值，加载PC指针，任务从中断点继续执行。</p>
+        </div>
+        
+        <div class="analogy">
+            <p><strong>上下文切换就像看书时被打断：</strong></p>
+            <p>你在看一本书（任务A），突然有人叫你（中断），你需要在当前页折角、记住看到哪里（保存上下文），然后去处理别的事（切换到任务B）。处理完后，你回来翻到折角的那页继续看（恢复上下文）。</p>
+        </div>
+        
+        <h3>1.4 抢占式 vs 协作式调度</h3>
+        
+        <div class="comparison-grid">
+            <div class="comparison-item">
+                <h4>🔴 抢占式调度（Preemptive）</h4>
+                <p><strong>特点：</strong>高优先级任务可以随时打断低优先级任务</p>
+                <ul>
+                    <li>由硬件中断+内核定时触发</li>
+                    <li>响应时间可预测</li>
+                    <li>适合实时性要求高的场景</li>
+                    <li>需要注意资源共享问题</li>
+                </ul>
+                <div class="tag purple">FreeRTOS默认</div>
+                <div class="tag green">实时性好</div>
+            </div>
+            
+            <div class="comparison-item">
+                <h4>🟡 协作式调度（Cooperative）</h4>
+                <p><strong>特点：</strong>任务主动让出CPU，调度器才会切换</p>
+                <ul>
+                    <li>任务必须调用 <code>taskYIELD()</code> 或阻塞函数</li>
+                    <li>响应时间取决于任务协作</li>
+                    <li>无竞争条件，代码简单</li>
+                    <li>一个任务卡死，整个系统卡死</li>
+                </ul>
+                <div class="tag orange">配置选择</div>
+                <div class="tag blue">代码简单</div>
+            </div>
+        </div>
+        
+        <p class="code-title">抢占式调度时序图示例</p>
+        <pre><code>时间线 →
+┌────────────────────────────────────────────────────────────┐
+│ 任务A (低优先级)  │██████│      │████████│      │████      │
+├────────────────────────────────────────────────────────────┤
+│ 任务B (高优先级)  │      │██████│        │██████│          │
+├────────────────────────────────────────────────────────────┤
+│ 说明              │ A运行 │ B抢占 │ A继续  │ B再次 │ A继续   │
+│                   │       │       │        │ 抢占   │         │
+└────────────────────────────────────────────────────────────┘
+关键事件：B任务就绪 → 立即抢占A → B完成后A恢复</code></pre>
+        
+        <div class="warn">
+            <p><strong>抢占式调度的注意事项：</strong></p>
+            <p>• 多个任务访问共享资源时，必须使用互斥量或信号量保护</p>
+            <p>• 中断服务函数中调用FreeRTOS API必须使用 <code>FromISR</code> 结尾的版本</p>
+            <p>• 任务临界区（关闭调度的时间）要尽可能短</p>
+        </div>
+        
+        <!-- ==================== 第2章 FreeRTOS移植 ==================== -->
+        <h2 id="section2">2. FreeRTOS移植</h2>
+        
+        <p>FreeRTOS是一个开源的实时操作系统，需要移植到你的目标MCU上才能使用。本节介绍三种主流的移植方式。</p>
+        
+        <h3>2.1 方式一：STM32CubeMX添加（推荐）</h3>
+        <div class="tag green">最简单</div>
+        <div class="tag blue">官方支持</div>
+        
+        <p>对于STM32用户，CubeMX提供了一键添加FreeRTOS的功能，自动完成配置和代码生成。</p>
+        
+        <div class="step" data-step="步骤1">
+            <p><strong>打开CubeMX工程</strong></p>
+            <p>启动STM32CubeMX，打开你的现有工程或创建新工程。</p>
+        </div>
+        
+        <div class="step" data-step="步骤2">
+            <p><strong>添加FreeRTOS中间件</strong></p>
+            <p>在左侧导航栏找到 <strong>Middleware → FREERTOS</strong>，勾选启用。</p>
+            <p>选择接口模式：<code>CMSIS_V1</code>（经典）或 <code>CMSIS_V2</code>（新版，推荐）</p>
+        </div>
+        
+        <div class="step" data-step="步骤3">
+            <p><strong>配置FreeRTOS参数</strong></p>
+            <p>在Configuration选项卡中配置关键参数：</p>
+            <ul>
+                <li><strong>Tick Rate (Hz)：</strong>系统心跳频率，默认1000Hz（1ms）</li>
+                <li><strong>MAX_PRIORITIES：</strong>最大优先级数，默认7</li>
+                <li><strong>MINIMAL_STACK_SIZE：</strong>最小任务栈大小，默认128字（512字节）</li>
+                <li><strong>TOTAL_HEAP_SIZE：</strong>堆内存大小，根据MCU RAM配置</li>
+            </ul>
+        </div>
+        
+        <div class="step" data-step="步骤4">
+            <p><strong>创建任务</strong></p>
+            <p>在 <strong>Tasks and Queues</strong> 选项卡点击 <code>Add</code> 添加任务：</p>
+            <ul>
+                <li><strong>Task Name：</strong>任务名称</li>
+                <li><strong>Stack Size：</strong>栈大小（单位：字）</li>
+                <li><strong>Priority：</strong>优先级（数字越大越高）</li>
+                <li><strong>Entry Function：</strong>任务函数名</li>
+            </ul>
+        </div>
+        
+        <div class="step" data-step="步骤5">
+            <p><strong>生成代码</strong></p>
+            <p>点击 <code>GENERATE CODE</code>，CubeMX会自动生成FreeRTOS相关代码。</p>
+            <p>生成的文件位于 <code>Middlewares/Third_Party/FreeRTOS/</code> 和 <code>Core/Src/freertos.c</code></p>
+        </div>
+        
+        <div class="note">
+            <p><strong>CubeMX生成的核心文件：</strong></p>
+            <p>• <code>freertos.c</code> - 任务定义和初始化，你的主要编辑文件</p>
+            <p>• <code>FreeRTOSConfig.h</code> - 内核配置参数</p>
+            <p>• <code>main.c</code> - 自动调用 <code>MX_FREERTOS_Init()</code> 启动调度器</p>
+        </div>
+        
+        <h3>2.2 方式二：手动移植</h3>
+        <div class="tag orange">适合学习</div>
+        <div class="tag purple">灵活可控</div>
+        
+        <p>手动移植帮助你深入理解FreeRTOS的结构，适合非STM32平台或需要定制的场景。</p>
+        
+        <div class="step" data-step="步骤1">
+            <p><strong>下载FreeRTOS源码</strong></p>
+            <p>从 <a href="https://www.freertos.org/" style="color: var(--a);">FreeRTOS官网</a> 或 GitHub 下载最新版本。</p>
+            <p>源码结构：</p>
+            <pre><code>FreeRTOS/
+├── Source/
+│   ├── tasks.c          # 任务管理核心
+│   ├── queue.c          # 队列实现
+│   ├── timers.c         # 软件定时器
+│   ├── list.c           # 链表数据结构
+│   ├── portable/        # 移植相关文件
+│   │   ├── MemMang/     # 内存管理方案
+│   │   │   ├── heap_1.c
+│   │   │   ├── heap_2.c
+│   │   │   ├── heap_3.c
+│   │   │   ├── heap_4.c  ← 推荐使用
+│   │   │   └── heap_5.c
+│   │   └── RVDS/        # 编译器相关
+│   │       └── ARM_CM4/ # Cortex-M4移植文件
+│   │           ├── port.c
+│   │           └── portmacro.h
+│   └── include/         # 头文件
+└── Demo/                # 示例工程</code></pre>
+        </div>
+        
+        <div class="step" data-step="步骤2">
+            <p><strong>添加源文件到工程</strong></p>
+            <p>将以下文件添加到你的IDE工程：</p>
+            <ul>
+                <li><code>tasks.c, queue.c, timers.c, list.c, event_groups.c</code>（核心文件）</li>
+                <li><code>heap_4.c</code>（内存管理，推荐）</li>
+                <li><code>port.c</code>（对应你MCU架构的移植文件）</li>
+            </ul>
+        </div>
+        
+        <div class="step" data-step="步骤3">
+            <p><strong>配置头文件路径</strong></p>
+            <p>添加以下include路径：</p>
+            <pre><code>FreeRTOS/Source/include
+FreeRTOS/Source/portable/RVDS/ARM_CM4  (根据你的MCU)</code></pre>
+        </div>
+        
+        <div class="step" data-step="步骤4">
+            <p><strong>创建 FreeRTOSConfig.h</strong></p>
+            <p>这是FreeRTOS最重要的配置文件，需要根据你的MCU定制：</p>
+            <pre><code><span class="comment">#ifndef FREERTOS_CONFIG_H</span>
+<span class="comment">#define FREERTOS_CONFIG_H</span>
+
+<span class="comment">// MCU相关配置</span>
+<span class="keyword">#define</span> configCPU_CLOCK_HZ          <span class="number">72000000</span>UL   <span class="comment">// CPU主频</span>
+<span class="keyword">#define</span> configTICK_RATE_HZ          <span class="number">1000</span>        <span class="comment">// 心跳频率</span>
+
+<span class="comment">// 内存配置</span>
+<span class="keyword">#define</span> configTOTAL_HEAP_SIZE       <span class="number">40960</span>       <span class="comment">// 堆大小(字节)</span>
+<span class="keyword">#define</span> configMINIMAL_STACK_SIZE    <span class="number">128</span>         <span class="comment">// 最小栈(字)</span>
+
+<span class="comment">// 调度配置</span>
+<span class="keyword">#define</span> configMAX_PRIORITIES        <span class="number">7</span>           <span class="comment">// 优先级数量</span>
+<span class="keyword">#define</span> configUSE_PREEMPTION        <span class="number">1</span>           <span class="comment">// 启用抢占</span>
+<span class="keyword">#define</span> configUSE_TIME_SLICING      <span class="number">1</span>           <span class="comment">// 启用时间片</span>
+
+<span class="comment">// 功能开关</span>
+<span class="keyword">#define</span> configUSE_MUTEXES           <span class="number">1</span>
+<span class="keyword">#define</span> configUSE_COUNTING_SEMAPHORES <span class="number">1</span>
+<span class="keyword">#define</span> configUSE_RECURSIVE_MUTEXES  <span class="number">1</span>
+<span class="keyword">#define</span> configUSE_TIMERS            <span class="number">1</span>
+
+<span class="comment">// 中断优先级配置（Cortex-M）</span>
+<span class="keyword">#define</span> configLIBRARY_MAX_SYSCALL_INTERRUPT_PRIORITY <span class="number">5</span>
+<span class="keyword">#define</span> configKERNEL_INTERRUPT_PRIORITY         <span class="number">255</span>
+
+<span class="comment">// 钩子函数</span>
+<span class="keyword">#define</span> configCHECK_FOR_STACK_OVERFLOW <span class="number">2</span>
+<span class="keyword">#define</span> configUSE_MALLOC_FAILED_HOOK    <span class="number">1</span>
+
+<span class="comment">// 断言</span>
+<span class="keyword">#define</span> configASSERT( x ) if( ( x ) == 0 ) { taskDISABLE_INTERRUPTS(); for( ;; ); }
+
+<span class="keyword">#endif</span></code></pre>
+        </div>
+        
+        <div class="step" data-step="步骤5">
+            <p><strong>修改启动文件</strong></p>
+            <p>在 <code>main.c</code> 中添加启动代码：</p>
+            <pre><code><span class="keyword">#include</span> <span class="string">"FreeRTOS.h"</span>
+<span class="keyword">#include</span> <span class="string">"task.h"</span>
+
+<span class="comment">// 任务函数声明</span>
+<span class="keyword">void</span> <span class="function">vTask1</span>(<span class="keyword">void</span> *pvParameters);
+
+<span class="keyword">int</span> <span class="function">main</span>(<span class="keyword">void</span>) {
+    <span class="comment">// 硬件初始化</span>
+    HAL_Init();
+    SystemClock_Config();
+    MX_GPIO_Init();
+    <span class="comment">// ... 其他初始化</span>
+    
+    <span class="comment">// 创建任务</span>
+    <span class="function">xTaskCreate</span>(vTask1, <span class="string">"Task1"</span>, <span class="number">128</span>, <span class="keyword">NULL</span>, <span class="number">1</span>, <span class="keyword">NULL</span>);
+    
+    <span class="comment">// 启动调度器</span>
+    <span class="function">vTaskStartScheduler</span>();
+    
+    <span class="comment">// 正常情况不会执行到这里</span>
+    <span class="keyword">while</span>(<span class="number">1</span>);
+}
+
+<span class="keyword">void</span> <span class="function">vTask1</span>(<span class="keyword">void</span> *pvParameters) {
+    <span class="keyword">while</span>(<span class="number">1</span>) {
+        <span class="comment">// 任务代码</span>
+        <span class="function">vTaskDelay</span>(<span class="number">100</span>);  <span class="comment">// 延时100个tick</span>
+    }
+}</code></pre>
+        </div>
+        
+        <h3>2.3 方式三：PlatformIO自动集成</h3>
+        <div class="tag blue">跨平台</div>
+        <div class="tag green">现代开发</div>
+        
+        <p>PlatformIO是一个现代化的嵌入式开发环境，可以自动管理FreeRTOS库。</p>
+        
+        <p class="code-title">platformio.ini 配置</p>
+        <pre><code>[env:genericSTM32F103C8]
+platform = ststm32
+board = genericSTM32F103C8
+framework = stm32cube
+
+<span class="comment">; 添加FreeRTOS库</span>
+lib_deps =
+    freertos
+
+<span class="comment">; 或者使用特定版本</span>
+lib_deps =
+    https://github.com/FreeRTOS/FreeRTOS-Kernel.git</code></pre>
+        
+        <div class="tip">
+            <p><strong>PlatformIO优势：</strong></p>
+            <p>• 自动下载和配置依赖库</p>
+            <p>• 统一的开发体验，支持多种MCU</p>
+            <p>• 内置调试器和代码分析工具</p>
+        </div>
+        
+        <!-- ==================== 第3章 任务管理 ==================== -->
+        <h2 id="section3">3. 任务管理</h2>
+        
+        <p>任务是FreeRTOS中最基本的执行单元。理解任务的创建、状态转换和删除是使用FreeRTOS的基础。</p>
+        
+        <h3>3.1 xTaskCreate 参数详解</h3>
+        
+        <p class="code-title">函数原型</p>
+        <pre><code><span class="type">BaseType_t</span> <span class="function">xTaskCreate</span>(
+    <span class="type">TaskFunction_t</span>       pxTaskCode,    <span class="comment">// 任务函数指针</span>
+    <span class="keyword">const</span> <span class="type">char</span> * <span class="keyword">const</span>  pcName,         <span class="comment">// 任务名称</span>
+    <span class="keyword">const</span> <span class="type">uint16_t</span>       usStackDepth,  <span class="comment">// 栈大小（字）</span>
+    <span class="keyword">void</span> * <span class="keyword">const</span>          pvParameters,  <span class="comment">// 传递参数</span>
+    <span class="type">UBaseType_t</span>           uxPriority,    <span class="comment">// 优先级</span>
+    <span class="type">TaskHandle_t</span> * <span class="keyword">const</span> pxCreatedTask  <span class="comment">// 任务句柄</span>
+);</code></pre>
+        
+        <table>
+            <tr>
+                <th>参数</th>
+                <th>类型</th>
+                <th>说明</th>
+            </tr>
+            <tr>
+                <td><code>pxTaskCode</code></td>
+                <td>TaskFunction_t</td>
+                <td>任务函数名，函数签名为 <code>void func(void *pvParameters)</code></td>
+            </tr>
+            <tr>
+                <td><code>pcName</code></td>
+                <td>const char*</td>
+                <td>任务名称，用于调试识别，不影响功能</td>
+            </tr>
+            <tr>
+                <td><code>usStackDepth</code></td>
+                <td>uint16_t</td>
+                <td>栈大小，单位是"字"（Word），实际字节 = 值 × 4<br>例如：128 = 512字节</td>
+            </tr>
+            <tr>
+                <td><code>pvParameters</code></td>
+                <td>void*</td>
+                <td>传递给任务函数的参数，可为NULL</td>
+            </tr>
+            <tr>
+                <td><code>uxPriority</code></td>
+                <td>UBaseType_t</td>
+                <td>任务优先级（0~configMAX_PRIORITIES-1）<br>数字越大优先级越高</td>
+            </tr>
+            <tr>
+                <td><code>pxCreatedTask</code></td>
+                <td>TaskHandle_t*</td>
+                <td>用于接收任务句柄，可用于后续删除/操作任务，可为NULL</td>
+            </tr>
+        </table>
+        
+        <p class="code-title">创建任务完整示例</p>
+        <pre><code><span class="keyword">#include</span> <span class="string">"FreeRTOS.h"</span>
+<span class="keyword">#include</span> <span class="string">"task.h"</span>
+
+<span class="comment">// 任务句柄，用于后续操作</span>
+<span class="type">TaskHandle_t</span> xLedTaskHandle;
+<span class="type">TaskHandle_t</span> xSensorTaskHandle;
+
+<span class="comment">// 任务函数声明</span>
+<span class="keyword">void</span> <span class="function">vLedTask</span>(<span class="keyword">void</span> *pvParameters);
+<span class="keyword">void</span> <span class="function">vSensorTask</span>(<span class="keyword">void</span> *pvParameters);
+
+<span class="keyword">int</span> <span class="function">main</span>(<span class="keyword">void</span>) {
+    <span class="comment">// 硬件初始化...</span>
+    
+    <span class="comment">// 创建LED闪烁任务</span>
+    <span class="function">xTaskCreate</span>(
+        <span class="function">vLedTask</span>,           <span class="comment">// 任务函数</span>
+        <span class="string">"LED_Task"</span>,          <span class="comment">// 任务名</span>
+        <span class="number">128</span>,                 <span class="comment">// 栈大小：128×4=512字节</span>
+        <span class="keyword">NULL</span>,                <span class="comment">// 无参数</span>
+        <span class="number">1</span>,                   <span class="comment">// 优先级1（低）</span>
+        &xLedTaskHandle      <span class="comment">// 保存句柄</span>
+    );
+    
+    <span class="comment">// 创建传感器读取任务</span>
+    <span class="keyword">uint8_t</span> sensorId = <span class="number">0x01</span>;  <span class="comment">// 传递参数</span>
+    <span class="function">xTaskCreate</span>(
+        <span class="function">vSensorTask</span>,
+        <span class="string">"Sensor_Task"</span>,
+        <span class="number">256</span>,                 <span class="comment">// 传感器任务需要更大栈</span>
+        &sensorId,           <span class="comment">// 传递传感器ID</span>
+        <span class="number">2</span>,                   <span class="comment">// 优先级2（较高）</span>
+        &xSensorTaskHandle
+    );
+    
+    <span class="comment">// 启动调度器</span>
+    <span class="function">vTaskStartScheduler</span>();
+    
+    <span class="keyword">while</span>(<span class="number">1</span>);
+}
+
+<span class="comment">// LED闪烁任务</span>
+<span class="keyword">void</span> <span class="function">vLedTask</span>(<span class="keyword">void</span> *pvParameters) {
+    <span class="keyword">while</span>(<span class="number">1</span>) {
+        HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin);
+        <span class="function">vTaskDelay</span>(<span class="number">500</span>);  <span class="comment">// 延时500个tick（500ms @ 1000Hz）</span>
+    }
+}
+
+<span class="comment">// 传感器读取任务</span>
+<span class="keyword">void</span> <span class="function">vSensorTask</span>(<span class="keyword">void</span> *pvParameters) {
+    <span class="keyword">uint8_t</span> id = *(<span class="keyword">uint8_t</span>*)pvParameters;  <span class="comment">// 获取参数</span>
+    
+    <span class="keyword">while</span>(<span class="number">1</span>) {
+        <span class="keyword">float</span> temp = <span class="function">ReadTemperature</span>(id);
+        <span class="function">vTaskDelay</span>(<span class="number">1000</span>);
+    }
+}</code></pre>
+        
+        <h3>3.2 任务优先级</h3>
+        
+        <p>任务优先级决定了调度器如何选择下一个运行的任务。</p>
+        
+        <div class="card">
+            <h4>优先级规则</h4>
+            <ul>
+                <li>优先级范围：<code>0</code> 到 <code>configMAX_PRIORITIES - 1</code></li>
+                <li><strong>数字越大，优先级越高</strong></li>
+                <li>调度器总是选择<strong>就绪状态中优先级最高</strong>的任务运行</li>
+                <li>相同优先级的任务按<strong>时间片轮转</strong>调度</li>
+                <li><code>0</code> 是最低优先级，通常用于空闲任务</li>
+            </ul>
+        </div>
+        
+        <div class="analogy">
+            <p><strong>优先级就像医院的急诊分诊：</strong></p>
+            <p>• 危重病人（高优先级）立即处理</p>
+            <p>• 普通病人（低优先级）需要等待</p>
+            <p>• 同样紧急的病人按先来后到排队</p>
+        </div>
+        
+        <div class="warn">
+            <p><strong>优先级设计原则：</strong></p>
+            <p>• 实时性要求高的任务分配高优先级（如：安全检测、通信接收）</p>
+            <p>• 计算密集型或延时较大的任务分配低优先级（如：数据显示、日志记录）</p>
+            <p>• 避免所有任务都设为最高优先级，否则失去意义</p>
+            <p>• 优先级数量不宜过多，7个左右足够大多数应用</p>
+        </div>
+        
+        <h3>3.3 任务状态机</h3>
+        
+        <p>FreeRTOS任务有四种基本状态，调度器负责管理状态转换。</p>
+        
+        <div class="flow-diagram" style="text-align: left; padding: 32px;">
+            <div style="display: flex; flex-wrap: wrap; gap: 20px; justify-content: center;">
+                <div class="flow-step" style="border-color: var(--g);">运行态<br><small>Running</small></div>
+                <div style="display: flex; flex-direction: column; align-items: center;">
+                    <span class="arrow">↔</span>
+                </div>
+                <div class="flow-step" style="border-color: var(--a);">就绪态<br><small>Ready</small></div>
+            </div>
+            <div style="display: flex; flex-wrap: wrap; gap: 20px; justify-content: center; margin-top: 20px;">
+                <div class="flow-step" style="border-color: var(--o);">阻塞态<br><small>Blocked</small></div>
+                <div class="flow-step" style="border-color: var(--r);">挂起态<br><small>Suspended</small></div>
+            </div>
+        </div>
+        
+        <table>
+            <tr>
+                <th>状态</th>
+                <th>描述</th>
+                <th>进入条件</th>
+                <th>退出条件</th>
+            </tr>
+            <tr>
+                <td><span class="tag green">运行态</span></td>
+                <td>任务正在执行</td>
+                <td>被调度器选中</td>
+                <td>时间片用完、被抢占、阻塞、挂起</td>
+            </tr>
+            <tr>
+                <td><span class="tag blue">就绪态</span></td>
+                <td>任务可运行，等待CPU</td>
+                <td>创建任务、阻塞结束、恢复</td>
+                <td>被调度器选中执行</td>
+            </tr>
+            <tr>
+                <td><span class="tag orange">阻塞态</span></td>
+                <td>任务等待事件</td>
+                <td>vTaskDelay、等待信号量/队列</td>
+                <td>超时到期、事件发生</td>
+            </tr>
+            <tr>
+                <td><span class="tag red">挂起态</span></td>
+                <td>任务被临时禁用</td>
+                <td>vTaskSuspend()</td>
+                <td>vTaskResume()</td>
+            </tr>
+        </table>
+        
+        <p class="code-title">状态转换示例</p>
+        <pre><code><span class="keyword">void</span> <span class="function">vTaskExample</span>(<span class="keyword">void</span> *pvParameters) {
+    <span class="keyword">while</span>(<span class="number">1</span>) {
+        <span class="comment">// [运行态] 执行任务代码</span>
+        <span class="function">DoWork</span>();
+        
+        <span class="comment">// [运行态] → [阻塞态] 延时1秒</span>
+        <span class="function">vTaskDelay</span>(<span class="number">1000</span>);
+        
+        <span class="comment">// 1秒后自动回到 [就绪态]</span>
+        <span class="comment">// 调度器选中后回到 [运行态]</span>
+    }
+}</code></pre>
+        
+        <h3>3.4 删除任务</h3>
+        
+        <p>任务可以使用 <code>vTaskDelete()</code> 删除自己或其他任务。</p>
+        
+        <p class="code-title">删除任务API</p>
+        <pre><code><span class="keyword">void</span> <span class="function">vTaskDelete</span>(<span class="type">TaskHandle_t</span> xTask);</code></pre>
+        
+        <p>参数：<code>NULL</code> 表示删除自己，传入句柄删除指定任务。</p>
+        
+        <p class="code-title">任务自删除示例</p>
+        <pre><code><span class="keyword">void</span> <span class="function">vOneShotTask</span>(<span class="keyword">void</span> *pvParameters) {
+    <span class="comment">// 执行一次性任务</span>
+    <span class="function">InitializeHardware</span>();
+    <span class="function">SendStartupMessage</span>();
+    
+    <span class="comment">// 任务完成，删除自己</span>
+    <span class="function">vTaskDelete</span>(<span class="keyword">NULL</span>);
+    
+    <span class="comment">// 不会执行到这里</span>
+}</code></pre>
+        
+        <p class="code-title">删除其他任务示例</p>
+        <pre><code><span class="type">TaskHandle_t</span> xTempTaskHandle;
+
+<span class="keyword">void</span> <span class="function">vMainTask</span>(<span class="keyword">void</span> *pvParameters) {
+    <span class="comment">// 创建临时任务</span>
+    <span class="function">xTaskCreate</span>(vTempTask, <span class="string">"Temp"</span>, <span class="number">128</span>, <span class="keyword">NULL</span>, <span class="number">2</span>, &xTempTaskHandle);
+    
+    <span class="function">vTaskDelay</span>(<span class="number">5000</span>);  <span class="comment">// 等待5秒</span>
+    
+    <span class="comment">// 删除临时任务</span>
+    <span class="function">vTaskDelete</span>(xTempTaskHandle);
+    xTempTaskHandle = <span class="keyword">NULL</span>;
+}</code></pre>
+        
+        <div class="warn">
+            <p><strong>删除任务注意事项：</strong></p>
+            <p>• 删除任务会释放其栈内存（如果使用动态分配）</p>
+            <p>• 如果任务持有互斥量或信号量，删除前必须释放，否则造成死锁</p>
+            <p>• 被删除任务的内存不会立即回收，而是在空闲任务中清理</p>
+            <p>• 频繁创建/删除任务会导致内存碎片，建议使用任务挂起代替删除</p>
+        </div>
+        
+        <h3>3.5 任务函数模板</h3>
+        
+        <p>一个标准的任务函数通常包含以下结构：</p>
+        
+        <p class="code-title">标准任务模板</p>
+        <pre><code><span class="keyword">void</span> <span class="function">vStandardTask</span>(<span class="keyword">void</span> *pvParameters) {
+    <span class="comment">/* ========== 1. 参数获取（可选）========== */</span>
+    <span class="type">TaskParams_t</span> *params = (<span class="type">TaskParams_t</span>*)pvParameters;
+    
+    <span class="comment">/* ========== 2. 任务初始化 ========== */</span>
+    <span class="comment">// 初始化外设、创建通信对象等</span>
+    <span class="function">InitPeripherals</span>();
+    <span class="type">QueueHandle_t</span> xQueue = <span class="function">xQueueCreate</span>(<span class="number">10</span>, <span class="keyword">sizeof</span>(<span class="type">Data_t</span>));
+    
+    <span class="comment">/* ========== 3. 主循环 ========== */</span>
+    <span class="keyword">while</span>(<span class="number">1</span>) {
+        <span class="comment">// 3.1 执行核心功能</span>
+        <span class="type">Data_t</span> data = <span class="function">ReadSensor</span>();
+        
+        <span class="comment">// 3.2 与其他任务通信</span>
+        <span class="function">xQueueSend</span>(xQueue, &data, <span class="number">100</span>);
+        
+        <span class="comment">// 3.3 阻塞等待（让出CPU）</span>
+        <span class="function">vTaskDelay</span>(<span class="number">100</span>);  <span class="comment">// 100ms周期</span>
+    }
+    
+    <span class="comment">/* ========== 4. 清理（通常不会执行）========== */</span>
+    <span class="function">vQueueDelete</span>(xQueue);
+    <span class="function">vTaskDelete</span>(<span class="keyword">NULL</span>);
+}</code></pre>
+        
+        <!-- ==================== 第4章 队列通信 ==================== -->
+        <h2 id="section4">4. 队列通信</h2>
+        
+        <p>队列是FreeRTOS中任务间传递数据的主要机制。它实现了线程安全的数据缓冲区，让不同任务可以安全地交换信息。</p>
+        
+        <h3>4.1 队列基本概念</h3>
+        
+        <div class="analogy">
+            <p><strong>队列就像传送带：</strong></p>
+            <p>• 生产者（发送任务）把物品放到传送带上</p>
+            <p>• 传送带（队列）按顺序存放物品</p>
+            <p>• 消费者（接收任务）从另一端取走物品</p>
+            <p>• 传送带满了，生产者必须等待</p>
+            <p>• 传送带空了，消费者必须等待</p>
+        </div>
+        
+        <h4>队列的特点</h4>
+        <ul>
+            <li><strong>FIFO机制：</strong>先进先出，保证数据顺序</li>
+            <li><strong>线程安全：</strong>多任务同时访问不会冲突</li>
+            <li><strong>阻塞机制：</strong>队列满/空时任务自动阻塞</li>
+            <li><strong>拷贝传递：</strong>数据通过拷贝传递，不是指针</li>
+        </ul>
+        
+        <h3>4.2 创建队列 xQueueCreate</h3>
+        
+        <p class="code-title">函数原型</p>
+        <pre><code><span class="type">QueueHandle_t</span> <span class="function">xQueueCreate</span>(
+    <span class="keyword">const</span> <span class="type">UBaseType_t</span> uxQueueLength,  <span class="comment">// 队列长度（能存放多少条数据）</span>
+    <span class="keyword">const</span> <span class="type">UBaseType_t</span> uxItemSize      <span class="comment">// 每条数据的大小（字节）</span>
+);</code></pre>
+        
+        <p class="code-title">创建示例</p>
+        <pre><code><span class="comment">// 创建一个能存放10个int的队列</span>
+<span class="type">QueueHandle_t</span> xIntQueue = <span class="function">xQueueCreate</span>(<span class="number">10</span>, <span class="keyword">sizeof</span>(<span class="keyword">int</span>));
+
+<span class="comment">// 创建一个能存放5个结构体的队列</span>
+<span class="keyword">typedef</span> <span class="keyword">struct</span> {
+    <span class="keyword">uint8_t</span> id;
+    <span class="keyword">float</span> value;
+    <span class="keyword">uint32_t</span> timestamp;
+} <span class="type">SensorData_t</span>;
+
+<span class="type">QueueHandle_t</span> xSensorQueue = <span class="function">xQueueCreate</span>(<span class="number">5</span>, <span class="keyword">sizeof</span>(<span class="type">SensorData_t</span>));
+
+<span class="comment">// 检查创建是否成功</span>
+<span class="keyword">if</span> (xSensorQueue == <span class="keyword">NULL</span>) {
+    <span class="comment">// 内存不足，创建失败</span>
+    <span class="function">ErrorHandler</span>();
+}</code></pre>
+        
+        <h3>4.3 发送数据 xQueueSend</h3>
+        
+        <p class="code-title">函数原型</p>
+        <pre><code><span class="type">BaseType_t</span> <span class="function">xQueueSend</span>(
+    <span class="type">QueueHandle_t</span>    xQueue,         <span class="comment">// 队列句柄</span>
+    <span class="keyword">const</span> <span class="keyword">void</span> *     pvItemToQueue, <span class="comment">// 要发送的数据指针</span>
+    <span class="type">TickType_t</span>       xTicksToWait    <span class="comment">// 等待时间（tick）</span>
+);</code></pre>
+        
+        <p class="code-title">发送示例</p>
+        <pre><code><span class="keyword">void</span> <span class="function">vProducerTask</span>(<span class="keyword">void</span> *pvParameters) {
+    <span class="type">SensorData_t</span> data;
+    
+    <span class="keyword">while</span>(<span class="number">1</span>) {
+        <span class="comment">// 获取传感器数据</span>
+        data.id = <span class="number">1</span>;
+        data.value = <span class="function">ReadTemperature</span>();
+        data.timestamp = <span class="function">HAL_GetTick</span>();
+        
+        <span class="comment">// 发送到队列，最多等待100个tick</span>
+        <span class="keyword">if</span> (<span class="function">xQueueSend</span>(xSensorQueue, &data, <span class="number">100</span>) != pdPASS) {
+            <span class="comment">// 队列满，发送失败</span>
+            <span class="function">printf</span>(<span class="string">"Queue full!\n"</span>);
+        }
+        
+        <span class="function">vTaskDelay</span>(<span class="number">500</span>);
+    }
+}</code></pre>
+        
+        <div class="note">
+            <p><strong>xTicksToWait 参数说明：</strong></p>
+            <p>• <code>0</code> - 不等待，立即返回</p>
+            <p>• <code>100</code> - 等待100个tick</p>
+            <p>• <code>portMAX_DELAY</code> - 无限等待（需启用 <code>INCLUDE_vTaskSuspend</code>）</p>
+            <p>• 使用 <code>pdMS_TO_TICKS(ms)</code> 可将毫秒转换为tick</p>
+        </div>
+        
+        <h3>4.4 接收数据 xQueueReceive</h3>
+        
+        <p class="code-title">函数原型</p>
+        <pre><code><span class="type">BaseType_t</span> <span class="function">xQueueReceive</span>(
+    <span class="type">QueueHandle_t</span>  xQueue,          <span class="comment">// 队列句柄</span>
+    <span class="keyword">void</span> *         pvBuffer,        <span class="comment">// 接收缓冲区</span>
+    <span class="type">TickType_t</span>     xTicksToWait     <span class="comment">// 等待时间</span>
+);</code></pre>
+        
+        <p class="code-title">接收示例</p>
+        <pre><code><span class="keyword">void</span> <span class="function">vConsumerTask</span>(<span class="keyword">void</span> *pvParameters) {
+    <span class="type">SensorData_t</span> receivedData;
+    
+    <span class="keyword">while</span>(<span class="number">1</span>) {
+        <span class="comment">// 从队列接收数据，最多等待500ms</span>
+        <span class="keyword">if</span> (<span class="function">xQueueReceive</span>(xSensorQueue, &receivedData, 
+                          <span class="function">pdMS_TO_TICKS</span>(<span class="number">500</span>)) == pdPASS) {
+            <span class="comment">// 成功接收数据</span>
+            <span class="function">printf</span>(<span class="string">"Sensor %d: %.2f\n"</span>, 
+                   receivedData.id, 
+                   receivedData.value);
+        } <span class="keyword">else</span> {
+            <span class="comment">// 超时，队列空</span>
+            <span class="function">printf</span>(<span class="string">"No data received\n"</span>);
+        }
+    }
+}</code></pre>
+        
+        <h3>4.5 完整多任务通信示例</h3>
+        
+        <p class="code-title">生产者-消费者模式完整代码</p>
+        <pre><code><span class="keyword">#include</span> <span class="string">"FreeRTOS.h"</span>
+<span class="keyword">#include</span> <span class="string">"task.h"</span>
+<span class="keyword">#include</span> <span class="string">"queue.h"</span>
+
+<span class="comment">// 数据结构定义</span>
+<span class="keyword">typedef</span> <span class="keyword">struct</span> {
+    <span class="keyword">uint8_t</span> sensorId;
+    <span class="keyword">float</span> temperature;
+    <span class="keyword">uint32_t</span> timestamp;
+} <span class="type">SensorMessage_t</span>;
+
+<span class="comment">// 全局队列句柄</span>
+<span class="type">QueueHandle_t</span> xSensorQueue;
+
+<span class="comment">// 传感器采集任务（生产者）</span>
+<span class="keyword">void</span> <span class="function">vSensorTask</span>(<span class="keyword">void</span> *pvParameters) {
+    <span class="type">SensorMessage_t</span> msg;
+    msg.sensorId = <span class="number">0x01</span>;
+    
+    <span class="keyword">while</span>(<span class="number">1</span>) {
+        <span class="comment">// 读取传感器</span>
+        msg.temperature = <span class="function">ReadTemperatureSensor</span>();
+        msg.timestamp = <span class="function">HAL_GetTick</span>();
+        
+        <span class="comment">// 发送到队列（等待最多10ms）</span>
+        <span class="keyword">if</span> (<span class="function">xQueueSend</span>(xSensorQueue, &msg, 
+                          <span class="function">pdMS_TO_TICKS</span>(<span class="number">10</span>)) != pdPASS) {
+            <span class="comment">// 队列满，丢弃数据</span>
+            <span class="function">Error_Handler</span>();
+        }
+        
+        <span class="comment">// 1秒采集一次</span>
+        <span class="function">vTaskDelay</span>(<span class="function">pdMS_TO_TICKS</span>(<span class="number">1000</span>));
+    }
+}
+
+<span class="comment">// 数据处理任务（消费者）</span>
+<span class="keyword">void</span> <span class="function">vProcessTask</span>(<span class="keyword">void</span> *pvParameters) {
+    <span class="type">SensorMessage_t</span> rxMsg;
+    <span class="keyword">float</span> avgTemp = <span class="number">0.0f</span>;
+    <span class="keyword">int</span> count = <span class="number">0</span>;
+    
+    <span class="keyword">while</span>(<span class="number">1</span>) {
+        <span class="comment">// 阻塞等待数据</span>
+        <span class="keyword">if</span> (<span class="function">xQueueReceive</span>(xSensorQueue, &rxMsg, portMAX_DELAY) == pdPASS) {
+            <span class="comment">// 计算移动平均</span>
+            avgTemp = (avgTemp * count + rxMsg.temperature) / (count + <span class="number">1</span>);
+            count++;
+            
+            <span class="comment">// 每10个样本打印一次</span>
+            <span class="keyword">if</span> (count >= <span class="number">10</span>) {
+                <span class="function">printf</span>(<span class="string">"Avg Temp: %.2f°C\n"</span>, avgTemp);
+                count = <span class="number">0</span>;
+            }
+        }
+    }
+}
+
+<span class="comment">// 主函数</span>
+<span class="keyword">int</span> <span class="function">main</span>(<span class="keyword">void</span>) {
+    HAL_Init();
+    SystemClock_Config();
+    
+    <span class="comment">// 创建队列：最多存放10条消息</span>
+    xSensorQueue = <span class="function">xQueueCreate</span>(<span class="number">10</span>, <span class="keyword">sizeof</span>(<span class="type">SensorMessage_t</span>));
+    
+    <span class="keyword">if</span> (xSensorQueue == <span class="keyword">NULL</span>) {
+        <span class="function">Error_Handler</span>();
+    }
+    
+    <span class="comment">// 创建任务</span>
+    <span class="function">xTaskCreate</span>(vSensorTask, <span class="string">"Sensor"</span>, <span class="number">128</span>, <span class="keyword">NULL</span>, <span class="number">2</span>, <span class="keyword">NULL</span>);
+    <span class="function">xTaskCreate</span>(vProcessTask, <span class="string">"Process"</span>, <span class="number">256</span>, <span class="keyword">NULL</span>, <span class="number">1</span>, <span class="keyword">NULL</span>);
+    
+    <span class="comment">// 启动调度器</span>
+    <span class="function">vTaskStartScheduler</span>();
+    
+    <span class="keyword">while</span>(<span class="number">1</span>);
+}</code></pre>
+        
+        <h3>4.6 队列长度选择</h3>
+        
+        <p>队列长度的选择需要平衡内存消耗和数据缓冲需求。</p>
+        
+        <table>
+            <tr>
+                <th>场景</th>
+                <th>建议长度</th>
+                <th>原因</th>
+            </tr>
+            <tr>
+                <td>高速采样+低速处理</td>
+                <td>较大（50-100）</td>
+                <td>缓冲突发数据，防止丢数据</td>
+            </tr>
+            <tr>
+                <td>低速采集+高速处理</td>
+                <td>较小（5-10）</td>
+                <td>处理速度够快，无需大缓冲</td>
+            </tr>
+            <tr>
+                <td>事件通知</td>
+                <td>1</td>
+                <td>只关心最新事件，用队列传递指针</td>
+            </tr>
+            <tr>
+                <td>高速通信</td>
+                <td>中等到大</td>
+                <td>应对网络突发流量</td>
+            </tr>
+        </table>
+        
+        <div class="tip">
+            <p><strong>队列内存计算：</strong></p>
+            <p>队列占用内存 = 队列长度 × 数据大小 + 队列管理开销（约96字节）</p>
+            <p>例如：长度10，每条数据20字节 → 10×20+96 = 296字节</p>
+        </div>
+        
+        <!-- ==================== 第5章 信号量 ==================== -->
+        <h2 id="section5">5. 信号量</h2>
+        
+        <p>信号量（Semaphore）是FreeRTOS中用于任务同步和资源管理的核心机制。</p>
+        
+        <h3>5.1 信号量基本概念</h3>
+        
+        <div class="analogy">
+            <p><strong>信号量就像停车场：</strong></p>
+            <p>• <strong>计数信号量：</strong>停车场有N个车位，进来一辆车计数减1，出去一辆计数加1</p>
+            <p>• <strong>二值信号量：</strong>只有一个车位，要么空要么满</p>
+            <p>• 车位满时，新车必须等待（任务阻塞）</p>
+            <p>• 有车离开时，通知等待的车进入（唤醒阻塞任务）</p>
+        </div>
+        
+        <h3>5.2 二值信号量</h3>
+        
+        <p>二值信号量只有两个状态：有效（1）和无效（0），常用于任务同步。</p>
+        
+        <h4>创建二值信号量</h4>
+        <pre><code><span class="type">SemaphoreHandle_t</span> <span class="function">xSemaphoreCreateBinary</span>(<span class="keyword">void</span>);</code></pre>
+        
+        <div class="warn">
+            <p><strong>注意：</strong>创建后信号量初始值为0（无效），需要先 <code>xSemaphoreGive()</code> 才能使用。</p>
+        </div>
+        
+        <h4>中断-任务同步示例</h4>
+        <pre><code><span class="type">SemaphoreHandle_t</span> xBinarySem;
+
+<span class="comment">// ISR中释放信号量</span>
+<span class="keyword">void</span> <span class="function">EXTI0_IRQHandler</span>(<span class="keyword">void</span>) {
+    <span class="type">BaseType_t</span> xHigherPriorityTaskWoken = pdFALSE;
+    
+    <span class="comment">// 清除中断标志</span>
+    __HAL_GPIO_EXTI_CLEAR_IT(GPIO_PIN_0);
+    
+    <span class="comment">// 释放信号量（FromISR版本）</span>
+    <span class="function">xSemaphoreGiveFromISR</span>(xBinarySem, &xHigherPriorityTaskWoken);
+    
+    <span class="comment">// 如果唤醒了更高优先级任务，请求上下文切换</span>
+    <span class="function">portYIELD_FROM_ISR</span>(xHigherPriorityTaskWoken);
+}
+
+<span class="comment">// 任务中等待信号量</span>
+<span class="keyword">void</span> <span class="function">vButtonTask</span>(<span class="keyword">void</span> *pvParameters) {
+    <span class="keyword">while</span>(<span class="number">1</span>) {
+        <span class="comment">// 阻塞等待信号量</span>
+        <span class="keyword">if</span> (<span class="function">xSemaphoreTake</span>(xBinarySem, portMAX_DELAY) == pdPASS) {
+            <span class="comment">// 按键按下，执行操作</span>
+            <span class="function">HandleButtonPress</span>();
+        }
+    }
+}
+
+<span class="keyword">int</span> <span class="function">main</span>(<span class="keyword">void</span>) {
+    HAL_Init();
+    <span class="comment">// ... 外设初始化</span>
+    
+    <span class="comment">// 创建二值信号量</span>
+    xBinarySem = <span class="function">xSemaphoreCreateBinary</span>();
+    
+    <span class="comment">// 创建任务</span>
+    <span class="function">xTaskCreate</span>(vButtonTask, <span class="string">"Button"</span>, <span class="number">128</span>, <span class="keyword">NULL</span>, <span class="number">2</span>, <span class="keyword">NULL</span>);
+    
+    <span class="function">vTaskStartScheduler</span>();
+    <span class="keyword">while</span>(<span class="number">1</span>);
+}</code></pre>
+        
+        <h3>5.3 计数信号量</h3>
+        
+        <p>计数信号量可以记录多个事件的发生。</p>
+        
+        <p class="code-title">创建计数信号量</p>
+        <pre><code><span class="type">SemaphoreHandle_t</span> <span class="function">xSemaphoreCreateCounting</span>(
+    <span class="type">UBaseType_t</span> uxMaxCount,   <span class="comment">// 最大计数值</span>
+    <span class="type">UBaseType_t</span> uxInitialCount <span class="comment">// 初始计数值</span>
+);</code></pre>
+        
+        <p class="code-title">资源池管理示例</p>
+        <pre><code><span class="keyword">#define</span> BUFFER_COUNT <span class="number">5</span>
+
+<span class="type">uint8_t</span> buffers[BUFFER_COUNT][<span class="number">256</span>];
+<span class="type">SemaphoreHandle_t</span> xBufferSem;
+
+<span class="keyword">void</span> <span class="function">InitBufferPool</span>(<span class="keyword">void</span>) {
+    <span class="comment">// 创建计数信号量：5个缓冲区，初始全部可用</span>
+    xBufferSem = <span class="function">xSemaphoreCreateCounting</span>(BUFFER_COUNT, BUFFER_COUNT);
+}
+
+<span class="keyword">uint8_t</span>* <span class="function">GetBuffer</span>(<span class="keyword">void</span>) {
+    <span class="keyword">if</span> (<span class="function">xSemaphoreTake</span>(xBufferSem, <span class="function">pdMS_TO_TICKS</span>(<span class="number">100</span>)) == pdPASS) {
+        <span class="comment">// 找到空闲缓冲区并返回</span>
+        <span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">0</span>; i < BUFFER_COUNT; i++) {
+            <span class="keyword">if</span> (!bufferInUse[i]) {
+                bufferInUse[i] = <span class="keyword">true</span>;
+                <span class="keyword">return</span> buffers[i];
+            }
+        }
+    }
+    <span class="keyword">return</span> <span class="keyword">NULL</span>;  <span class="comment">// 无可用缓冲区</span>
+}
+
+<span class="keyword">void</span> <span class="function">ReleaseBuffer</span>(<span class="keyword">uint8_t</span>* buf) {
+    <span class="comment">// 标记缓冲区为空闲</span>
+    <span class="keyword">int</span> idx = (buf - buffers[<span class="number">0</span>]) / <span class="number">256</span>;
+    bufferInUse[idx] = <span class="keyword">false</span>;
+    
+    <span class="comment">// 释放信号量</span>
+    <span class="function">xSemaphoreGive</span>(xBufferSem);
+}</code></pre>
+        
+        <h3>5.4 生产者-消费者模式</h3>
+        
+        <p>使用计数信号量实现经典的生产者-消费者模型。</p>
+        
+        <p class="code-title">完整示例</p>
+        <pre><code><span class="keyword">#define</span> ITEM_COUNT <span class="number">10</span>
+
+<span class="keyword">typedef</span> <span class="keyword">struct</span> {
+    <span class="keyword">int</span> data;
+} <span class="type">Item_t</span>;
+
+<span class="type">Item_t</span> buffer[ITEM_COUNT];
+<span class="keyword">int</span> in = <span class="number">0</span>, out = <span class="number">0</span>;
+
+<span class="type">SemaphoreHandle_t</span> xEmptySlots;   <span class="comment">// 空槽位信号量</span>
+<span class="type">SemaphoreHandle_t</span> xFilledSlots;  <span class="comment">// 已填充信号量</span>
+<span class="type">SemaphoreHandle_t</span> xMutex;        <span class="comment">// 互斥访问缓冲区</span>
+
+<span class="keyword">void</span> <span class="function">vProducer</span>(<span class="keyword">void</span> *pvParameters) {
+    <span class="type">Item_t</span> item;
+    <span class="keyword">int</span> produced = <span class="number">0</span>;
+    
+    <span class="keyword">while</span>(<span class="number">1</span>) {
+        <span class="comment">// 生产数据</span>
+        item.data = produced++;
+        
+        <span class="comment">// 等待空槽位</span>
+        <span class="function">xSemaphoreTake</span>(xEmptySlots, portMAX_DELAY);
+        
+        <span class="comment">// 互斥访问缓冲区</span>
+        <span class="function">xSemaphoreTake</span>(xMutex, portMAX_DELAY);
+        buffer[in] = item;
+        in = (in + <span class="number">1</span>) % ITEM_COUNT;
+        <span class="function">xSemaphoreGive</span>(xMutex);
+        
+        <span class="comment">// 通知有新数据</span>
+        <span class="function">xSemaphoreGive</span>(xFilledSlots);
+        
+        <span class="function">vTaskDelay</span>(<span class="function">pdMS_TO_TICKS</span>(<span class="number">100</span>));
+    }
+}
+
+<span class="keyword">void</span> <span class="function">vConsumer</span>(<span class="keyword">void</span> *pvParameters) {
+    <span class="type">Item_t</span> item;
+    
+    <span class="keyword">while</span>(<span class="number">1</span>) {
+        <span class="comment">// 等待有数据</span>
+        <span class="function">xSemaphoreTake</span>(xFilledSlots, portMAX_DELAY);
+        
+        <span class="comment">// 互斥访问缓冲区</span>
+        <span class="function">xSemaphoreTake</span>(xMutex, portMAX_DELAY);
+        item = buffer[out];
+        out = (out + <span class="number">1</span>) % ITEM_COUNT;
+        <span class="function">xSemaphoreGive</span>(xMutex);
+        
+        <span class="comment">// 释放空槽位</span>
+        <span class="function">xSemaphoreGive</span>(xEmptySlots);
+        
+        <span class="comment">// 消费数据</span>
+        <span class="function">printf</span>(<span class="string">"Consumed: %d\n"</span>, item.data);
+    }
+}
+
+<span class="keyword">void</span> <span class="function">Setup</span>(<span class="keyword">void</span>) {
+    <span class="comment">// 创建信号量</span>
+    xEmptySlots = <span class="function">xSemaphoreCreateCounting</span>(ITEM_COUNT, ITEM_COUNT);
+    xFilledSlots = <span class="function">xSemaphoreCreateCounting</span>(ITEM_COUNT, <span class="number">0</span>);
+    xMutex = <span class="function">xSemaphoreCreateMutex</span>();
+    
+    <span class="comment">// 创建任务</span>
+    <span class="function">xTaskCreate</span>(vProducer, <span class="string">"Producer"</span>, <span class="number">128</span>, <span class="keyword">NULL</span>, <span class="number">1</span>, <span class="keyword">NULL</span>);
+    <span class="function">xTaskCreate</span>(vConsumer, <span class="string">"Consumer"</span>, <span class="number">128</span>, <span class="keyword">NULL</span>, <span class="number">1</span>, <span class="keyword">NULL</span>);
+}</code></pre>
+        
+        <!-- ==================== 第6章 互斥量 ==================== -->
+        <h2 id="section6">6. 互斥量</h2>
+        
+        <p>互斥量（Mutex）是一种特殊的二值信号量，专门用于保护共享资源。</p>
+        
+        <h3>6.1 互斥量 vs 信号量</h3>
+        
+        <table>
+            <tr>
+                <th>特性</th>
+                <th>互斥量 (Mutex)</th>
+                <th>二值信号量</th>
+            </tr>
+            <tr>
+                <td>主要用途</td>
+                <td>保护共享资源</td>
+                <td>任务同步</td>
+            </tr>
+            <tr>
+                <td>所有权</td>
+                <td>有归属，只有持有者能释放</td>
+                <td>无归属，任何任务都可释放</td>
+            </tr>
+            <tr>
+                <td>优先级继承</td>
+                <td>支持（解决优先级反转）</td>
+                <td>不支持</td>
+            </tr>
+            <tr>
+                <td>递归获取</td>
+                <td>支持（需使用递归互斥量）</td>
+                <td>不支持</td>
+            </tr>
+            <tr>
+                <td>中断中使用</td>
+                <td>❌ 不允许</td>
+                <td>✅ 可以</td>
+            </tr>
+        </table>
+        
+        <h3>6.2 创建互斥量</h3>
+        
+        <pre><code><span class="type">SemaphoreHandle_t</span> <span class="function">xSemaphoreCreateMutex</span>(<span class="keyword">void</span>);</code></pre>
+        
+        <h3>6.3 使用示例</h3>
+        
+        <p class="code-title">保护共享串口资源</p>
+        <pre><code><span class="type">SemaphoreHandle_t</span> xUartMutex;
+
+<span class="keyword">void</span> <span class="function">vTask1</span>(<span class="keyword">void</span> *pvParameters) {
+    <span class="keyword">while</span>(<span class="number">1</span>) {
+        <span class="comment">// 获取互斥量</span>
+        <span class="keyword">if</span> (<span class="function">xSemaphoreTake</span>(xUartMutex, <span class="function">pdMS_TO_TICKS</span>(<span class="number">100</span>)) == pdPASS) {
+            <span class="comment">// 安全地使用串口</span>
+            <span class="function">printf</span>(<span class="string">"Task1: Hello from Task1\n"</span>);
+            
+            <span class="comment">// 释放互斥量</span>
+            <span class="function">xSemaphoreGive</span>(xUartMutex);
+        }
+        <span class="function">vTaskDelay</span>(<span class="function">pdMS_TO_TICKS</span>(<span class="number">500</span>));
+    }
+}
+
+<span class="keyword">void</span> <span class="function">vTask2</span>(<span class="keyword">void</span> *pvParameters) {
+    <span class="keyword">while</span>(<span class="number">1</span>) {
+        <span class="keyword">if</span> (<span class="function">xSemaphoreTake</span>(xUartMutex, <span class="function">pdMS_TO_TICKS</span>(<span class="number">100</span>)) == pdPASS) {
+            <span class="function">printf</span>(<span class="string">"Task2: Hello from Task2\n"</span>);
+            <span class="function">xSemaphoreGive</span>(xUartMutex);
+        }
+        <span class="function">vTaskDelay</span>(<span class="function">pdMS_TO_TICKS</span>(<span class="number">300</span>));
+    }
+}</code></pre>
+        
+        <h3>6.4 优先级反转问题</h3>
+        
+        <p>优先级反转是多任务系统中常见的问题，可能导致高优先级任务被低优先级任务阻塞。</p>
+        
+        <div class="analogy">
+            <p><strong>优先级反转场景：</strong></p>
+            <p>假设有任务优先级：高 > 中 > 低</p>
+            <p>1. 低优先级任务获取互斥量，准备访问资源</p>
+            <p>2. 高优先级任务就绪，抢占低优先级任务</p>
+            <p>3. 高优先级任务尝试获取同一互斥量，被阻塞</p>
+            <p>4. 中优先级任务就绪，抢占低优先级任务</p>
+            <p>5. 中优先级任务运行，低优先级任务无法释放互斥量</p>
+            <p>6. 高优先级任务被中优先级任务间接阻塞！</p>
+        </div>
+        
+        <p class="code-title">优先级反转时序</p>
+        <pre><code>时间 →
+┌──────────────────────────────────────────────────────────────┐
+│ 高优先级任务  │      │██████│等待  │      │████████████████│
+├──────────────────────────────────────────────────────────────┤
+│ 中优先级任务  │      │      │      │██████│                │
+├──────────────────────────────────────────────────────────────┤
+│ 低优先级任务  │██████│      │      │      │ 恢复 │ 释放    │
+│ (持有互斥量)  │ 获取 │ 被抢 │ 被抢 │ 被抢 │ 互斥 │ 互斥量  │
+└──────────────────────────────────────────────────────────────┘
+                ↑
+          高优先级任务被中优先级任务
+          间接阻塞，无法运行！</code></pre>
+        
+        <h3>6.5 优先级继承</h3>
+        
+        <p>FreeRTOS的互斥量实现了<strong>优先级继承</strong>机制来缓解优先级反转。</p>
+        
+        <div class="note">
+            <p><strong>优先级继承原理：</strong></p>
+            <p>当高优先级任务因等待互斥量而阻塞时，持有互斥量的低优先级任务会<strong>临时继承</strong>高优先级任务的优先级，从而避免被中优先级任务抢占。</p>
+        </div>
+        
+        <p class="code-title">优先级继承后的时序</p>
+        <pre><code>时间 →
+┌──────────────────────────────────────────────────────────────┐
+│ 高优先级任务  │      │██████│等待  │      │████████████████│
+├──────────────────────────────────────────────────────────────┤
+│ 中优先级任务  │      │      │      │      │                │
+│               │      │      │      │      │ 无法抢占！     │
+├──────────────────────────────────────────────────────────────┤
+│ 低优先级任务  │██████│ 继承 │██████│ 释放 │                │
+│ (持有互斥量)  │ 获取 │ 高优 │ 执行 │ 互斥 │                │
+│               │      │ 先级 │      │      │                │
+└──────────────────────────────────────────────────────────────┘
+                        ↑
+                 低优先级任务继承高优先级，
+                 中优先级任务无法抢占！</code></pre>
+        
+        <div class="warn">
+            <p><strong>优先级继承的限制：</strong></p>
+            <p>• 只能缓解优先级反转，不能完全消除</p>
+            <p>• 如果有多层嵌套的互斥量，问题仍然可能发生</p>
+            <p>• 临界区时间应尽可能短，减少阻塞时间</p>
+        </div>
+        
+        <h3>6.6 何时用互斥量 vs 信号量</h3>
+        
+        <div class="comparison-grid">
+            <div class="comparison-item">
+                <h4>✅ 使用互斥量</h4>
+                <ul>
+                    <li>保护共享资源（变量、外设等）</li>
+                    <li>需要优先级继承的场景</li>
+                    <li>同一任务需要多次获取同一锁</li>
+                    <li>互斥访问时间较长</li>
+                </ul>
+            </div>
+            
+            <div class="comparison-item">
+                <h4>✅ 使用信号量</h4>
+                <ul>
+                    <li>任务同步（ISR通知任务）</li>
+                    <li>事件计数</li>
+                    <li>资源池管理</li>
+                    <li>需要在ISR中操作</li>
+                </ul>
+            </div>
+        </div>
+        
+        <!-- ==================== 第7章 软件定时器 ==================== -->
+        <h2 id="section7">7. 软件定时器</h2>
+        
+        <p>软件定时器允许你在指定时间后执行回调函数，无需占用硬件定时器资源。</p>
+        
+        <h3>7.1 创建定时器 xTimerCreate</h3>
+        
+        <p class="code-title">函数原型</p>
+        <pre><code><span class="type">TimerHandle_t</span> <span class="function">xTimerCreate</span>(
+    <span class="keyword">const</span> <span class="type">char</span> * <span class="keyword">const</span> pcTimerName,   <span class="comment">// 定时器名称</span>
+    <span class="keyword">const</span> <span class="type">TickType_t</span> xTimerPeriodInTicks, <span class="comment">// 周期（tick）</span>
+    <span class="keyword">const</span> <span class="type">UBaseType_t</span> uxAutoReload,   <span class="comment">// 自动重载（周期）</span>
+    <span class="keyword">void</span> * <span class="keyword">const</span> pvTimerID,           <span class="comment">// 定时器ID</span>
+    <span class="type">TimerCallbackFunction_t</span> pxCallbackFunction <span class="comment">// 回调函数</span>
+);</code></pre>
+        
+        <table>
+            <tr>
+                <th>参数</th>
+                <th>说明</th>
+            </tr>
+            <tr>
+                <td><code>pcTimerName</code></td>
+                <td>定时器名称，用于调试</td>
+            </tr>
+            <tr>
+                <td><code>xTimerPeriodInTicks</code></td>
+                <td>定时周期，使用 <code>pdMS_TO_TICKS(ms)</code> 转换</td>
+            </tr>
+            <tr>
+                <td><code>uxAutoReload</code></td>
+                <td><code>pdTRUE</code> = 周期定时器，<code>pdFALSE</code> = 单次定时器</td>
+            </tr>
+            <tr>
+                <td><code>pvTimerID</code></td>
+                <td>用户自定义ID，可用于区分多个定时器</td>
+            </tr>
+            <tr>
+                <td><code>pxCallbackFunction</code></td>
+                <td>回调函数，签名：<code>void callback(TimerHandle_t)</code></td>
+            </tr>
+        </table>
+        
+        <h3>7.2 单次 vs 周期定时器</h3>
+        
+        <div class="comparison-grid">
+            <div class="comparison-item">
+                <h4>单次定时器 (One-shot)</h4>
+                <p>触发一次后停止，需要手动重新启动。</p>
+                <ul>
+                    <li>超时执行某个操作</li>
+                    <li>看门狗喂狗</li>
+                    <li>延时执行</li>
+                </ul>
+                <span class="tag orange">uxAutoReload = pdFALSE</span>
+            </div>
+            
+            <div class="comparison-item">
+                <h4>周期定时器 (Auto-reload)</h4>
+                <p>每次触发后自动重新启动，持续运行。</p>
+                <ul>
+                    <li>周期性采样</li>
+                    <li>LED闪烁</li>
+                    <li>状态检测</li>
+                </ul>
+                <span class="tag green">uxAutoReload = pdTRUE</span>
+            </div>
+        </div>
+        
+        <h3>7.3 启动和停止定时器</h3>
+        
+        <pre><code><span class="comment">// 启动定时器</span>
+<span class="type">BaseType_t</span> <span class="function">xTimerStart</span>(<span class="type">TimerHandle_t</span> xTimer, <span class="type">TickType_t</span> xTicksToWait);
+
+<span class="comment">// 停止定时器</span>
+<span class="type">BaseType_t</span> <span class="function">xTimerStop</span>(<span class="type">TimerHandle_t</span> xTimer, <span class="type">TickType_t</span> xTicksToWait);
+
+<span class="comment">// 重置定时器（重新计时）</span>
+<span class="type">BaseType_t</span> <span class="function">xTimerReset</span>(<span class="type">TimerHandle_t</span> xTimer, <span class="type">TickType_t</span> xTicksToWait);
+
+<span class="comment">// 修改定时器周期</span>
+<span class="type">BaseType_t</span> <span class="function">xTimerChangePeriod</span>(<span class="type">TimerHandle_t</span> xTimer, <span class="type">TickType_t</span> xNewPeriod, <span class="type">TickType_t</span> xTicksToWait);</code></pre>
+        
+        <h3>7.4 完整示例</h3>
+        
+        <p class="code-title">周期定时器控制LED闪烁</p>
+        <pre><code><span class="keyword">#include</span> <span class="string">"FreeRTOS.h"</span>
+<span class="keyword">#include</span> <span class="string">"timers.h"</span>
+
+<span class="type">TimerHandle_t</span> xLedTimer;
+<span class="type">TimerHandle_t</span> xTimeoutTimer;
+
+<span class="comment">// LED闪烁回调函数</span>
+<span class="keyword">void</span> <span class="function">vLedTimerCallback</span>(<span class="type">TimerHandle_t</span> xTimer) {
+    <span class="comment">// 切换LED状态</span>
+    HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin);
+}
+
+<span class="comment">// 超时回调函数</span>
+<span class="keyword">void</span> <span class="function">vTimeoutCallback</span>(<span class="type">TimerHandle_t</span> xTimer) {
+    <span class="function">printf</span>(<span class="string">"Timeout occurred!\n"</span>);
+    
+    <span class="comment">// 单次定时器执行后自动停止</span>
+}
+
+<span class="keyword">int</span> <span class="function">main</span>(<span class="keyword">void</span>) {
+    HAL_Init();
+    <span class="comment">// ...</span>
+    
+    <span class="comment">// 创建周期定时器：每500ms闪烁一次</span>
+    xLedTimer = <span class="function">xTimerCreate</span>(
+        <span class="string">"LedTimer"</span>,                 <span class="comment">// 名称</span>
+        <span class="function">pdMS_TO_TICKS</span>(<span class="number">500</span>),          <span class="comment">// 周期500ms</span>
+        pdTRUE,                        <span class="comment">// 自动重载（周期）</span>
+        (<span class="keyword">void</span>*)<span class="number">0</span>,                     <span class="comment">// ID</span>
+        vLedTimerCallback              <span class="comment">// 回调函数</span>
+    );
+    
+    <span class="comment">// 创建单次定时器：5秒后触发</span>
+    xTimeoutTimer = <span class="function">xTimerCreate</span>(
+        <span class="string">"Timeout"</span>,
+        <span class="function">pdMS_TO_TICKS</span>(<span class="number">5000</span>),         <span class="comment">// 5秒</span>
+        pdFALSE,                       <span class="comment">// 单次</span>
+        (<span class="keyword">void</span>*)<span class="number">1</span>,
+        vTimeoutCallback
+    );
+    
+    <span class="comment">// 启动定时器</span>
+    <span class="function">xTimerStart</span>(xLedTimer, <span class="number">0</span>);
+    <span class="function">xTimerStart</span>(xTimeoutTimer, <span class="number">0</span>);
+    
+    <span class="comment">// 启动调度器</span>
+    <span class="function">vTaskStartScheduler</span>();
+    
+    <span class="keyword">while</span>(<span class="number">1</span>);
+}</code></pre>
+        
+        <h3>7.5 回调函数规则</h3>
+        
+        <div class="warn">
+            <p><strong>⚠️ 定时器回调函数必须遵守的规则：</strong></p>
+            <p>• <strong>不能阻塞！</strong> 不能调用 <code>vTaskDelay()</code>、<code>xQueueReceive()</code> 等阻塞函数</p>
+            <p>• 执行时间要尽可能短，避免影响其他定时器</p>
+            <p>• 可以发送信号量、向队列发送数据来通知任务处理</p>
+            <p>• 不能调用 <code>xTimerStart/Stop</code> 在同一个定时器上（会死锁），使用 <code>xTimerPendFunctionCallFromISR</code> 替代</p>
+        </div>
+        
+        <p class="code-title">正确做法：回调中通知任务</p>
+        <pre><code><span class="type">SemaphoreHandle_t</span> xTimerSem;
+
+<span class="keyword">void</span> <span class="function">vTimerCallback</span>(<span class="type">TimerHandle_t</span> xTimer) {
+    <span class="comment">// 不做耗时操作，只发送信号量</span>
+    <span class="type">BaseType_t</span> xHigherPriorityTaskWoken = pdFALSE;
+    <span class="function">xSemaphoreGiveFromISR</span>(xTimerSem, &xHigherPriorityTaskWoken);
+}
+
+<span class="keyword">void</span> <span class="function">vHandlerTask</span>(<span class="keyword">void</span> *pvParameters) {
+    <span class="keyword">while</span>(<span class="number">1</span>) {
+        <span class="keyword">if</span> (<span class="function">xSemaphoreTake</span>(xTimerSem, portMAX_DELAY) == pdPASS) {
+            <span class="comment">// 在任务中执行耗时操作</span>
+            <span class="function">ProcessData</span>();
+        }
+    }
+}</code></pre>
+        
+        <!-- ==================== 第8章 中断处理 ==================== -->
+        <h2 id="section8">8. 中断中的FreeRTOS</h2>
+        
+        <p>在中断服务函数（ISR）中使用FreeRTOS API有特殊规则，必须严格遵守。</p>
+        
+        <h3>8.1 FromISR 函数</h3>
+        
+        <p>所有在中断中调用的FreeRTOS API都有 <code>FromISR</code> 后缀版本：</p>
+        
+        <table>
+            <tr>
+                <th>任务上下文</th>
+                <th>中断上下文</th>
+            </tr>
+            <tr>
+                <td><code>xQueueSend()</code></td>
+                <td><code>xQueueSendFromISR()</code></td>
+            </tr>
+            <tr>
+                <td><code>xSemaphoreGive()</code></td>
+                <td><code>xSemaphoreGiveFromISR()</code></td>
+            </tr>
+            <tr>
+                <td><code>xTaskNotifyGive()</code></td>
+                <td><code>vTaskNotifyGiveFromISR()</code></td>
+            </tr>
+            <tr>
+                <td><code>xTimerStart()</code></td>
+                <td><code>xTimerStartFromISR()</code></td>
+            </tr>
+        </table>
+        
+        <h3>8.2 portYIELD_FROM_ISR</h3>
+        
+        <p>中断可能唤醒更高优先级的任务，此时需要请求上下文切换。</p>
+        
+        <p class="code-title">标准ISR模板</p>
+        <pre><code><span class="keyword">void</span> <span class="function">USART1_IRQHandler</span>(<span class="keyword">void</span>) {
+    <span class="type">BaseType_t</span> xHigherPriorityTaskWoken = pdFALSE;
+    
+    <span class="comment">// 检查中断标志</span>
+    <span class="keyword">if</span> (__HAL_UART_GET_FLAG(&huart1, UART_FLAG_RXNE)) {
+        <span class="keyword">uint8_t</span> data = (<span class="keyword">uint8_t</span>)(huart1.Instance->DR & <span class="number">0xFF</span>);
+        
+        <span class="comment">// 使用FromISR函数发送数据</span>
+        <span class="function">xQueueSendFromISR</span>(xUartQueue, &data, &xHigherPriorityTaskWoken);
+    }
+    
+    <span class="comment">// 如果唤醒了更高优先级任务，请求切换</span>
+    <span class="function">portYIELD_FROM_ISR</span>(xHigherPriorityTaskWoken);
+}</code></pre>
+        
+        <div class="note">
+            <p><strong>xHigherPriorityTaskWoken 工作原理：</strong></p>
+            <p>1. 初始化为 <code>pdFALSE</code></p>
+            <p>2. 如果 <code>FromISR</code> 函数唤醒了更高优先级任务，会将其设为 <code>pdTRUE</code></p>
+            <p>3. <code>portYIELD_FROM_ISR(pdTRUE)</code> 会在ISR退出后立即触发上下文切换</p>
+            <p>4. <code>portYIELD_FROM_ISR(pdFALSE)</code> 不会切换，返回被中断的任务</p>
+        </div>
+        
+        <h3>8.3 中断安全规则</h3>
+        
+        <div class="warn">
+            <p><strong>⚠️ ISR中禁止的操作：</strong></p>
+            <p>• 不能调用不带 <code>FromISR</code> 的API</p>
+            <p>• 不能调用 <code>vTaskDelay()</code> 或任何阻塞函数</p>
+            <p>• 不能获取互斥量（<code>xSemaphoreTake</code>）</p>
+            <p>• ISR执行时间应尽可能短</p>
+        </div>
+        
+        <h3>8.4 中断优先级配置</h3>
+        
+        <p>FreeRTOS需要配置中断优先级，确保内核中断正确工作。</p>
+        
+        <p class="code-title">FreeRTOSConfig.h 配置</p>
+        <pre><code><span class="comment">// Cortex-M 中断优先级配置</span>
+<span class="comment">// 数值越大，优先级越低</span>
+
+<span class="comment">// 内核中断最低优先级（必须最低）</span>
+<span class="keyword">#define</span> configKERNEL_INTERRUPT_PRIORITY         <span class="number">255</span>
+
+<span class="comment">// 可调用FreeRTOS API的最高中断优先级</span>
+<span class="keyword">#define</span> configLIBRARY_MAX_SYSCALL_INTERRUPT_PRIORITY <span class="number">5</span>
+
+<span class="comment">// 实际使用的优先级值</span>
+<span class="keyword">#define</span> configMAX_SYSCALL_INTERRUPT_PRIORITY \
+    ( configLIBRARY_MAX_SYSCALL_INTERRUPT_PRIORITY << (<span class="number">8</span> - configPRIO_BITS) )</code></pre>
+        
+        <div class="card">
+            <h4>中断优先级分组规则</h4>
+            <ul>
+                <li><strong>优先级 ≥ configMAX_SYSCALL_INTERRUPT_PRIORITY：</strong>可以调用 <code>FromISR</code> 函数，但会被内核临界区屏蔽</li>
+                <li><strong>优先级 < configMAX_SYSCALL_INTERRUPT_PRIORITY：</strong>不能调用任何FreeRTOS API，但永远不会被内核屏蔽</li>
+                <li><strong>建议：</strong>将实时性要求极高的中断（如电机控制）设为最高优先级（数值最小），且不调用FreeRTOS API</li>
+            </ul>
+        </div>
+        
+        <!-- ==================== 第9章 内存管理 ==================== -->
+        <h2 id="section9">9. 内存管理</h2>
+        
+        <p>FreeRTOS提供多种内存管理方案，适应不同的应用场景。</p>
+        
+        <h3>9.1 heap_1 ~ heap_5 方案对比</h3>
+        
+        <table>
+            <tr>
+                <th>方案</th>
+                <th>特点</th>
+                <th>适用场景</th>
+            </tr>
+            <tr>
+                <td><code>heap_1</code></td>
+                <td>只分配不释放</td>
+                <td>任务创建后永不删除</td>
+            </tr>
+            <tr>
+                <td><code>heap_2</code></td>
+                <td>可分配释放，不合并碎片</td>
+                <td>固定大小块频繁分配释放（已过时）</td>
+            </tr>
+            <tr>
+                <td><code>heap_3</code></td>
+                <td>包装标准库malloc/free</td>
+                <td>需要使用系统堆（不推荐）</td>
+            </tr>
+            <tr>
+                <td><code>heap_4</code> <span class="tag green">推荐</span></td>
+                <td>可分配释放，自动合并碎片</td>
+                <td>通用场景，最常用</td>
+            </tr>
+            <tr>
+                <td><code>heap_5</code></td>
+                <td>支持多块不连续内存</td>
+                <td>内存分布在多个区域</td>
+            </tr>
+        </table>
+        
+        <h4>heap_4 详解（推荐使用）</h4>
+        <div class="card">
+            <p><strong>heap_4 特点：</strong></p>
+            <ul>
+                <li>内存分配使用"首次适应算法"</li>
+                <li>释放相邻块会自动合并，减少碎片</li>
+                <li>所有内存从 <code>configTOTAL_HEAP_SIZE</code> 定义的区域分配</li>
+            </ul>
+        </div>
+        
+        <h3>9.2 栈溢出检测</h3>
+        
+        <p>任务栈溢出是常见的错误来源，FreeRTOS提供检测机制。</p>
+        
+        <p class="code-title">启用栈溢出检测</p>
+        <pre><code><span class="comment">// 在 FreeRTOSConfig.h 中配置</span>
+
+<span class="comment">// 方法1：检查栈指针是否越界</span>
+<span class="keyword">#define</span> configCHECK_FOR_STACK_OVERFLOW <span class="number">1</span>
+
+<span class="comment">// 方法2：检查栈指针+栈末尾标记（更可靠）</span>
+<span class="keyword">#define</span> configCHECK_FOR_STACK_OVERFLOW <span class="number">2</span></code></pre>
+        
+        <p class="code-title">实现栈溢出钩子函数</p>
+        <pre><code><span class="keyword">void</span> <span class="function">vApplicationStackOverflowHook</span>(<span class="type">TaskHandle_t</span> xTask, <span class="keyword">char</span> *pcTaskName) {
+    <span class="comment">// 栈溢出时调用</span>
+    <span class="function">printf</span>(<span class="string">"Stack overflow in task: %s\n"</span>, pcTaskName);
+    
+    <span class="comment">// 可以在这里设置断点或重启</span>
+    <span class="keyword">while</span>(<span class="number">1</span>);  <span class="comment">// 挂起系统</span>
+}</code></pre>
+        
+        <div class="tip">
+            <p><strong>栈大小估算技巧：</strong></p>
+            <p>1. 初始设置较大的栈（如512字节）</p>
+            <p>2. 运行程序，调用 <code>uxTaskGetStackHighWaterMark()</code> 检查剩余</p>
+            <p>3. 根据实际使用量设置合理大小（预留50%余量）</p>
+        </div>
+        
+        <h3>9.3 运行时统计 vTaskGetRunTimeStats</h3>
+        
+        <p>FreeRTOS可以统计每个任务的CPU使用率和栈使用情况。</p>
+        
+        <p class="code-title">启用运行时统计</p>
+        <pre><code><span class="comment">// FreeRTOSConfig.h</span>
+<span class="keyword">#define</span> configGENERATE_RUN_TIME_STATS    <span class="number">1</span>
+<span class="keyword">#define</span> configUSE_STATS_FORMATTING_FUNCTIONS <span class="number">1</span>
+
+<span class="comment">// 需要提供一个高精度定时器用于计时</span>
+<span class="keyword">#define</span> portCONFIGURE_TIMER_FOR_RUN_TIME_STATS() <span class="function">SetupRuntimeTimer</span>()
+<span class="keyword">#define</span> portGET_RUN_TIME_COUNTER_VALUE() <span class="function">GetRuntimeCounter</span>()</code></pre>
+        
+        <p class="code-title">获取任务统计信息</p>
+        <pre><code><span class="keyword">void</span> <span class="function">vPrintTaskStats</span>(<span class="keyword">void</span>) {
+    <span class="keyword">char</span> buffer[<span class="number">512</span>];
+    
+    <span class="function">vTaskGetRunTimeStats</span>(buffer);
+    <span class="function">printf</span>(<span class="string">"Task Stats:\n%s\n"</span>, buffer);
+    
+    <span class="comment">// 输出示例：</span>
+    <span class="comment">// Task        Abs Time    % Time</span>
+    <span class="comment">// ----------------------------------------</span>
+    <span class="comment">// IDLE        12345       10%</span>
+    <span class="comment">// LedTask     23456       20%</span>
+    <span class="comment">// SensorTask  56789       45%</span>
+}</code></pre>
+        
+        <!-- ==================== 第10章 与HAL共存 ==================== -->
+        <h2 id="section10">10. 与HAL共存</h2>
+        
+        <p>STM32 HAL库与FreeRTOS配合使用时，需要注意一些关键配置。</p>
+        
+        <h3>10.1 SysTick_Handler 修改</h3>
+        
+        <p>FreeRTOS需要独占SysTick定时器，HAL的 <code>HAL_IncTick()</code> 必须在FreeRTOS钩子中调用。</p>
+        
+        <p class="code-title">修改 stm32xxx_it.c</p>
+        <pre><code><span class="comment">// 原始代码</span>
+<span class="keyword">void</span> <span class="function">SysTick_Handler</span>(<span class="keyword">void</span>) {
+    HAL_IncTick();
+}
+
+<span class="comment">// 使用FreeRTOS后，CubeMX会自动修改为：</span>
+<span class="keyword">void</span> <span class="function">SysTick_Handler</span>(<span class="keyword">void</span>) {
+    <span class="keyword">if</span> (xTaskGetSchedulerState() != taskSCHEDULER_NOT_STARTED) {
+        <span class="function">xPortSysTickHandler</span>();
+    }
+    HAL_IncTick();
+}</code></pre>
+        
+        <div class="note">
+            <p>CubeMX会自动处理这个修改，手动移植时需要注意。</p>
+        </div>
+        
+        <h3>10.2 HAL_Delay 替代方案</h3>
+        
+        <div class="warn">
+            <p><strong>⚠️ HAL_Delay 在FreeRTOS中的问题：</strong></p>
+            <p><code>HAL_Delay()</code> 使用轮询等待，会阻塞整个系统。在任务中应使用 <code>vTaskDelay()</code>。</p>
+        </div>
+        
+        <p class="code-title">替代方案</p>
+        <pre><code><span class="comment">// 方案1：任务中使用 vTaskDelay</span>
+<span class="keyword">void</span> <span class="function">vTaskDelay</span>(<span class="keyword">uint32_t</span> ms) {
+    <span class="function">vTaskDelay</span>(<span class="function">pdMS_TO_TICKS</span>(ms));
+}
+
+<span class="comment">// 方案2：封装兼容函数</span>
+<span class="keyword">void</span> <span class="function">Delay_ms</span>(<span class="keyword">uint32_t</span> ms) {
+    <span class="keyword">if</span> (<span class="function">xTaskGetSchedulerState</span>() == taskSCHEDULER_RUNNING) {
+        <span class="function">vTaskDelay</span>(<span class="function">pdMS_TO_TICKS</span>(ms));
+    } <span class="keyword">else</span> {
+        <span class="function">HAL_Delay</span>(ms);  <span class="comment">// 调度器未启动时使用HAL_Delay</span>
+    }
+}
+
+<span class="comment">// 方案3：中断中使用 HAL_Delay（不推荐，改用任务通知）</span>
+<span class="comment">// 中断中不应有延时操作！</span></code></pre>
+        
+        <h3>10.3 FreeRTOSConfig.h 关键配置项</h3>
+        
+        <table>
+            <tr>
+                <th>配置项</th>
+                <th>推荐值</th>
+                <th>说明</th>
+            </tr>
+            <tr>
+                <td><code>configTICK_RATE_HZ</code></td>
+                <td>1000</td>
+                <td>心跳频率，1000Hz = 1ms精度</td>
+            </tr>
+            <tr>
+                <td><code>configMAX_PRIORITIES</code></td>
+                <td>7</td>
+                <td>优先级数量，根据需要调整</td>
+            </tr>
+            <tr>
+                <td><code>configMINIMAL_STACK_SIZE</code></td>
+                <td>128</td>
+                <td>空闲任务栈大小（字）</td>
+            </tr>
+            <tr>
+                <td><code>configTOTAL_HEAP_SIZE</code></td>
+                <td>根据RAM</td>
+                <td>堆内存大小，留足余量</td>
+            </tr>
+            <tr>
+                <td><code>configUSE_MUTEXES</code></td>
+                <td>1</td>
+                <td>启用互斥量</td>
+            </tr>
+            <tr>
+                <td><code>configUSE_RECURSIVE_MUTEXES</code></td>
+                <td>1</td>
+                <td>启用递归互斥量</td>
+            </tr>
+            <tr>
+                <td><code>configUSE_COUNTING_SEMAPHORES</code></td>
+                <td>1</td>
+                <td>启用计数信号量</td>
+            </tr>
+            <tr>
+                <td><code>configUSE_TIMERS</code></td>
+                <td>1</td>
+                <td>启用软件定时器</td>
+            </tr>
+            <tr>
+                <td><code>configCHECK_FOR_STACK_OVERFLOW</code></td>
+                <td>2</td>
+                <td>栈溢出检测级别</td>
+            </tr>
+        </table>
+        
+        <!-- ==================== 第11章 调试技巧 ==================== -->
+        <h2 id="section11">11. 调试技巧</h2>
+        
+        <h3>11.1 任务列表查看</h3>
+        
+        <pre><code><span class="keyword">void</span> <span class="function">vPrintTaskList</span>(<span class="keyword">void</span>) {
+    <span class="keyword">char</span> buffer[<span class="number">500</span>];
+    <span class="function">vTaskList</span>(buffer);
+    <span class="function">printf</span>(<span class="string">"Name\t\tState\tPriority\tStack\tNum\n"</span>);
+    <span class="function">printf</span>(<span class="string">"%s\n"</span>, buffer);
+}
+
+<span class="comment">// 需要在 FreeRTOSConfig.h 中启用：</span>
+<span class="keyword">#define</span> configUSE_TRACE_FACILITY <span class="number">1</span>
+<span class="keyword">#define</span> configUSE_STATS_FORMATTING_FUNCTIONS <span class="number">1</span></code></pre>
+        
+        <h3>11.2 栈水位检查</h3>
+        
+        <pre><code><span class="comment">// 获取任务栈剩余空间（高水位）</span>
+<span class="type">UBaseType_t</span> <span class="function">uxTaskGetStackHighWaterMark</span>(<span class="type">TaskHandle_t</span> xTask);
+
+<span class="keyword">void</span> <span class="function">CheckStackUsage</span>(<span class="keyword">void</span>) {
+    <span class="type">TaskHandle_t</span> handle = <span class="function">xTaskGetHandle</span>(<span class="string">"LedTask"</span>);
+    <span class="type">UBaseType_t</span> remaining = <span class="function">uxTaskGetStackHighWaterMark</span>(handle);
+    <span class="function">printf</span>(<span class="string">"Stack remaining: %d words\n"</span>, remaining);
+}</code></pre>
+        
+        <h3>11.3 死锁排查</h3>
+        
+        <div class="card">
+            <h4>死锁常见原因</h4>
+            <ul>
+                <li>互斥量获取后忘记释放</li>
+                <li>多个互斥量获取顺序不一致</li>
+                <li>中断中尝试获取互斥量</li>
+                <li>优先级反转导致无限等待</li>
+            </ul>
+        </div>
+        
+        <div class="tip">
+            <p><strong>死锁排查方法：</strong></p>
+            <p>1. 在 <code>xSemaphoreTake()</code> 设置超时值而非无限等待</p>
+            <p>2. 超时后打印调试信息</p>
+            <p>3. 使用调试器查看任务状态</p>
+            <p>4. 检查所有互斥量获取/释放是否成对</p>
+        </div>
+        
+        <h3>11.4 定时器溢出检测</h3>
+        
+        <pre><code><span class="comment">// 在定时器回调中检查执行时间</span>
+<span class="keyword">void</span> <span class="function">vTimerCallback</span>(<span class="type">TimerHandle_t</span> xTimer) {
+    <span class="keyword">uint32_t</span> start = <span class="function">HAL_GetTick</span>();
+    
+    <span class="comment">// 定时器处理</span>
+    <span class="function">ProcessTimer</span>();
+    
+    <span class="keyword">uint32_t</span> elapsed = <span class="function">HAL_GetTick</span>() - start;
+    <span class="keyword">if</span> (elapsed > <span class="number">10</span>) {  <span class="comment">// 超过10ms警告</span>
+        <span class="function">printf</span>(<span class="string">"Warning: Timer callback took %lums\n"</span>, elapsed);
+    }
+}</code></pre>
+        
+        <!-- ==================== 第12章 速查表 ==================== -->
+        <h2 id="section12">12. 速查表</h2>
+        
+        <h3>任务相关 API</h3>
+        <table>
+            <tr><th>函数</th><th>功能</th></tr>
+            <tr><td><code>xTaskCreate()</code></td><td>创建任务</td></tr>
+            <tr><td><code>vTaskDelete()</code></td><td>删除任务</td></tr>
+            <tr><td><code>vTaskDelay()</code></td><td>延时（阻塞）</td></tr>
+            <tr><td><code>vTaskDelayUntil()</code></td><td>绝对延时（精确周期）</td></tr>
+            <tr><td><code>vTaskSuspend()</code></td><td>挂起任务</td></tr>
+            <tr><td><code>vTaskResume()</code></td><td>恢复任务</td></tr>
+            <tr><td><code>uxTaskPriorityGet()</code></td><td>获取任务优先级</td></tr>
+            <tr><td><code>vTaskPrioritySet()</code></td><td>设置任务优先级</td></tr>
+            <tr><td><code>uxTaskGetStackHighWaterMark()</code></td><td>获取栈剩余空间</td></tr>
+        </table>
+        
+        <h3>队列相关 API</h3>
+        <table>
+            <tr><th>函数</th><th>功能</th></tr>
+            <tr><td><code>xQueueCreate()</code></td><td>创建队列</td></tr>
+            <tr><td><code>xQueueSend()</code></td><td>发送数据到队列</td></tr>
+            <tr><td><code>xQueueReceive()</code></td><td>从队列接收数据</td></tr>
+            <tr><td><code>xQueueSendFromISR()</code></td><td>中断中发送</td></tr>
+            <tr><td><code>xQueueReceiveFromISR()</code></td><td>中断中接收</td></tr>
+            <tr><td><code>uxQueueMessagesWaiting()</code></td><td>获取队列中数据数量</td></tr>
+            <tr><td><code>vQueueDelete()</code></td><td>删除队列</td></tr>
+        </table>
+        
+        <h3>信号量/互斥量 API</h3>
+        <table>
+            <tr><th>函数</th><th>功能</th></tr>
+            <tr><td><code>xSemaphoreCreateBinary()</code></td><td>创建二值信号量</td></tr>
+            <tr><td><code>xSemaphoreCreateCounting()</code></td><td>创建计数信号量</td></tr>
+            <tr><td><code>xSemaphoreCreateMutex()</code></td><td>创建互斥量</td></tr>
+            <tr><td><code>xSemaphoreTake()</code></td><td>获取信号量/互斥量</td></tr>
+            <tr><td><code>xSemaphoreGive()</code></td><td>释放信号量/互斥量</td></tr>
+            <tr><td><code>xSemaphoreGiveFromISR()</code></td><td>中断中释放信号量</td></tr>
+        </table>
+        
+        <h3>软件定时器 API</h3>
+        <table>
+            <tr><th>函数</th><th>功能</th></tr>
+            <tr><td><code>xTimerCreate()</code></td><td>创建定时器</td></tr>
+            <tr><td><code>xTimerStart()</code></td><td>启动定时器</td></tr>
+            <tr><td><code>xTimerStop()</code></td><td>停止定时器</td></tr>
+            <tr><td><code>xTimerReset()</code></td><td>重置定时器</td></tr>
+            <tr><td><code>xTimerChangePeriod()</code></td><td>修改定时器周期</td></tr>
+            <tr><td><code>xTimerStartFromISR()</code></td><td>中断中启动</td></tr>
+        </table>
+        
+        <h3>常用宏定义</h3>
+        <table>
+            <tr><th>宏</th><th>功能</th></tr>
+            <tr><td><code>pdMS_TO_TICKS(ms)</code></td><td>毫秒转tick</td></tr>
+            <tr><td><code>portMAX_DELAY</code></td><td>无限等待</td></tr>
+            <tr><td><code>pdTRUE / pdFALSE</code></td><td>布尔值</td></tr>
+            <tr><td><code>pdPASS / pdFAIL</code></td><td>函数返回值</td></tr>
+            <tr><td><code>taskENTER_CRITICAL()</code></td><td>进入临界区</td></tr>
+            <tr><td><code>taskEXIT_CRITICAL()</code></td><td>退出临界区</td></tr>
+            <tr><td><code>portYIELD_FROM_ISR()</code></td><td>ISR中请求切换</td></tr>
+        </table>
+        
+        <div class="card" style="margin-top: 40px; border-color: var(--p);">
+            <h4 style="color: var(--p);">🎉 恭喜！</h4>
+            <p>你已经完成了 FreeRTOS 的系统学习。现在你已经掌握了：</p>
+            <ul>
+                <li>RTOS的核心概念和调度原理</li>
+                <li>任务的创建、管理和删除</li>
+                <li>队列、信号量、互斥量的使用</li>
+                <li>软件定时器和中断处理</li>
+                <li>内存管理和调试技巧</li>
+            </ul>
+            <p>下一步：动手实践！从简单的LED闪烁任务开始，逐步构建复杂的多任务系统。</p>
+        </div>
+    </div>
+    
+    <div class="breadcrumb">
+        <a href="#toc">📚 目录</a>
+        <span>|</span>
+        <a href="#section1">RTOS概念</a>
+        <span>→</span>
+        <a href="#section12">速查表</a>
+        <span>|</span>
+        <a href="../embedded-tools.html">← 返回嵌入式工具主教程</a>
+    </div>
+
+<hr><h2>❓ 常见问题 FAQ</h2>
+
+<div style="margin:12px 0;padding:12px 16px;background:var(--bg2);border-left:3px solid var(--a);border-radius:0 8px 8px 0">
+  <p style="font-weight:600;color:var(--c1);margin-bottom:4px">Q: FreeRTOS和裸机开发哪个好？</p>
+  <p style="color:var(--t)">A: 3个以上并发任务用RTOS更清晰。1~2个任务裸机+状态机更简单。不要为了用RTOS而用RTOS。</p>
+</div>
+
+<div style="margin:12px 0;padding:12px 16px;background:var(--bg2);border-left:3px solid var(--a);border-radius:0 8px 8px 0">
+  <p style="font-weight:600;color:var(--c1);margin-bottom:4px">Q: 任务栈大小怎么设？</p>
+  <p style="color:var(--t)">A: 初期设256或512字（word），用uxTaskGetStackHighWaterMark()查看实际用量，再减半+20%余量。</p>
+</div>
+
+<div style="margin:12px 0;padding:12px 16px;background:var(--bg2);border-left:3px solid var(--a);border-radius:0 8px 8px 0">
+  <p style="font-weight:600;color:var(--c1);margin-bottom:4px">Q: 优先级反转怎么办？</p>
+  <p style="color:var(--t)">A: 使用互斥量(Mutex)替代二值信号量，FreeRTOS的Mutex自带优先级继承机制。</p>
+</div>
+
+<div style="margin:12px 0;padding:12px 16px;background:var(--bg2);border-left:3px solid var(--a);border-radius:0 8px 8px 0">
+  <p style="font-weight:600;color:var(--c1);margin-bottom:4px">Q: vTaskDelay和vTaskDelayUntil区别？</p>
+  <p style="color:var(--t)">A: vTaskDelay是相对延时（从调用时刻起），vTaskDelayUntil是绝对周期（适合精确周期任务）。推荐用DelayUntil做采样循环。</p>
+</div>
+
+<hr><h2>🔗 相关教程</h2>
+<div style="display:flex;flex-wrap:wrap;gap:8px;margin:12px 0">
+<a href="#" onclick="parent.loadPage && parent.loadPage('stm32')" style="display:inline-block;padding:6px 14px;background:var(--bg3);border:1px solid var(--br);border-radius:6px;color:var(--a);text-decoration:none;font-size:.85em">STM32开发 →</a>
+<a href="#" onclick="parent.loadPage && parent.loadPage('proj-freertos-station')" style="display:inline-block;padding:6px 14px;background:var(--bg3);border:1px solid var(--br);border-radius:6px;color:var(--a);text-decoration:none;font-size:.85em">FreeRTOS站 →</a>
+<a href="#" onclick="parent.loadPage && parent.loadPage('proj-smart-car')" style="display:inline-block;padding:6px 14px;background:var(--bg3);border:1px solid var(--br);border-radius:6px;color:var(--a);text-decoration:none;font-size:.85em">智能小车 →</a>
+<a href="#" onclick="parent.loadPage && parent.loadPage('proj-low-power')" style="display:inline-block;padding:6px 14px;background:var(--bg3);border:1px solid var(--br);border-radius:6px;color:var(--a);text-decoration:none;font-size:.85em">低功耗 →</a>
+</div>
+
+</body>
+</html>

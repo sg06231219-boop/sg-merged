@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第4章：串口通信 — 单片机与电脑对话 - 嵌入式小白完全指南</title>
+<style>
+:root{--bg:#0d1117;--bg2:#161b22;--bg3:#21262d;--br:#30363d;--t:#c9d1d9;--t2:#8b949e;--a:#58a6ff;--g:#3fb950;--o:#d2991d;--r:#f85149;--p:#a371f7;--c1:#39c5cf}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--t);line-height:1.8;max-width:880px;margin:0 auto;padding:14px}
+h1{font-size:1.55em;text-align:center;padding:16px 0;background:linear-gradient(135deg,var(--a),var(--p));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+h2{font-size:1.15em;color:var(--a);margin:30px 0 10px;padding-bottom:6px;border-bottom:2px solid var(--br)}
+h3{font-size:1.02em;color:var(--g);margin:18px 0 7px}
+h4{font-size:.95em;color:var(--o);margin:12px 0 5px}
+pre{background:#1c2128;border:1px solid var(--br);border-radius:8px;padding:12px 14px;overflow-x:auto;margin:8px 0 12px;font-size:.82em;line-height:1.6;white-space:pre-wrap;word-break:break-all;position:relative}
+code{font-family:'SF Mono','Fira Code',monospace}
+pre code{color:#e6edf3}
+.note{background:rgba(210,153,29,.08);border:1px solid rgba(210,153,29,.3);border-radius:8px;padding:10px 14px;margin:10px 0;font-size:.83em;color:var(--o)}
+.warn{background:rgba(248,81,73,.08);border:1px solid rgba(248,81,73,.3);border-radius:8px;padding:10px 14px;margin:10px 0;font-size:.83em;color:var(--r)}
+.tip{background:rgba(63,185,80,.06);border:1px solid rgba(63,185,80,.25);border-radius:8px;padding:10px 14px;margin:10px 0;font-size:.83em;color:var(--g)}
+.example{background:rgba(88,166,255,.06);border:1px solid rgba(88,166,255,.25);border-radius:8px;padding:10px 14px;margin:8px 0;font-size:.82em;color:var(--a)}
+.example b{color:var(--g)}
+.trouble{background:rgba(163,113,247,.06);border:1px solid rgba(163,113,247,.3);border-radius:8px;padding:10px 14px;margin:8px 0;font-size:.82em;color:var(--p)}
+.trouble b{color:var(--p)}
+.card{background:var(--bg2);border:1px solid var(--br);border-radius:10px;margin:14px 0;overflow:hidden}
+.card>.h{padding:10px 14px;background:var(--bg3);display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.card>.h>.name{font-weight:700;font-size:.9em;color:var(--t);font-family:monospace}
+.card>.h>.tag{font-size:.65em;padding:2px 8px;border-radius:8px;white-space:nowrap;border:1px solid var(--br);color:var(--t2)}
+.card>.h>.tag.g{background:rgba(63,185,80,.15);border-color:var(--g);color:var(--g)}
+.card>.h>.tag.y{background:rgba(210,153,29,.15);border-color:var(--o);color:var(--o)}
+.card>.h>.tag.r{background:rgba(248,81,73,.15);border-color:var(--r);color:var(--r)}
+.card>.h>.tag.b{background:rgba(88,166,255,.15);border-color:var(--a);color:var(--a)}
+.card>.h>.tag.p{background:rgba(163,113,247,.15);border-color:var(--p);color:var(--p)}
+.card>.b{padding:10px 14px;font-size:.87em}
+.card>.b>.desc{font-size:.92em;color:var(--t2);margin-bottom:8px}
+table{width:100%;border-collapse:collapse;margin:10px 0;font-size:.81em;background:var(--bg2);border-radius:8px;overflow:hidden;border:1px solid var(--br)}
+td,th{padding:8px 12px;border-bottom:1px solid var(--br);text-align:left}
+th{background:var(--bg3);color:var(--a);font-weight:600}
+tr:last-child td{border-bottom:none}
+.step{background:var(--bg3);border-radius:6px;padding:8px 13px;margin:6px 0;font-size:.83em}
+.step b{color:var(--a)}
+.summary{background:linear-gradient(135deg,rgba(88,166,255,.1),rgba(163,113,247,.1));border:1px solid var(--br);border-radius:10px;padding:12px 16px;margin:18px 0;font-size:.88em;color:var(--t)}
+.summary b{color:var(--a)}
+.analogy{background:rgba(57,197,207,.07);border-left:3px solid var(--c1);padding:8px 13px;margin:8px 0;font-size:.82em;color:var(--c1);border-radius:0 6px 6px 0}
+.analogy b{color:var(--c1)}
+.chnav{display:flex;justify-content:space-between;margin:30px 0 10px;gap:12px;border-top:1px solid var(--br);padding-top:16px;flex-wrap:wrap}
+.chnav a{flex:1;text-align:center;padding:10px 14px;background:var(--bg2);border:1px solid var(--br);border-radius:8px;color:var(--a);text-decoration:none;font-size:.85em;transition:all .2s;min-width:120px;cursor:pointer}
+.chnav a:hover{background:var(--bg3);border-color:var(--a)}
+.chnav .toc-link{flex:0;min-width:80px;background:var(--bg3);color:var(--t2)}
+.chnav .toc-link:hover{color:var(--a)}
+.copy-btn{position:absolute;top:4px;right:4px;padding:3px 10px;background:var(--bg3);border:1px solid var(--br);border-radius:5px;color:var(--t2);font-size:.72em;cursor:pointer;opacity:0;transition:opacity .2s}
+pre:hover .copy-btn{opacity:1}
+.copy-btn:hover{background:var(--a);color:var(--bg)}
+.copy-btn.copied{background:var(--g);color:var(--bg);border-color:var(--g)}
+@media(max-width:480px){body{padding:10px}h1{font-size:1.3em}h2{font-size:1.05em}pre{font-size:.75em}}
+</style>
+</head>
+<body>
+
+<h1>第4章：串口通信 — 单片机与电脑对话</h1>
+<div class="summary"><b>📖 小白完全指南 · 4/14</b> | 阅读时间约3分钟</div>
+
+<p>串口(UART)是嵌入式开发<strong>最基础、最常用</strong>的通信方式。单片机的printf输出、调试信息、AT指令控制，全靠串口。可以说：不会串口，嵌入式寸步难行。</p>
+
+<div class="analogy">💡 <b>类比：</b>串口就像<strong>两个人用对讲机通话</strong>——波特率=说话速度（必须一致才能听懂），数据位=每个词的长度，停止位=说完了喘口气，校验位=确认对方听清了。速度不一样就全是乱码，就像一个人说中文、一个说英文。</div>
+
+<h3>串口参数</h3>
+
+<table>
+<tr><th>参数</th><th>常见值</th><th>说明</th></tr>
+<tr><td>波特率(Baud Rate)</td><td>9600 / 115200</td><td>通信速度，双方必须一致</td></tr>
+<tr><td>数据位(Data Bits)</td><td>8</td><td>每个字节的有效位数</td></tr>
+<tr><td>停止位(Stop Bits)</td><td>1</td><td>帧结束标志</td></tr>
+<tr><td>校验位(Parity)</td><td>None</td><td>简单错误检测，通常不用</td></tr>
+<tr><td>流控(Flow Control)</td><td>None</td><td>硬件/软件流控，通常不用</td></tr>
+</table>
+
+<p>日常最常用的配置：<strong>115200 8N1</strong>（115200波特率，8数据位，无校验，1停止位）</p>
+
+<h3>串口通信原理深入</h3>
+
+<p>UART（Universal Asynchronous Receiver/Transmitter）是一种<strong>异步串行</strong>通信协议。"异步"的意思是<strong>没有时钟线</strong>——收发双方靠约定的波特率来同步。这与I2C/SPI这类有时钟线的同步协议完全不同。</p>
+
+<div class="analogy">💡 <b>类比：</b>异步通信就像两个人在黑暗中用闪光灯交流——没有"开始"的视觉线索，全靠<strong>约定的节奏</strong>。如果一个人以每秒2次的速度闪，另一个人以每秒10次的速度看，那就像波特率不匹配（一方9600，一方115200），看到的全是乱码。</div>
+
+<h4>UART数据帧结构</h4>
+
+<p>一个完整的UART字节帧包含以下部分：</p>
+
+<table>
+<tr><th>组成部分</th><th>说明</th><th>位数</th></tr>
+<tr><td>起始位(Start Bit)</td><td>拉低1位时间，通知接收方"数据来了"</td><td>1 bit</td></tr>
+<tr><td>数据位(Data Bits)</td><td>实际数据，LSB在前（最低位先发）</td><td>5-9 bit（常用8）</td></tr>
+<tr><td>校验位(Parity Bit)</td><td>奇偶校验，用于检测传输错误</td><td>0-1 bit（通常不用）</td></tr>
+<tr><td>停止位(Stop Bits)</td><td>拉高，表示这一帧结束</td><td>1-2 bit（常用1）</td></tr>
+</table>
+
+<div class="tip">💡 <b>关键理解：</b>发送方和接收方的波特率误差必须 < 2%。如果一方是115200，另一方是9600，误差超过90%，收到的数据完全是乱码。这就是为什么串口通信的第一步永远是"对波特率"。</div>
+
+<h4>波特率与通信距离</h4>
+
+<table>
+<tr><th>波特率</th><th>最大理论距离</th><th>推荐距离</th><th>适用场景</th></tr>
+<tr><td>9600</td><td>~15m</td><td>≤10m</td><td>长距离、抗干扰要求高</td></tr>
+<tr><td>115200</td><td>~3m</td><td>≤1m</td><td>日常调试、开发板连接</td></tr>
+<tr><td>921600</td><td>~50cm</td><td>≤30cm</td><td>高速数据传输</td></tr>
+<tr><td>2000000+</td><td>~20cm</td><td>PCB板内</td><td>高速需求，需优质线缆</td></tr>
+</table>
+
+<div class="note">⚠️ <b>实际经验：</b>USB转TTL模块（CH340/CP2102）在115200下非常稳定，但921600以上可能掉数据——这和USB转串芯片质量、线缆质量、电脑USB口供电都有关。日常开发用115200最靠谱。</div>
+
+<div class="card">
+<div class="h"><span class="name">串口多字节数据帧设计</span><span class="tag b">进阶</span></div>
+<div class="b">
+<div class="desc">串口是字节流，没有"包"的概念。如果要发送多字节数据（如温度值=25.3，占4字节float），需要自己设计<strong>帧格式</strong>来分割每一帧。以下是几种常用方案：</div>
+<pre><code>// 方案1：固定帧头+长度+数据+校验（最推荐）
+// 帧格式：[0xAA 0x55] [长度N] [N字节数据] [CRC8校验]
+// 示例：发送温度25.3°C
+uint8_t frame[] = {
+    0xAA, 0x55,  // 帧头（两个字节，降低误判概率）
+    0x04,         // 数据长度=4字节（float）
+    0x00, 0x00, 0xCA, 0x41,  // 25.3的IEEE 754表示
+    0x00          // CRC8校验（此处简化）
+};
+
+// 方案2：固定帧头+固定长度（简单但浪费带宽）
+// 帧格式：[0xAA] [固定8字节数据包]
+// 优点：解析简单 缺点：不够灵活
+
+// 方案3：字符协议（人类可读，最常用）
+// 以换行符\\n为分隔，JSON格式
+// 如：{"temp":25.3,"hum":62.1}\\n
+// 方案4：Modbus-RTU（工业标准）
+// 帧格式：[地址][功能码][数据][CRC16]
+// 帧间间隔≥3.5字符时间作为帧分隔</code></pre>
+</div></div>
+
+<h3>Python串口高级用法</h3>
+
+<div class="card">
+<div class="h"><span class="name">串口接收：三种模式对比</span><span class="tag b">实用技巧</span></div>
+<div class="b">
+<div class="desc">Python pyserial提供了多种接收数据的方式，选择合适的方式对程序稳定性至关重要：</div>
+<pre><code>import serial
+ser = serial.Serial('COM3', 115200, timeout=0.1)
+
+# 方式1：readline() — 按行读取（最常用）
+# 适用：数据以\\n结尾的场景
+line = ser.readline().decode('utf-8').strip()
+print(f"行数据: {line}")
+
+# 方式2：read(size) — 读取指定字节数
+# 适用：固定长度数据包
+data = ser.read(8)  # 读8字节
+if len(data) == 8:
+    # 解析数据包
+    header, value = data[0], data[1:]
+    print(f"Header: {header:02X}, Value: {value.hex()}")
+
+# 方式3：in_waiting — 非阻塞读取所有可用数据
+# 适用：实时数据流
+if ser.in_waiting > 0:
+    data = ser.read(ser.in_waiting)
+    print(f"收到 {len(data)} 字节: {data.hex()}")
+
+# 方式4：iter() — 迭代器模式（适合持续读取）
+# 适用：持续监听串口数据
+for line in ser:
+    print(f"收到: {line.decode('utf-8').strip()}")
+    # Ctrl+C 退出循环</code></pre>
+</div></div>
+
+<div class="card">
+<div class="h"><span class="name">串口接收线程（生产级代码）</span><span class="tag p">进阶</span></div>
+<div class="b">
+<div class="desc">在实际项目中，串口接收通常放在独立线程中，避免阻塞主程序。以下是带<strong>帧解析</strong>和<strong>自动重连</strong>的完整示例：</div>
+<pre><code>import serial
+import threading
+import time
+import queue
+
+class SerialReader:
+    """串口读取器：线程化接收+帧解析+数据队列"""
+    def __init__(self, port, baud=115200):
+        self.ser = serial.Serial(port, baud, timeout=0.5)
+        self.data_queue = queue.Queue()
+        self.running = True
+        self.buffer = b''
+        # 启动接收线程
+        self.thread = threading.Thread(target=self._read_loop, daemon=True)
+        self.thread.start()
+
+    def _read_loop(self):
+        """接收线程：持续读取串口数据"""
+        while self.running:
+            try:
+                if self.ser.in_waiting:
+                    data = self.ser.read(self.ser.in_waiting)
+                    self.buffer += data
+                    # 按换行符分割帧
+                    while b'\\n' in self.buffer:
+                        line, self.buffer = self.buffer.split(b'\\n', 1)
+                        self.data_queue.put(line)
+            except serial.SerialException as e:
+                print(f"串口异常: {e}")
+                time.sleep(1)  # 等待重连
+            except Exception as e:
+                print(f"未知错误: {e}")
+                break
+
+    def get_data(self, timeout=1.0):
+        """从队列获取一帧数据（非阻塞）"""
+        try:
+            return self.data_queue.get(timeout=timeout)
+        except queue.Empty:
+            return None
+
+    def send(self, data):
+        """发送数据"""
+        if isinstance(data, str):
+            data = data.encode('utf-8')
+        self.ser.write(data)
+
+    def close(self):
+        self.running = False
+        self.ser.close()
+
+# 使用示例
+# reader = SerialReader('COM3')
+# while True:
+#     frame = reader.get_data()
+#     if frame:
+#         print(f"收到帧: {frame.decode('utf-8')}")</code></pre>
+</div></div>
+
+<div class="step"><b>先确定COM口：</b>插上USB转TTL后运行：</div>
+<pre><code># 列出所有串口（python命令根据你的环境选择）
+python -m serial.tools.list_ports
+# 如果python命令不存在，试试：python3.14 -m serial.tools.list_ports
+# 如果python命令不存在，试试：
+python3.14 -m serial.tools.list_ports
+# 输出：COM3 - USB-SERIAL CH340 (COM3)
+# 记住这个COM口号，下面所有串口操作都用它</code></pre>
+
+<h3>pyserial：Python串口工具</h3>
+
+<div class="card">
+<div class="h"><span class="name">pyserial</span><span class="tag g">Python串口库</span><span class="tag b">pip install pyserial</span></div>
+<div class="b">
+<div class="desc">Python串口库，命令行工具miniterm超级好用——比PuTTY更灵活，支持十六进制显示、时间戳、日志保存。</div>
+<pre><code># 列出所有串口
+python -m serial.tools.list_ports
+
+# 打开串口终端（最常用！）
+python -m serial.tools.miniterm COM3 115200
+# 如果python命令不存在，试试：python3.14 -m serial.tools.miniterm COM3 115200
+
+# miniterm快捷键
+# Ctrl+] 退出    Ctrl+T 菜单    Ctrl+T Ctrl+H 十六进制显示
+# Ctrl+T Ctrl+T 发送换行    Ctrl+T Ctrl+R 时间戳</code></pre>
+</div></div>
+
+<div class="card">
+<div class="h"><span class="name">Python串口编程</span><span class="tag b">脚本化串口通信</span></div>
+<div class="b">
+<pre><code>import serial
+import time
+
+# 打开串口
+ser = serial.Serial('COM3', 115200, timeout=1)
+
+# 发送数据
+ser.write(b'Hello STM32!\n')
+
+# 接收数据（按行读取）
+line = ser.readline().decode('utf-8').strip()
+print(f"Received: {line}")
+
+# 接收指定字节数
+data = ser.read(10)  # 读10字节
+print(f"Hex: {data.hex()}")
+
+# 关闭
+ser.close()</code></pre>
+</div></div>
+
+<h3>PuTTY串口配置</h3>
+
+<div class="step"><b>步骤1：</b>打开PuTTY → 选择"Serial"连接类型</div>
+<div class="step"><b>步骤2：</b>Serial line填 <code>COM3</code>，Speed填 <code>115200</code></div>
+<div class="step"><b>步骤3：</b>左侧菜单 → Connection → Serial → 确认 8 data bits, 1 stop bits, None parity</div>
+<div class="step"><b>步骤4：</b>点Open连接</div>
+
+<div class="tip">💡 <b>小技巧：</b>PuTTY的串口窗口看不到输入的字符？正常——STM32通常只发不收。如果想看到本地回显：Terminal → Features → 勾选"Local echo"。</div>
+
+<h3>USB转TTL驱动</h3>
+
+<table>
+<tr><th>芯片</th><th>驱动</th><th>识别方法</th></tr>
+<tr><td>CH340/CH341</td><td>www.wch.cn 下载CH340驱动</td><td>设备管理器→端口→"USB-SERIAL CH340"</td></tr>
+<tr><td>CP2102</td><td>silabs.com 下载CP210x驱动</td><td>"Silicon Labs CP210x"</td></tr>
+<tr><td>FT232</td><td>ftdichip.com 下载VCP驱动</td><td>"USB Serial Port"</td></tr>
+<tr><td>PL2303</td><td>Prolific官网</td><td>Win10自带驱动</td></tr>
+</table>
+
+<div class="card">
+<div class="h"><span class="name">串口DMA收发（STM32进阶）</span><span class="tag p">进阶</span></div>
+<div class="b">
+<div class="desc">轮询方式每收发一个字节都要占用CPU，大流量时CPU全忙在串口上。DMA（Direct Memory Access）可以在<strong>不占用CPU</strong>的情况下完成数据搬运，CPU只需在传输完成时处理一次中断：</div>
+<pre><code>// STM32 HAL库 DMA串口发送（不阻塞CPU）
+// 前提：CubeMX已启用USART1_TX的DMA通道
+// 特点：调用后立即返回，CPU可做其他事
+
+uint8_t tx_buf[256];
+
+// 发送数据（DMA自动完成，函数立即返回）
+sprintf((char*)tx_buf, "Temp: %.1f\\r\\n", temperature);
+HAL_UART_Transmit_DMA(&huart1, tx_buf, strlen((char*)tx_buf));
+// CPU不需要等待！可以立即执行其他代码
+
+// DMA发送完成回调
+void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart) {
+    if (huart->Instance == USART1) {
+        // 发送完成，可以准备下一次发送
+        tx_ready = 1;
+    }
+}
+
+// DMA循环接收（空闲中断：检测帧间隔）
+// 结合DMA+UART_IDLE中断，实现不定长数据接收
+uint8_t rx_dma_buf[256];
+
+// 初始化：启动DMA接收（在main初始化中调用一次）
+HAL_UART_Receive_DMA(&huart1, rx_dma_buf, sizeof(rx_dma_buf));
+
+// UART空闲中断回调（一帧接收完成）
+void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size) {
+    if (huart->Instance == USART1) {
+        // Size = 本帧实际接收的字节数
+        printf("收到 %d 字节: ", Size);
+        for (int i = 0; i < Size; i++) {
+            printf("%02X ", rx_dma_buf[i]);
+        }
+        printf("\\r\\n");
+        // 重新启动DMA接收（重要！否则下次收不到）
+        HAL_UART_Receive_DMA(&huart1, rx_dma_buf, sizeof(rx_dma_buf));
+    }
+}</code></pre>
+<div class="note">⚠️ <b>DMA注意事项：</b>DMA缓冲区必须是<strong>全局变量或静态变量</strong>（不能是栈上的局部变量）。DMA在后台异步工作，如果缓冲区被释放了，DMA会写入野指针导致HardFault。</div>
+</div></div>
+
+<h3>实战练习</h3>
+
+<div class="tip">💡 <b>练习1：串口回显（Echo）</b><br>
+目标：单片机收到什么就发回什么<br>
+要求：<br>
+① 用STM32实现串口接收中断，收到一个字节立即发回<br>
+② 用Python写测试脚本，发"Hello STM32!"，验证回显正确<br>
+③ 进阶：支持不定长数据，收到\\n才回显整行<br>
+提示：Python可以用 <code>ser.write(b'test\\n'); print(ser.readline())</code> 测试</div>
+
+<div class="tip">💡 <b>练习2：温度数据采集系统</b><br>
+目标：单片机每秒采集温度，通过串口发送给电脑，Python端解析并绘图<br>
+要求：<br>
+① STM32端：用ADC读取温度传感器，每秒通过串口发送"TEMP:25.3\\n"格式的数据<br>
+② Python端：用线程读取串口，解析温度值，用matplotlib实时绘图<br>
+③ 保存数据到CSV文件<br>
+④ 进阶：添加命令控制——Python发"START"开始采集，"STOP"停止<br>
+提示：Python端用 <code>ser.write(b'START\\n')</code> 发送命令</div>
+
+<div class="tip">💡 <b>练习3：串口协议分析器</b><br>
+目标：用Python写一个通用串口协议分析工具<br>
+要求：<br>
+① 命令行参数指定COM口、波特率<br>
+② 实时显示收到的数据（十六进制+ASCII对照）<br>
+③ 自动识别帧头0xAA 0x55，高亮显示完整帧<br>
+④ 统计每秒数据量和误码率<br>
+提示：参考miniterm的十六进制显示模式（Ctrl+T Ctrl+H）</div>
+
+<h3>RS-485：串口的工业增强版</h3>
+
+<div class="card">
+<div class="h"><span class="name">RS-232 vs RS-485 vs TTL</span><span class="tag b">进阶</span></div>
+<div class="b">
+<div class="desc">日常说的"串口"通常指TTL电平的UART。但在工业领域，RS-232和RS-485更为常见。它们使用相同的协议（UART），但<strong>电气特性不同</strong>：</div>
+<table>
+<tr><th>特性</th><th>TTL UART</th><th>RS-232</th><th>RS-485</th></tr>
+<tr><td>电平标准</td><td>0V/3.3V或5V</td><td>±3V~±15V</td><td>差分信号</td></tr>
+<tr><td>通信模式</td><td>全双工</td><td>全双工</td><td>半双工（两线）/全双工（四线）</td></tr>
+<tr><td>最大距离</td><td>~1m</td><td>~15m</td><td>~1200m</td></tr>
+<tr><td>节点数</td><td>1对1</td><td>1对1</td><td>最多256个节点</td></tr>
+<tr><td>抗干扰</td><td>弱</td><td>中</td><td>极强（差分信号）</td></tr>
+<tr><td>典型芯片</td><td>CH340/CP2102</td><td>MAX232</td><td>MAX485/SP3485</td></tr>
+<tr><td>成本</td><td>¥1-5</td><td>¥2-5</td><td>¥3-8</td></tr>
+</table>
+<div class="tip">💡 <b>实际应用：</b>Modbus-RTU协议底层通常走RS-485。如果你做工业控制、电表读取、PLC通信，迟早要用RS-485。硬件上只需在TTL串口后加一个MAX485芯片，软件协议不变。</div>
+</div></div>
+
+<div class="trouble">🔍 <b>常见问题：串口收到乱码</b><br>
+1. <b>波特率不匹配（最常见！）</b>——检查单片机代码和串口工具是否一致<br>
+2. <b>时钟配置错误</b>——STM32用HSE(8MHz)还是HSI(8MHz)？HSE没起振会导致波特率偏<br>
+3. <b>数据位/停止位/校验位不一致</b>——统一用8N1<br>
+4. <b>电平不匹配</b>——STM32是3.3V，Arduino UNO是5V，直接连可能烧IO！加电平转换<br>
+5. <b>GND没接！</b>——串口通信至少需要3根线：TX、RX、GND。很多人忘了接GND</div>
+
+<div class="trouble">🔍 <b>常见问题：设备管理器看不到COM口</b><br>
+1. 检查USB线是否插好（有的线只能充电不能传数据！）<br>
+2. 检查驱动是否安装（设备管理器里黄色感叹号=驱动未装）<br>
+3. CH340在Win10/11有时不需要额外驱动，直接识别<br>
+4. 查看COM口号：<code>python -m serial.tools.list_ports</code>（如果python命令不存在，试试python3.14）</div>
+
+<div class="example-block">
+<div class="ex-title">📝 完整示例：Python串口通信</div>
+<div class="ex-input">安装并检测串口：</div>
+<pre><code>pip install pyserial
+python -m serial.tools.list_ports
+# 如果python命令不存在，试试：python3.14 -m serial.tools.list_ports</code></pre>
+<div class="ex-output">输出结果：</div>
+<pre><code>COM3 - USB-SERIAL CH340 (COM3)
+1 port found</code></pre>
+<div class="ex-input">打开串口终端（STM32已运行，每秒发送温度数据）：</div>
+<pre><code>python -m serial.tools.miniterm COM3 115200
+# 如果python命令不存在：python3.14 -m serial.tools.miniterm COM3 115200</code></pre>
+<div class="ex-output">串口输出：</div>
+<pre><code>--- Miniterm on COM3  115200,8,N,1 ---
+--- Quit: Ctrl+] | Menu: Ctrl+T ---
+[1234] Temperature: 25.3 C
+[2234] Temperature: 25.5 C
+[3234] Temperature: 25.4 C
+^C--- exit ---</pre>
+</div>
+
+<div class="summary" style="margin-top:24px">
+<b>📚 第4章知识点回顾</b><br><br>
+<b>✅ 串口通信基础：</b><br>
+• UART = 通用异步收发器，<strong>异步</strong>意味着没有时钟线，靠波特率同步<br>
+• 最常用配置：<strong>115200 8N1</strong>（115200波特率/8数据位/无校验/1停止位）<br>
+• 数据帧结构：起始位→数据位(LSB先)→(可选)校验位→停止位<br>
+• 双方波特率误差必须 < 2%，否则全是乱码<br><br>
+<b>✅ 实用工具：</b><br>
+• <strong>pyserial</strong>：Python串口库，<code>miniterm</code> 是最常用的串口终端<br>
+• <strong>PuTTY</strong>：Windows通用串口工具，注意勾选Local echo才能看到输入<br>
+• <strong>USB转TTL芯片</strong>：CH340(最便宜)/CP2102(稳定)/FT232(最贵最稳)<br><br>
+<b>✅ 编程要点：</b><br>
+• Python：<code>serial.Serial()</code> 打开串口 → <code>readline()</code> 按行读 → <code>write()</code> 发送<br>
+• 生产级代码：接收放在<strong>独立线程</strong>中，用<strong>队列</strong>传递数据<br>
+• 多字节数据需要设计<strong>帧格式</strong>（帧头+长度+数据+校验）<br>
+• STM32进阶：用<strong>DMA+空闲中断</strong>实现零CPU开销的不定长接收<br><br>
+<b>✅ 工业应用：</b><br>
+• RS-485适用于长距离（1200m）/多节点（256个）工业场景<br>
+• Modbus-RTU协议底层通常走RS-485<br>
+• TTL与RS-232/485电平不兼容，需要电平转换芯片<br><br>
+<b>⚠️ 常见陷阱：</b><br>
+• 忘记接GND线（TX+RX+GND三根线缺一不可）<br>
+• 3.3V MCU直连5V设备，烧IO口<br>
+• 波特率不匹配（最最常见的问题）<br>
+• 时钟源配置错误导致波特率偏差<br>
+• 发送缓冲区溢出（发送太快，来不及发）
+</div>
+
+<!-- ====== 第5章 ====== -->
+<a id="ch5"></a>
+<div class="summary">📖 <b>第5章学完你能干啥：</b>会用OpenOCD/ST-Link烧录程序，会用GDB调试（断点/单步/查看变量），能配置VS Code Cortex-Debug。</div>
+
+<div class="chnav">
+<a onclick="window.parent.loadPage('guide-ch03')">← 第3章</a>
+<a class="toc-link" onclick="window.parent.loadPage('guide')">📑 目录</a>
+<a onclick="window.parent.loadPage('guide-ch05')">第5章 →</a>
+</div>
+
+<script>
+document.querySelectorAll('pre').forEach(pre => {
+  const btn = document.createElement('button');
+  btn.className = 'copy-btn';
+  btn.textContent = 'Copy';
+  btn.onclick = () => {
+    navigator.clipboard.writeText(pre.textContent).then(() => {
+      btn.textContent = 'Copied!';
+      btn.classList.add('copied');
+      setTimeout(() => { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 1500);
+    });
+  };
+  pre.appendChild(btn);
+});
+</script>
+<div class="chnav">
+  <a onclick="window.parent.loadPage('guide-ch03')">◀ 上一章：Makefile</a>
+  <a class="toc-link" onclick="window.parent.loadPage('guide')">📑 章节目录</a>
+  <a onclick="window.parent.loadPage('guide-ch05')">烧录调试 ：下一章 ▶</a>
+</div>
+</body>
+</html>

@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第5章：烧录与调试 - 嵌入式小白完全指南</title>
+<style>
+:root{--bg:#0d1117;--bg2:#161b22;--bg3:#21262d;--br:#30363d;--t:#c9d1d9;--t2:#8b949e;--a:#58a6ff;--g:#3fb950;--o:#d2991d;--r:#f85149;--p:#a371f7;--c1:#39c5cf}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--t);line-height:1.8;max-width:880px;margin:0 auto;padding:14px}
+h1{font-size:1.55em;text-align:center;padding:16px 0;background:linear-gradient(135deg,var(--a),var(--p));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+h2{font-size:1.15em;color:var(--a);margin:30px 0 10px;padding-bottom:6px;border-bottom:2px solid var(--br)}
+h3{font-size:1.02em;color:var(--g);margin:18px 0 7px}
+h4{font-size:.95em;color:var(--o);margin:12px 0 5px}
+pre{background:#1c2128;border:1px solid var(--br);border-radius:8px;padding:12px 14px;overflow-x:auto;margin:8px 0 12px;font-size:.82em;line-height:1.6;white-space:pre-wrap;word-break:break-all;position:relative}
+code{font-family:'SF Mono','Fira Code',monospace}
+pre code{color:#e6edf3}
+.note{background:rgba(210,153,29,.08);border:1px solid rgba(210,153,29,.3);border-radius:8px;padding:10px 14px;margin:10px 0;font-size:.83em;color:var(--o)}
+.warn{background:rgba(248,81,73,.08);border:1px solid rgba(248,81,73,.3);border-radius:8px;padding:10px 14px;margin:10px 0;font-size:.83em;color:var(--r)}
+.tip{background:rgba(63,185,80,.06);border:1px solid rgba(63,185,80,.25);border-radius:8px;padding:10px 14px;margin:10px 0;font-size:.83em;color:var(--g)}
+.example{background:rgba(88,166,255,.06);border:1px solid rgba(88,166,255,.25);border-radius:8px;padding:10px 14px;margin:8px 0;font-size:.82em;color:var(--a)}
+.example b{color:var(--g)}
+.trouble{background:rgba(163,113,247,.06);border:1px solid rgba(163,113,247,.3);border-radius:8px;padding:10px 14px;margin:8px 0;font-size:.82em;color:var(--p)}
+.trouble b{color:var(--p)}
+.card{background:var(--bg2);border:1px solid var(--br);border-radius:10px;margin:14px 0;overflow:hidden}
+.card>.h{padding:10px 14px;background:var(--bg3);display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.card>.h>.name{font-weight:700;font-size:.9em;color:var(--t);font-family:monospace}
+.card>.h>.tag{font-size:.65em;padding:2px 8px;border-radius:8px;white-space:nowrap;border:1px solid var(--br);color:var(--t2)}
+.card>.h>.tag.g{background:rgba(63,185,80,.15);border-color:var(--g);color:var(--g)}
+.card>.h>.tag.y{background:rgba(210,153,29,.15);border-color:var(--o);color:var(--o)}
+.card>.h>.tag.r{background:rgba(248,81,73,.15);border-color:var(--r);color:var(--r)}
+.card>.h>.tag.b{background:rgba(88,166,255,.15);border-color:var(--a);color:var(--a)}
+.card>.h>.tag.p{background:rgba(163,113,247,.15);border-color:var(--p);color:var(--p)}
+.card>.b{padding:10px 14px;font-size:.87em}
+.card>.b>.desc{font-size:.92em;color:var(--t2);margin-bottom:8px}
+table{width:100%;border-collapse:collapse;margin:10px 0;font-size:.81em;background:var(--bg2);border-radius:8px;overflow:hidden;border:1px solid var(--br)}
+td,th{padding:8px 12px;border-bottom:1px solid var(--br);text-align:left}
+th{background:var(--bg3);color:var(--a);font-weight:600}
+tr:last-child td{border-bottom:none}
+.step{background:var(--bg3);border-radius:6px;padding:8px 13px;margin:6px 0;font-size:.83em}
+.step b{color:var(--a)}
+.summary{background:linear-gradient(135deg,rgba(88,166,255,.1),rgba(163,113,247,.1));border:1px solid var(--br);border-radius:10px;padding:12px 16px;margin:18px 0;font-size:.88em;color:var(--t)}
+.summary b{color:var(--a)}
+.analogy{background:rgba(57,197,207,.07);border-left:3px solid var(--c1);padding:8px 13px;margin:8px 0;font-size:.82em;color:var(--c1);border-radius:0 6px 6px 0}
+.analogy b{color:var(--c1)}
+.chnav{display:flex;justify-content:space-between;margin:30px 0 10px;gap:12px;border-top:1px solid var(--br);padding-top:16px;flex-wrap:wrap}
+.chnav a{flex:1;text-align:center;padding:10px 14px;background:var(--bg2);border:1px solid var(--br);border-radius:8px;color:var(--a);text-decoration:none;font-size:.85em;transition:all .2s;min-width:120px;cursor:pointer}
+.chnav a:hover{background:var(--bg3);border-color:var(--a)}
+.chnav .toc-link{flex:0;min-width:80px;background:var(--bg3);color:var(--t2)}
+.chnav .toc-link:hover{color:var(--a)}
+.copy-btn{position:absolute;top:4px;right:4px;padding:3px 10px;background:var(--bg3);border:1px solid var(--br);border-radius:5px;color:var(--t2);font-size:.72em;cursor:pointer;opacity:0;transition:opacity .2s}
+pre:hover .copy-btn{opacity:1}
+.copy-btn:hover{background:var(--a);color:var(--bg)}
+.copy-btn.copied{background:var(--g);color:var(--bg);border-color:var(--g)}
+@media(max-width:480px){body{padding:10px}h1{font-size:1.3em}h2{font-size:1.05em}pre{font-size:.75em}}
+</style>
+</head>
+<body>
+
+<h1>第5章：烧录与调试</h1>
+<div class="summary"><b>📖 小白完全指南 · 5/14</b> | 阅读时间约3分钟</div>
+
+<p>编译生成.bin/.hex文件后，需要用<strong>烧录器</strong>把它写进单片机的Flash里。调试则是让程序在芯片里<strong>暂停、单步执行、查看变量</strong>，像"慢放"一样找Bug。</p>
+
+<div class="analogy">💡 <b>类比：</b>烧录=把程序<strong>刻到芯片的DNA里</strong>（写死在Flash中），调试=给程序<strong>做体检</strong>（停住→检查→继续→再检查）。</div>
+
+<h3>调试接口：JTAG vs SWD</h3>
+
+<p>ARM Cortex-M芯片支持两种调试接口。了解区别有助于选对调试器：</p>
+
+<table>
+<tr><th>特性</th><th>JTAG</th><th>SWD</th></tr>
+<tr><td>引脚数</td><td>5根（TMS/TCK/TDI/TDO/TRST）</td><td>2根（SWDIO/SWCLK）</td></tr>
+<tr><td>速度</td><td>中等</td><td>快（专用协议）</td></tr>
+<tr><td>占用引脚</td><td>多（5个GPIO）</td><td>少（2个GPIO）</td></tr>
+<tr><td>适用场景</td><td>老芯片/FPGA/多核</td><td>Cortex-M单片机（最常用）</td></tr>
+<tr><td>推荐</td><td>几乎不用</td><td>✅ 默认选择</td></tr>
+</table>
+
+<div class="tip">💡 <b>实际经验：</b>STM32最小系统板上的4针排针（3V3/GND/SWDIO/SWCLK）就是SWD接口。日常调试只需接这4根就够了——比JTAG省3根线，速度还更快。ST-Link/V2和DAP-Link都支持SWD。</div>
+
+<div class="card">
+<div class="h"><span class="name">调试器选购指南</span><span class="tag g">省钱建议</span></div>
+<div class="b">
+<div class="desc">市场上调试器琳琅满目，选对能省不少钱和麻烦：</div>
+<table>
+<tr><th>调试器</th><th>价格</th><th>支持芯片</th><th>速度</th><th>推荐度</th></tr>
+<tr><td>ST-Link/V2 仿</td><td>¥8-15</td><td>STM32全系列</td><td>4MHz SWD</td><td>⭐⭐⭐⭐⭐ 入门首选</td></tr>
+<tr><td>DAP-Link 仿</td><td>¥15-30</td><td>所有Cortex-M</td><td>10MHz SWD</td><td>⭐⭐⭐⭐ 更通用</td></tr>
+<tr><td>J-Link EDU</td><td>¥400+</td><td>所有ARM核</td><td>50MHz SWD</td><td>⭐⭐⭐ 专业首选</td></tr>
+<tr><td>J-Link OB</td><td>¥30-50</td><td>STM32/部分Cortex-M</td><td>4MHz SWD</td><td>⭐⭐⭐⭐ 好用但贵</td></tr>
+<tr><td>ST-Link/V3</td><td>¥80-120</td><td>STM32+STM8</td><td>24MHz SWD</td><td>⭐⭐⭐⭐ 官方推荐</td></tr>
+</table>
+<div class="note">⚠️ <b>注意：</b>¥8的仿ST-Link品质参差不齐。有些<strong>不能给目标板供电</strong>（需要额外给板子供电），有些SWD速度不稳定。买之前看评论，<strong>优先选有3.3V供电输出的</strong>。</div>
+</div></div>
+
+<h3>烧录方式对比</h3>
+
+<table>
+<tr><th>方式</th><th>工具</th><th>速度</th><th>调试支持</th><th>价格</th></tr>
+<tr><td>ST-Link</td><td>st-flash / st-util</td><td>快</td><td>✅ GDB</td><td>¥10(仿)</td></tr>
+<tr><td>J-Link</td><td>JLinkGDBServer</td><td>极快</td><td>✅ GDB+SWO</td><td>¥500+</td></tr>
+<tr><td>DAP-Link</td><td>OpenOCD</td><td>中</td><td>✅ GDB</td><td>¥20</td></tr>
+<tr><td>串口烧录</td><td>STM32 USART bootloader</td><td>慢</td><td>❌</td><td>¥0</td></tr>
+</table>
+
+<h3>OpenOCD 烧录</h3>
+
+<div class="warn">⚠️ <b>前提条件：</b>需要先安装OpenOCD。由于GitHub下载被墙，请尝试以下方式：<br>
+① 搜索"OpenOCD xpack 国内镜像"下载<br>
+② 从淘宝购买开发板卖家提供的资料包（通常包含OpenOCD）<br>
+③ 让有VPN的朋友帮忙下载<br>
+下载后解压到 <code>D:\EmbeddedTools\OpenOCD</code>，把bin目录加PATH即可。</div>
+
+<pre><code># 烧录命令
+openocd -f interface/stlink.cfg -f target/stm32f1x.cfg     -c "program build/blink.elf verify reset exit"
+
+# 只擦除
+openocd -f interface/stlink.cfg -f target/stm32f1x.cfg     -c "init; reset halt; flash erase_sector 0 0 last; reset run; shutdown"</code></pre>
+
+<h3>ST-Link 烧录（st-flash）</h3>
+
+<div class="warn">⚠️ <b>前提条件：</b>需要安装stlink工具。下载地址：<code>github.com/stlink-org/stlink/releases</code>（同GitHub，可能被墙）。替代方案：使用STM32CubeIDE自带的st-link驱动。</div>
+
+<pre><code># 安装stlink工具（需编译或下载预编译版）
+# github.com/stlink-org/stlink/releases
+# 下载后解压，把bin目录加PATH
+
+# 烧录BIN文件
+st-flash write blink.bin 0x08000000
+
+# 烧录HEX文件
+st-flash --format ihex write blink.hex
+
+# 擦除整片Flash
+st-flash erase
+
+# 读取Flash内容
+st-flash read flash_dump.bin 0x08000000 0x10000</code></pre>
+
+<h3>串口ISP烧录（零硬件成本！）</h3>
+
+<div class="tip">💡 <b>没有ST-Link？用USB转TTL也能烧！</b>STM32内置Bootloader支持串口下载，只需要CH340模块（¥5）。速度比ST-Link慢，但<strong>零额外成本</strong>。</div>
+
+<pre><code># 方式1：FlyMcu（最简单的Windows串口烧录工具）
+# 下载：www.flymcu.com（免费，中文界面）
+# 使用：
+# 1. BOOT0跳线接1（或按住BOOT0键上电）
+# 2. 打开FlyMcu → 选择COM口和hex文件
+# 3. 点击"开始编程"
+# 4. 烧录完成后BOOT0接回0，按复位键运行
+
+# 方式2：stm32flash（命令行工具）
+# 下载：github.com/ARMin stm32flash
+# 使用：
+stm32flash -w blink.hex -v -g 0x0 COM3
+# -w 写入  -v 校验  -g 0x0 写完从0地址运行  COM3 你的串口</code></pre>
+
+<div class="note">⚠️ <b>串口烧录要点：</b><br>
+• BOOT0必须接高电平(1)才能进入下载模式<br>
+• 烧录完成后BOOT0接回低电平(0)，按复位键才能运行程序<br>
+• 有些最小系统板有BOOT0跳线帽，方便切换<br>
+• 每次烧录都要切换BOOT0，不如ST-Link方便，但学习阶段完全够用</div>
+
+<h3>GDB调试</h3>
+
+<div class="note">⚠️ <b>说明：</b>GDB调试需要硬件调试器（ST-Link/DAP-Link/J-Link）。如果你暂时没有调试器，可以先跳过GDB部分，用printf调试（第11章详解）。下面提供两种调试方案：<strong>方案A用OpenOCD</strong>（免费开源，DAP-Link/ST-Link通用），<strong>方案B用st-util</strong>（ST-Link专用，更简单）。</div>
+
+<h4>方案A：OpenOCD + GDB（推荐，通用性更好）</h4>
+
+<pre><code># 终端1：启动OpenOCD作为GDB Server
+openocd -f interface/stlink.cfg -f target/stm32f1x.cfg
+# 看到 "Info : stm32f1x.cpu: hardware has 6 breakpoints" 就说明连接成功
+
+# 终端2：启动GDB客户端
+arm-none-eabi-gdb build/blink.elf
+
+# GDB常用命令（两方案通用）
+(gdb) target remote :3333         # 连接OpenOCD（注意端口3333）
+(gdb) monitor reset halt          # 复位并停住
+(gdb) load                         # 烧录程序到芯片
+(gdb) break main                   # 在main函数设断点
+(gdb) continue                     # 继续运行
+(gdb) step                         # 单步（进入函数）
+(gdb) next                         # 单步（跳过函数）
+(gdb) print variable               # 打印变量值
+(gdb) watch variable               # 监视变量变化
+(gdb) backtrace                    # 查看调用栈
+(gdb) info registers               # 查看CPU寄存器
+(gdb) x/10x 0x20000000            # 查看内存（16进制）
+(gdb) delete                       # 删除所有断点
+(gdb) quit                         # 退出</code></pre>
+
+<h4>方案B：st-util + GDB（ST-Link专用，简单）</h4>
+
+<div class="warn">⚠️ <b>前提：</b>需安装stlink工具：<code>github.com/stlink-org/stlink/releases</code>（GitHub可能被墙，替代：STM32CubeIDE自带st-link驱动）</div>
+
+<pre><code># 终端1：启动GDB Server
+st-util -p 4242
+
+# 终端2：启动GDB客户端
+arm-none-eabi-gdb build/blink.elf
+
+# GDB连接st-util
+(gdb) target remote localhost:4242
+(gdb) load
+(gdb) break main
+(gdb) continue
+# 其余命令与方案A相同</code></pre>
+
+<div class="tip">💡 <b>没有调试器怎么办？</b>用<strong>串口printf调试</strong>！第11章详细介绍了printf重定向方法，足够解决80%的问题。买ST-Link只需¥10，建议入门后尽快入手。</div>
+
+<h3>GDB高阶技巧</h3>
+
+<div class="card">
+<div class="h"><span class="name">断点类型详解</span><span class="tag p">进阶</span></div>
+<div class="b">
+<div class="desc">GDB支持多种断点类型，不同场景用不同断点能极大提高调试效率：</div>
+<pre><code># === 1. 普通断点（最基础）===
+(gdb) break main           # 在main函数入口
+(gdb) break main.c:42      # 在main.c的第42行
+(gdb) break HAL_UART_Transmit  # 在函数入口
+
+# === 2. 条件断点（只在条件满足时停下）===
+(gdb) break main.c:100 if count > 50
+(gdb) break blink.c:30 if error_code != 0
+# 示例：只在温度>40°C时停在read_temp函数
+(gdb) break read_temp if raw_value > 500
+
+# === 3. 临时断点（命中一次后自动删除）===
+(gdb) tbreak init_hardware
+# 适合"我只想看初始化跑一次"的场景
+
+# === 4. 硬件断点（不修改Flash内容）===
+(gdb) hbreak *(0x08000400)
+# 硬件断点不修改Flash，适合调试Flash中的代码
+# 注意：Cortex-M3只有6个硬件断点！
+
+# === 5. 观察点（变量值改变时停下）===
+(gdb) watch global_error_count
+(gdb) watch *0x20000100     # 监视内存地址
+(gdb) rwatch *0x20000100    # 读监视（地址被读时停下）
+(gdb) awatch *0x20000100    # 读写监视（读写都停下）
+# 示例：找出谁改了我的变量
+(gdb) watch sensor_data.raw_value
+# 任何修改sensor_data.raw_value的代码都会触发断点
+
+# === 6. 捕获点（捕获系统事件）===
+(gdb) catch fork     # 捕获fork调用
+(gdb) catch throw    # 捕获C++异常
+# 嵌入式GDB通常不支持catch（Linux应用调试才常用）</code></pre>
+<div class="note">⚠️ <b>硬件断点限制：</b>Cortex-M系列只有<strong>4-8个硬件断点</strong>（STM32F103是6个）。当你设置第7个断点时GDB会报错。解决方法：① 删掉不需要的断点 ② 用软件断点（改Flash，但Flash有擦写寿命限制）③ 混合使用硬件断点和观察点。</div>
+</div></div>
+
+<div class="card">
+<div class="h"><span class="name">GDB脚本化调试</span><span class="tag b">实用技巧</span></div>
+<div class="b">
+<div class="desc">把常用调试命令写入.gdbinit文件，每次调试自动执行，省去重复输入：</div>
+<pre><code># .gdbinit — 放在项目根目录，GDB启动时自动加载
+# VS Code Cortex-Debug默认禁用.gdbinit（安全原因），
+# 需要在launch.json中设置 "gdbInitCommands": []
+
+# 自动连接目标
+target remote localhost:3333
+
+# 自动烧录
+monitor reset halt
+load
+
+# 自动设置断点
+break main
+break HardFault_Handler
+break Error_Handler
+
+# 自动定义命令（快速查看关键变量）
+define show_system
+  printf "Tick: %lu\\n", xTaskGetTickCount()
+  printf "Stack: %d bytes free\\n", uxTaskGetStackHighWaterMark(NULL)
+  info registers pc lr sp
+end
+
+# 自动定义命令（快速查看外设寄存器）
+define show_gpio
+  x/4x 0x40011000  # GPIOC_CRL
+  x/4x 0x40011004  # GPIOC_CRH
+  x/4x 0x4001100C  # GPIOC_ODR
+end
+
+# 启动后自动continue
+define hookpost-run
+  continue
+end</code></pre>
+<div class="tip">💡 <b>小技巧：</b>在VS Code的Cortex-Debug中，可以在<code>launch.json</code>里用<code>"preLaunchCommands"</code>和<code>"postLaunchCommands"</code>替代.gdbinit，更安全且跨平台。</div>
+</div></div>
+
+<h3>实战练习</h3>
+
+<div class="tip">💡 <b>练习1：调试LED闪烁程序</b><br>
+目标：用GDB控制LED的亮灭<br>
+要求：<br>
+① 烧录LED闪烁程序后，用GDB连接并在main设断点<br>
+② 用<code>monitor reset halt</code>复位并停住<br>
+③ 查看GPIOC_ODR寄存器（<code>x/1x 0x4001100C</code>），记下初始值<br>
+④ 手动执行翻转LED的代码（<code>set *(uint32_t*)0x4001100C ^= (1<<13)</code>）<br>
+⑤ 观察LED是否变化，理解寄存器操作的本质</div>
+
+<div class="tip">💡 <b>练习2：用观察点找Bug</b><br>
+目标：有人不小心在中断里修改了全局变量，用观察点找到罪魁祸首<br>
+要求：<br>
+① 写一个程序，在TIM中断中意外修改了sensor_data<br>
+② 用<code>watch sensor_data</code>设置观察点<br>
+③ <code>continue</code>运行，观察GDB在哪停下<br>
+④ 用<code>backtrace</code>查看调用栈，找到修改者</div>
+
+<h3>Bootloader：让产品能远程升级</h3>
+
+<div class="card">
+<div class="h"><span class="name">Bootloader概念</span><span class="tag p">进阶</span></div>
+<div class="b">
+<div class="desc">Bootloader是芯片上电后第一个运行的程序，它决定是<strong>跳转到APP</strong>还是<strong>进入升级模式</strong>。有了Bootloader，产品出厂后可以通过串口/WiFi/蓝牙升级固件，不用拆机重烧：</div>
+<pre><code>// Bootloader的典型判断逻辑
+int main(void) {
+    HAL_Init();
+    SystemClock_Config();
+    
+    // 判断是否进入升级模式
+    if (check_upgrade_pin() || check_upgrade_flag()) {
+        // 升级模式：等待接收新固件
+        enter_upgrade_mode();  // 通过串口/YModem接收固件
+    } else {
+        // 正常模式：跳转到APP
+        jump_to_app(APP_START_ADDR);  // 如 0x08004000
+    }
+}
+
+// 跳转到APP的函数
+void jump_to_app(uint32_t app_addr) {
+    // 1. 检查栈顶地址是否合法（在RAM范围内）
+    uint32_t app_stack = *(uint32_t*)app_addr;
+    if ((app_stack & 0x2FFE0000) != 0x20000000) {
+        return;  // 栈地址不在SRAM区，APP无效
+    }
+    
+    // 2. 关闭所有中断
+    __disable_irq();
+    
+    // 3. 重新设置向量表
+    SCB->VTOR = app_addr;
+    
+    // 4. 设置栈指针并跳转（内联汇编）
+    __set_MSP(app_stack);
+    uint32_t app_entry = *(uint32_t*)(app_addr + 4);
+    void (*app_reset)(void) = (void(*)())app_entry;
+    app_reset();  // 永远不会返回
+}
+
+// APP端需要做的：
+// 1. 链接脚本中Flash起始地址改为APP_START_ADDR
+// 2. main开头痛设置VTOR: SCB->VTOR = APP_START_ADDR;
+// 3. 中断向量偏移也要相应调整</code></pre>
+<div class="note">⚠️ <b>关键概念：</b>Flash分区示例——<br>
+• 0x08000000 - 0x08003FFF：Bootloader区（16KB）<br>
+• 0x08004000 - 0x0800FFFF：APP区（48KB）<br>
+• 0x08010000 - 0x0801FFFF：OTA下载区/配置区<br>
+注意：APP的链接脚本必须把FLASH起始地址改为0x08004000，否则向量表偏移错误会导致所有中断失效。</div>
+</div></div>
+
+<h3>VS Code Cortex-Debug 配置</h3>
+
+<div class="note">⚠️ <b>前提：</b>① 已安装Cortex-Debug插件 ② 已安装OpenOCD或stlink工具 ③ ST-Link调试器已连接</div>
+
+<h4>方案A配置：OpenOCD（推荐，与GDB方案A配套）</h4>
+
+<pre><code>// .vscode/launch.json - OpenOCD方案
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Cortex Debug (OpenOCD)",
+            "cwd": "${workspaceFolder}",
+            "executable": "build/blink.elf",
+            "request": "launch",
+            "type": "cortex-debug",
+            "runToEntryPoint": "main",
+            "serverType": "openocd",
+            "serverArgs": ["-f", "interface/stlink.cfg", "-f", "target/stm32f1x.cfg"],
+            "device": "STM32F103C8",
+            "svdFile": "STM32F103.svd"
+        }
+    ]
+}</code></pre>
+
+<h4>方案B配置：st-util（与GDB方案B配套）</h4>
+
+<pre><code>// .vscode/launch.json - st-util方案
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Cortex Debug (st-util)",
+            "cwd": "${workspaceFolder}",
+            "executable": "build/blink.elf",
+            "request": "launch",
+            "type": "cortex-debug",
+            "runToEntryPoint": "main",
+            "serverType": "stutil",
+            "serverArgs": ["-p", "4242"],
+            "device": "STM32F103C8",
+            "svdFile": "STM32F103.svd"
+        }
+    ]
+}</code></pre>
+
+<div class="trouble">🔍 <b>常见问题：烧录失败合集</b><br>
+<b>1. "No ST-LINK detected" / "Cannot connect to target"</b><br>
+• 检查USB线——有些线只能充电不能传数据（换根线试试！）<br>
+• 检查SWD接线：SWDIO/SWCLK/GND至少3根<br>
+• 检查目标板是否已供电（仿ST-Link通常不给目标板供电！）<br>
+• Windows设备管理器里看ST-Link是否被识别（有黄色感叹号=驱动未装）<br>
+• 尝试拔插USB，更换USB口<br><b>2. "Flash download failed" / "Cannot program"</b><br>
+• 芯片是否被读保护了？用 <code>st-flash --read-unprotect</code> 或 <code>openocd -c "stm32f1x unlock 0"</code> 解锁<br>
+• Flash是否被写保护了？检查选项字节（Option Bytes）<br>
+• BOOT0引脚是否接错？（BOOT0=1会进入系统Bootloader，SWD无法连接）<br>
+<b>3. "Target voltage detection failed"</b><br>
+• 目标板没电！检查目标板的3.3V供电是否正常<br>
+• 如果用仿ST-Link，确保它输出3.3V给目标板（或单独供电）<br>
+<b>4. 烧录成功但程序不运行</b><br>
+• BOOT0是否已接回0？（串口ISP烧录后必须切回BOOT0=0）<br>
+• 按一下复位键试试<br>
+• 检查启动文件/链接脚本——向量表是否正确放置？<br>
+• 检查SystemInit()是否正确配置了时钟</div>
+
+<div class="summary" style="margin-top:24px">
+<b>📚 第5章知识点回顾</b><br><br>
+<b>✅ 烧录方式：</b><br>
+• <strong>ST-Link（推荐）</strong>：¥10仿制品即可，支持SWD烧录+GDB调试<br>
+• <strong>串口ISP（省钱）</strong>：用CH340就能烧，但需要切换BOOT0，不支持调试<br>
+• <strong>J-Link（专业）</strong>：速度快功能全，但¥400+，初学者不需要<br>
+• <strong>DAP-Link（通用）</strong>：开源方案，支持所有Cortex-M芯片<br><br>
+<b>✅ 调试接口：</b><br>
+• <strong>SWD</strong>（2线）是Cortex-M单片机的标准调试接口<br>
+• JTAG（5线）几乎不用，SWD更快更省引脚<br>
+• 标准SWD连接：3V3 + GND + SWDIO + SWCLK（4根线）<br><br>
+<b>✅ GDB调试核心技能：</b><br>
+• <strong>断点</strong>：break(普通)/tbreak(临时)/hbreak(硬件)/条件断点<br>
+• <strong>观察点</strong>：watch(写)/rwatch(读)/awatch(读写)，找出谁改了变量<br>
+• <strong>控制执行</strong>：continue(继续)/step(进入)/next(跳过)/finish(跳出)<br>
+• <strong>查看状态</strong>：print(变量)/info registers(寄存器)/backtrace(调用栈)/x(内存)<br>
+• <strong>脚本化</strong>：.gdbinit自动执行常用命令<br><br>
+<b>✅ Bootloader核心概念：</b><br>
+• Bootloader是芯片上电后第一个运行的程序<br>
+• 判断条件后决定：跳转APP 还是 进入升级模式<br>
+• APP需要重新设置VTOR（向量表偏移）<br>
+• 链接脚本中APP的Flash起始地址必须修改<br><br>
+<b>⚠️ 常见陷阱：</b><br>
+• 仿ST-Link不能给目标板供电——需要额外接3.3V<br>
+• 硬件断点只有6个，用完就不能加<br>
+• 烧录成功但不运行→检查BOOT0、按复位键<br>
+• USB线只能充电不能传数据→换根线！<br>
+• HAL_Delay在中断里调用且优先级>SysTick→死锁！
+</div>
+
+<!-- ====== 第6章 ====== -->
+<a id="ch6"></a>
+<div class="summary">📖 <b>第6章学完你能干啥：</b>会用STM32 HAL库操作GPIO/UART/TIM/ADC，理解中断优先级，能独立写STM32小程序。</div>
+
+<div class="chnav">
+<a onclick="window.parent.loadPage('guide-ch04')">← 第4章</a>
+<a class="toc-link" onclick="window.parent.loadPage('guide')">📑 目录</a>
+<a onclick="window.parent.loadPage('guide-ch06')">第6章 →</a>
+</div>
+
+<script>
+document.querySelectorAll('pre').forEach(pre => {
+  const btn = document.createElement('button');
+  btn.className = 'copy-btn';
+  btn.textContent = 'Copy';
+  btn.onclick = () => {
+    navigator.clipboard.writeText(pre.textContent).then(() => {
+      btn.textContent = 'Copied!';
+      btn.classList.add('copied');
+      setTimeout(() => { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 1500);
+    });
+  };
+  pre.appendChild(btn);
+});
+</script>
+<div class="chnav">
+  <a onclick="window.parent.loadPage('guide-ch04')">◀ 上一章：串口通信</a>
+  <a class="toc-link" onclick="window.parent.loadPage('guide')">📑 章节目录</a>
+  <a onclick="window.parent.loadPage('guide-ch06')">STM32 ：下一章 ▶</a>
+</div>
+</body>
+</html>

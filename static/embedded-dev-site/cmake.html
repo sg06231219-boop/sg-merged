@@ -1,0 +1,750 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CMake 构建系统 细致教程</title>
+<style>
+:root{--bg:#0d1117;--bg2:#161b22;--bg3:#21262d;--br:#30363d;--t:#c9d1d9;--t2:#8b949e;--a:#58a6ff;--g:#3fb950;--o:#d2991d;--r:#f85149;--p:#a371f7;--c1:#39c5cf}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--t);line-height:1.9;max-width:880px;margin:0 auto;padding:18px}
+h1{font-size:1.6em;text-align:center;padding:18px 0;background:linear-gradient(135deg,var(--a),var(--p));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:16px}
+h2{font-size:1.25em;color:var(--a);margin:32px 0 12px;padding-bottom:6px;border-bottom:1px solid var(--br)}
+h3{font-size:1.1em;color:var(--c1);margin:22px 0 8px}
+h4{font-size:1em;color:var(--o);margin:16px 0 6px}
+p{margin:8px 0}
+pre{background:var(--bg2);border:1px solid var(--br);border-radius:8px;padding:14px;margin:10px 0;overflow-x:auto;font-size:.88em;line-height:1.6;position:relative}
+code{font-family:'Cascadia Code','Fira Code',Consolas,monospace;font-size:.9em}
+:not(pre)>code{background:var(--bg3);padding:2px 6px;border-radius:4px;color:var(--c1)}
+table{width:100%;border-collapse:collapse;margin:12px 0;font-size:.9em}
+th{background:var(--bg3);color:var(--a);padding:8px 12px;text-align:left;border:1px solid var(--br)}
+td{padding:8px 12px;border:1px solid var(--br)}
+tr:nth-child(even){background:var(--bg2)}
+.note{background:rgba(88,166,255,.08);border-left:3px solid var(--a);padding:12px 16px;margin:12px 0;border-radius:0 8px 8px 0}
+.warn{background:rgba(248,81,73,.08);border-left:3px solid var(--r);padding:12px 16px;margin:12px 0;border-radius:0 8px 8px 0}
+.tip{background:rgba(63,185,80,.08);border-left:3px solid var(--g);padding:12px 16px;margin:12px 0;border-radius:0 8px 8px 0}
+.analogy{background:rgba(163,113,247,.08);border-left:3px solid var(--p);padding:12px 16px;margin:12px 0;border-radius:0 8px 8px 0}
+.step{background:var(--bg2);border:1px solid var(--br);border-radius:8px;padding:10px 14px;margin:8px 0}
+.card{background:var(--bg2);border:1px solid var(--br);border-radius:10px;margin:14px 0;overflow:hidden}
+.card .h{background:var(--bg3);padding:10px 14px;display:flex;align-items:center;gap:8px}
+.card .name{font-weight:600;flex:1}
+.card .b{padding:12px 14px}
+.tag{display:inline-block;padding:2px 8px;border-radius:12px;font-size:.75em;font-weight:600}
+.tag.g{background:rgba(63,185,80,.15);color:var(--g)}.tag.b{background:rgba(88,166,255,.15);color:var(--a)}
+.tag.o{background:rgba(210,153,29,.15);color:var(--o)}.tag.r{background:rgba(248,81,73,.15);color:var(--r)}.tag.y{background:rgba(210,153,29,.15);color:var(--o)}.tag.p{background:rgba(163,113,247,.15);color:var(--p)}
+.nav-top{position:fixed;top:0;left:50%;transform:translateX(-50%);background:var(--bg2);border:1px solid var(--br);border-top:none;border-radius:0 0 10px 10px;padding:6px 16px;z-index:999;font-size:.85em;display:flex;gap:12px;flex-wrap:wrap;justify-content:center}
+.nav-top a{color:var(--t2);text-decoration:none;padding:2px 8px;border-radius:4px;transition:all .2s}
+.nav-top a:hover{color:var(--a);background:var(--bg3)}
+.breadcrumb{color:var(--t2);font-size:.85em;margin-bottom:16px}
+.breadcrumb a{color:var(--a);text-decoration:none}
+.breadcrumb a:hover{text-decoration:underline}
+</style>
+</head>
+<body>
+
+<div class="nav-top">
+<a href="#install">安装</a><a href="#why">为什么用CMake</a><a href="#basic">最小项目</a><a href="#structure">项目结构</a><a href="#target">目标</a><a href="#flags">编译参数</a><a href="#multi">多文件</a><a href="#hal">HAL集成</a><a href="#debug">调试</a><a href="#troubleshoot">排错</a>
+</div>
+
+<div class="breadcrumb">📐 <a href="index.html">工具教程合集</a> / <strong>CMake 构建系统</strong></div>
+
+<h1>📦 CMake 构建系统 细致教程</h1>
+
+<p>CMake是一个<strong>跨平台构建系统生成器</strong>——你写CMakeLists.txt，它生成Makefile/Ninja文件，再编译你的项目。它是VS Code + STM32CubeMX的默认构建工具。</p>
+
+<div class="analogy">💡 <b>类比：</b>CMake就像装修公司的设计图——你描述"我要三室两厅、开放式厨房"，CMake生成具体的"先砌墙、再布水电、最后刷漆"的施工计划。Makefile就是那个按计划执行的人。</div>
+
+<!-- ==================== 安装 ==================== -->
+<h2 id="install">📦 安装 CMake <span class="tag g">🟢入门</span></h2>
+
+<pre><code># 方法1：winget（推荐）
+winget install Kitware.CMake
+
+# 方法2：下载安装包
+# cmake.org/download → Windows x64 Installer → cmake-*-windows-x86_64.msi
+
+# 验证
+cmake --version
+# CMake 4.3.3（或你安装的版本）</code></pre>
+
+<div class="tip">💡 <b>CMake只是生成器：</b>CMake本身不编译，它生成Makefile（或Ninja），再由make/ninja执行编译。Windows上CMake默认用Ninja生成器，比Make快30%。</div>
+
+<!-- ==================== 为什么用CMake ==================== -->
+<h2 id="why">🤔 为什么要用 CMake <span class="tag g">🟢入门</span></h2>
+
+<p>不用CMake也可以编译嵌入式项目（直接arm-none-eabi-gcc一条命令），但有以下问题：</p>
+<table>
+<tr><th>不用CMake</th><th>用CMake</th></tr>
+<tr><td>手动敲所有编译命令（几十个）</td><td>一条命令全部搞定</td></tr>
+<tr><td>改一个.c要重新敲命令</td><td>自动增量编译，只重编改过的</td></tr>
+<tr><td>换电脑/系统要从头配</td><td>CMakeLists.txt跨平台，拿到哪都能编译</td></tr>
+<tr><td>只能单线程编译</td><td>自动多核并行编译（-j$(nproc)）</td></tr>
+<tr><td>VS Code插件支持差</td><td>cmake-tools插件一键配置+编译+调试</td></tr>
+</table>
+
+<!-- ==================== 最小项目 ==================== -->
+<h2 id="basic">🚀 最小 CMake 项目（5步跑通）<span class="tag g">🟢入门</span></h2>
+
+<div class="step"><b>步骤1：</b>创建项目目录</div>
+<pre><code>mkdir blink && cd blink
+# 目录结构（最简）：
+# blink/
+# ├── CMakeLists.txt     ← 配置文件
+# └── src/
+#     └── main.c         ← 源代码</code></pre>
+
+<div class="step"><b>步骤2：</b>写 main.c</div>
+<pre><code>// src/main.c
+#include &lt;stdint.h&gt;
+
+#define RCC_BASE    0x40021000
+#define RCC_APB2ENR (*(volatile uint32_t *)(RCC_BASE + 0x18))
+#define GPIOA_BASE  0x40010800
+#define GPIOA_CRL   (*(volatile uint32_t *)(GPIOA_BASE + 0x00))
+#define GPIOA_ODR   (*(volatile uint32_t *)(GPIOA_BASE + 0x0C))
+
+int main(void) {
+    // 使能GPIOA时钟（RCC_APB2ENR第2位=1）
+    RCC_APB2ENR |= (1 << 2);
+
+    // 配置PA1为推挽输出（MODE1=11, CNF1=00）
+    GPIOA_CRL = (GPIOA_CRL & ~0xF0) | 0x30;
+
+    while (1) {
+        GPIOA_ODR ^= (1 << 1);  // 翻转PA1
+        for (volatile int i = 0; i < 800000; i++);  // 延时
+    }
+}</code></pre>
+
+<div class="step"><b>步骤3：</b>写 CMakeLists.txt（核心配置）</div>
+<pre><code># CMakeLists.txt
+cmake_minimum_required(VERSION 3.20)
+
+# 项目名（任意）
+project(blink C ASM)
+
+# 设置C标准
+set(CMAKE_C_STANDARD 99)
+set(CMAKE_C_STANDARD_REQUIRED ON)
+
+# ===== 工具链配置 =====
+set(CMAKE_SYSTEM_NAME Generic)
+set(CMAKE_SYSTEM_PROCESSOR ARM)
+
+# 交叉编译工具链路径
+set(TOOLCHAIN_PATH "C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1")
+set(CMAKE_C_COMPILER   "${TOOLCHAIN_PATH}/bin/arm-none-eabi-gcc.exe")
+set(CMAKE_ASM_COMPILER "${TOOLCHAIN_PATH}/bin/arm-none-eabi-gcc.exe")
+set(CMAKE_OBJCOPY      "${TOOLCHAIN_PATH}/bin/arm-none-eabi-objcopy.exe")
+set(CMAKE_SIZE         "${TOOLCHAIN_PATH}/bin/arm-none-eabi-size.exe")
+
+# ===== 编译参数 =====
+set(CPU_FLAGS "-mcpu=cortex-m3 -mthumb -mfpu=fpv4-sp-d16 -mfloat-abi=hard")
+
+add_compile_options(
+    ${CPU_FLAGS}
+    -Os -Wall -Wextra -ffunction-sections -fdata-sections
+    -fno-common -fno-strict-aliasing
+)
+
+add_link_options(
+    ${CPU_FLAGS}
+    -T"${CMAKE_SOURCE_DIR}/STM32F103C8.ld"
+    -Wl,--gc-sections
+    -Wl,-Map=${PROJECT_NAME}.map
+    --specs=nosys.specs
+    --specs=nano.specs
+)
+
+# ===== 源文件 =====
+# 查找所有.c文件
+aux_source_directory(src SRC_FILES)
+
+# 生成可执行文件
+add_executable(${PROJECT_NAME}.elf ${SRC_FILES})
+
+# 生成.bin
+add_custom_command(OUTPUT ${PROJECT_NAME}.bin
+    COMMAND ${CMAKE_OBJCOPY} -O binary ${PROJECT_NAME}.elf ${PROJECT_NAME}.bin
+    DEPENDS ${PROJECT_NAME}.elf
+    COMMENT "Generating binary file"
+)
+
+# 生成.hex
+add_custom_command(OUTPUT ${PROJECT_NAME}.hex
+    COMMAND ${CMAKE_OBJCOPY} -O ihex ${PROJECT_NAME}.elf ${PROJECT_NAME}.hex
+    DEPENDS ${PROJECT_NAME}.elf
+    COMMENT "Generating HEX file"
+)
+
+# 显示大小
+add_custom_command(TARGET ${PROJECT_NAME}.elf POST_BUILD
+    COMMAND ${CMAKE_SIZE} --format=sysv ${PROJECT_NAME}.elf
+)
+
+# 打印完整路径
+add_custom_command(TARGET ${PROJECT_NAME}.elf POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E echo "Output: ${PROJECT_BINARY_DIR}/${PROJECT_NAME}.bin"
+)</code></pre>
+
+<div class="step"><b>步骤4：</b>创建构建目录并编译</div>
+<pre><code># 必须！CMake不允许在源码目录构建
+mkdir build && cd build
+
+# Windows PowerShell（生成Ninja构建文件）
+cmake -G Ninja -DCMAKE_BUILD_TYPE=MinSizeRel ..
+
+# 或者用Unix Makefiles
+cmake -G "Unix Makefiles" -DCMAKE_BUILD_TYPE=MinSizeRel ..
+
+# 编译（-j4用4核并行）
+cmake --build . -j 4
+
+# 查看输出
+dir *.bin    # 应该看到 blink.bin（约几KB）
+dir *.elf    # 应该看到 blink.elf
+dir *.map    # 内存映射文件</code></pre>
+
+<div class="step"><b>步骤5：</b>烧录到芯片</div>
+<pre><code># OpenOCD烧录（如果装了OpenOCD）
+openocd -f interface/stlink.cfg -f target/stm32f1x.cfg \
+    -c "program build/blink.elf verify reset exit"
+
+# st-flash烧录（如果装了stlink工具）
+st-flash write build/blink.bin 0x08000000</code></pre>
+
+<!-- ==================== 项目结构 ==================== -->
+<h2 id="structure">🏗️ 标准项目结构 <span class="tag o">🟡进阶</span></h2>
+
+<p>实际项目比最小例子复杂，一般这样组织：</p>
+<pre><code>project/
+├── CMakeLists.txt              # 根CMakeLists（项目配置入口）
+├── STM32F103C8.ld              # 链接脚本
+├── cmake/
+│   └── toolchain-arm.cmake     # 工具链配置（可选单独文件）
+├── Core/                       # 核心代码（CubeMX生成）
+│   ├── Inc/
+│   │   ├── main.h
+│   │   ├── stm32f1xx_hal_conf.h
+│   │   └── stm32f1xx_it.h
+│   └── Src/
+│       ├── main.c
+│       ├── stm32f1xx_it.c
+│       └── system_stm32f1xx.c
+├── Drivers/                    # HAL库驱动
+│   ├── STM32F1xx_HAL_Driver/
+│   │   ├── Inc/
+│   │   │   ├── stm32f1xx_hal.h
+│   │   │   ├── stm32f1xx_hal_gpio.h
+│   │   │   ├── stm32f1xx_hal_uart.h
+│   │   │   └── ...（共30+个头文件）
+│   │   └── Src/
+│   │       ├── stm32f1xx_hal.c
+│   │       ├── stm32f1xx_hal_gpio.c
+│   │       └── ...
+│   └── CMSIS/
+│       ├── Include/
+│       │   ├── core_cm3.h
+│       │   └── system_stm32f1xx.h
+│       └── Device/
+│           └── ST/
+│               └── STM32F1xx/
+│                   ├── Include/
+│                   │   ├── stm32f103xb.h    ← 寄存器定义
+│                   │   └── stm32f1xx.h
+│                   └── Source/
+│                       └── system_stm32f1xx.c
+├── User/                       # 你的代码
+│   ├── Inc/
+│   │   └── dht11.h
+│   └── Src/
+│       └── dht11.c
+└── build/                      # 构建输出（不要提交到Git）</code></pre>
+
+<!-- ==================== 工具链文件 ==================== -->
+<h2 id="toolchain">🔧 工具链文件（可选最佳实践）<span class="tag o">🟡进阶</span></h2>
+
+<p>把工具链配置单独放到一个文件，CMakeLists.txt更整洁：</p>
+
+<div class="step"><b>步骤1：</b>创建 <code>cmake/toolchain-arm.cmake</code></div>
+<pre><code># cmake/toolchain-arm.cmake
+set(CMAKE_SYSTEM_NAME Generic)
+set(CMAKE_SYSTEM_PROCESSOR ARM)
+
+# 工具链路径（根据你的实际安装位置修改）
+set(TOOLCHAIN_DIR "C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1")
+set(CMAKE_FIND_ROOT_PATH "${TOOLCHAIN_DIR}")
+
+# 编译器
+set(CMAKE_C_COMPILER   "${TOOLCHAIN_DIR}/bin/arm-none-eabi-gcc.exe")
+set(CMAKE_CXX_COMPILER "${TOOLCHAIN_DIR}/bin/arm-none-eabi-g++.exe")
+set(CMAKE_ASM_COMPILER "${TOOLCHAIN_DIR}/bin/arm-none-eabi-gcc.exe")
+set(CMAKE_OBJCOPY      "${TOOLCHAIN_DIR}/bin/arm-none-eabi-objcopy.exe")
+set(CMAKE_SIZE         "${TOOLCHAIN_DIR}/bin/arm-none-eabi-size.exe")
+set(CMAKE_OBJDUMP      "${TOOLCHAIN_DIR}/bin/arm-none-eabi-objdump.exe")
+set(CMAKE_GDB          "${TOOLCHAIN_DIR}/bin/arm-none-eabi-gdb.exe")
+
+# 搜索模式（只在工具链目录找库/头文件）
+set(CMAKE_FIND_ROOT_PATH_MODE_PROGRAM NEVER)
+set(CMAKE_FIND_ROOT_PATH_MODE_LIBRARY ONLY)
+set(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE ONLY)
+
+# CPU参数
+set(MCPU "cortex-m3")</code></pre>
+
+<div class="step"><b>步骤2：</b>根目录 CMakeLists.txt 引用它</div>
+<pre><code># 在 project() 之前加载工具链文件
+include(cmake/toolchain-arm.cmake)
+
+project(blink C ASM)</code></pre>
+
+<div class="step"><b>步骤3：</b>构建时指定工具链</div>
+<pre><code>cd build
+cmake -G Ninja -DCMAKE_TOOLCHAIN_FILE=../cmake/toolchain-arm.cmake ..
+cmake --build .</code></pre>
+
+<!-- ==================== 目标 ==================== -->
+<h2 id="target">🎯 Target（目标）详解 <span class="tag o">🟡进阶</span></h2>
+
+<p>CMake的核心概念是Target（目标）。每个Target代表一个可构建的东西：可执行文件、库、或自定义命令。</p>
+
+<h3>add_executable — 可执行文件</h3>
+<pre><code># 最基本
+add_executable(myapp main.c utils.c)
+
+# 指定编译选项（只影响这个目标）
+add_executable(myapp main.c)
+target_compile_options(myapp PRIVATE -Wall -Wextra)
+
+# 添加include目录（只影响这个目标）
+target_include_directories(myapp PRIVATE inc/)
+
+# 链接库
+target_link_libraries(myapp PRIVATE m)  # 链接数学库</code></pre>
+
+<h3>add_library — 静态库/动态库</h3>
+<pre><code># 静态库（.a文件）
+add_library(hal STATIC
+    src/stm32f1xx_hal.c
+    src/stm32f1xx_hal_gpio.c
+    src/stm32f1xx_hal_uart.c
+    # ...
+)
+target_include_directories(hal PUBLIC inc/Drivers/STM32F1xx_HAL_Driver/Inc)
+
+# 可执行文件链接HAL库
+add_executable(myapp main.c)
+target_link_libraries(myapp PRIVATE hal)  # 自动携带hal的include目录</code></pre>
+
+<h3>target_include_directories 作用域</h3>
+<table>
+<tr><th>关键字</th><th>含义</th><th>示例</th></tr>
+<tr><td><code>PRIVATE</code></td><td>只影响当前目标</td><td>可执行文件用自己的include</td></tr>
+<tr><td><code>PUBLIC</code></td><td>影响当前目标+链接它的目标</td><td>HAL库+它的使用者</td></tr>
+<tr><td><code>INTERFACE</code></td><td>不影响当前，只传给使用者</td><td>头文件库（纯头文件的库）</td></tr>
+</table>
+
+<div class="note">⚠️ <b>规则：</b>实现文件(.c)的库用PUBLIC/PRIVATE；纯头文件的库用INTERFACE。</div>
+
+<!-- ==================== 编译参数 ==================== -->
+<h2 id="flags">⚙️ 编译参数配置详解 <span class="tag o">🟡进阶</span></h2>
+
+<h3>三种配置类型</h3>
+<pre><code># CMAKE_BUILD_TYPE 有三种：
+# Debug      = 无优化 -g3，调试最友好
+# RelWithDebInfo = 优化 -O2 + 调试信息
+# MinSizeRel = -Os，体积优先（嵌入式最常用）
+# Release    = -O3，速度优先
+
+# 设置方法
+cmake -G Ninja -DCMAKE_BUILD_TYPE=MinSizeRel ..
+
+# 或在CMakeLists.txt中
+set(CMAKE_BUILD_TYPE MinSizeRel CACHE STRING "" FORCE)</code></pre>
+
+<h3>为不同目标设置不同参数</h3>
+<pre><code># 所有目标共享的基础参数
+add_compile_options(-Wall -Wextra)
+
+# ARM特定参数（所有C/C++目标）
+if(CMAKE_SYSTEM_PROCESSOR MATCHES "ARM")
+    add_compile_options(-mthumb -mfloat-abi=hard)
+endif()
+
+# HAL库：不用-fomit-frame-pointer（ARM不适用）
+target_compile_options(hal PRIVATE -fno-omit-frame-pointer)
+
+# 用户代码：严格检查
+target_compile_options(user PRIVATE -Werror -pedantic)</code></pre>
+
+<h3>条件编译（嵌入式常用）</h3>
+<pre><code># 根据MCU型号定义宏
+if(MCPU STREQUAL "cortex-m3")
+    add_compile_definitions(STM32F103x8 USE_HAL_DRIVER)
+elseif(MCPU STREQUAL "cortex-m4")
+    add_compile_definitions(STM32F407xx USE_HAL_DRIVER)
+endif()
+
+# 在代码中：
+#ifdef STM32F103x8
+    // STM32F1专用代码
+#elif defined(STM32F407xx)
+    // STM32F4专用代码
+#endif</code></pre>
+
+<!-- ==================== 多文件 ==================== -->
+<h2 id="multi">📂 多文件项目管理 <span class="tag o">🟡进阶</span></h2>
+
+<h3>方式1：aux_source_directory（简单，自动找所有.c）</h3>
+<pre><code># 自动收集src/下所有.c文件
+aux_source_directory(src SRC_FILES)
+aux_source_directory(drivers DRV_FILES)
+add_executable(app ${SRC_FILES} ${DRV_FILES})</code></pre>
+
+<h3>方式2：GLOB（需要手动维护，但不漏文件）</h3>
+<pre><code># 只收集src/下所有.c（不递归子目录）
+file(GLOB APP_SOURCES "src/*.c")
+# 递归收集
+file(GLOB_RECURSE DRV_SOURCES "Drivers/**/*.c")
+add_executable(app ${APP_SOURCES} ${DRV_SOURCES})</code></pre>
+
+<h3>方式3：明确列出（最清晰，推荐）</h3>
+<pre><code># Core代码
+set(CORE_SOURCES
+    Core/Src/main.c
+    Core/Src/stm32f1xx_it.c
+    Core/Src/system_stm32f1xx.c
+)
+
+# HAL驱动（手动列出，防止垃圾文件混入）
+set(HAL_SOURCES
+    Drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_hal.c
+    Drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_hal_gpio.c
+    Drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_hal_uart.c
+    Drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_hal_rcc.c
+    # ... 其他需要的HAL驱动
+)
+
+# CMSIS
+set(CMSIS_SOURCES
+    Drivers/CMSIS/Device/ST/STM32F1xx/Source/system_stm32f1xx.c
+)
+
+add_executable(${PROJECT_NAME}.elf
+    ${CORE_SOURCES} ${HAL_SOURCES} ${CMSIS_SOURCES}
+)</code></pre>
+
+<!-- ==================== HAL集成 ==================== -->
+<h2 id="hal">🔌 STM32CubeMX + CMake 集成 <span class="tag r">🟠实战</span></h2>
+
+<p>CubeMX原生支持CMake，是最佳实践组合：</p>
+
+<div class="step"><b>步骤1：</b>CubeMX生成CMake项目</div>
+<div class="card">
+<div class="b">
+<div class="step"><b>Project Manager → Project：</b>Toolchain/IDE = CMake</div>
+<div class="step"><b>Project Manager → Advanced：</b>勾选 Generate peripheral initialization in separate files（推荐）</div>
+<div class="step"><b>点击右上角</b>：GENERATE CODE</div>
+</div></div>
+
+<p>CubeMX生成的CMake结构（不要改根CMakeLists.txt！）：</p>
+<pre><code>project/
+├── CMakeLists.txt              ← CubeMX生成，勿改
+├── STM32F103C8TX_FLASH.ld     ← CubeMX生成
+├── cmake/
+│   └── toolchain_arm_none_eabi_gcc.cmake  ← CubeMX工具链
+├── Core/
+│   ├── Inc/ & Src/            ← 你改这里
+│   └── Startup/              ← 启动文件
+├── Drivers/                   ← HAL+CMSIS
+├── build/                     ← 你建
+│   └── CMakeCache.txt         ← 构建缓存
+└── CMakeLists_user.txt        ← 可选：你自己的额外配置</code></pre>
+
+<div class="step"><b>步骤2：</b>添加你自己的代码</div>
+<pre><code># 在Core/Src/main.c中，找"USER CODE BEGIN"区域写代码
+# CubeMX重新生成时这些区域会被保留
+
+/* USER CODE BEGIN 0 */
+#include "dht11.h"
+/* USER CODE END 0 */
+
+/* USER CODE BEGIN PV */     ← 全局变量放这里
+uint8_t temp = 0;
+/* USER CODE END PV */
+
+/* USER CODE BEGIN 0 */
+void my_init(void) {
+    // 初始化代码
+}
+/* USER CODE END 0 */
+
+/* USER CODE BEGIN WHILE */
+while (1) {
+    /* USER CODE END WHILE */
+    my_init();
+    /* USER CODE BEGIN 3 */
+    HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_1);
+    HAL_Delay(500);
+    /* USER CODE END 3 */
+}
+/* USER CODE END WHILE */</code></pre>
+
+<div class="step"><b>步骤3：</b>构建</div>
+<pre><code>cd build
+cmake -G "Unix Makefiles" -DCMAKE_BUILD_TYPE=MinSizeRel ..
+cmake --build . -j 4</code></pre>
+
+<div class="warn">⚠️ <b>CubeMX重新生成代码后：</b>不要改Core/Inc和Drivers/目录的内容，这些会被CubeMX覆盖。你自己的代码只写在USER CODE区域内。</div>
+
+<!-- ==================== 调试 ==================== -->
+<h2 id="debug">🐛 VS Code CMake Tools 配置 <span class="tag r">🟠实战</span></h2>
+
+<pre><code># .vscode/settings.json
+{
+    "cmake.configureOnOpen": true,
+    "cmake.buildDirectory": "${workspaceFolder}/build",
+    "cmake.generator": "Ninja",
+    "cmake.configureSettings": {
+        "CMAKE_BUILD_TYPE": "MinSizeRel",
+        "CMAKE_TOOLCHAIN_FILE": "${workspaceFolder}/cmake/toolchain-arm.cmake"
+    },
+    "cmake.build.args": ["-j4"],
+    // Cortex-Debug
+    "cortex-debug.armToolchainPath": "C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin",
+    "cortex-debug.openocdPath": "C:/OpenOCD-2024.10/bin/openocd.exe"
+}</code></pre>
+
+<pre><code># .vscode/launch.json
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Cortex Debug",
+            "cwd": "${workspaceFolder}",
+            "executable": "build/${workspaceFolderBasename}.elf",
+            "request": "launch",
+            "type": "cortex-debug",
+            "serverType": "openocd",
+            "serverArgs": [
+                "-f", "interface/stlink.cfg",
+                "-f", "target/stm32f1x.cfg"
+            ],
+            "device": "STM32F103C8",
+            "searchDir": ["openocd/scripts"],
+            "svdFile": "${workspaceFolder}/Core/CMSIS/Device/ST/STM32F1xx/SVD/stm32f103.svd"
+        }
+    ]
+}</code></pre>
+
+<div class="tip">💡 <b>CMake Tools工作流：</b>① F7 = 配置（cmake --configure） ② Ctrl+Shift+B = 构建 ③ F5 = 调试。一键搞定！</div>
+
+<!-- ==================== 排错 ==================== -->
+<h2 id="troubleshoot">🔍 CMake 常见问题 <span class="tag o">🟡进阶</span></h2>
+
+<h2 id="cmake-new-2025">🆕 CMake 3.30+ 新特性（2025-2026）</h2>
+
+<div class="card">
+<div class="h"><span class="name">CMake 3.30+ 重要更新</span><span class="tag b">前沿</span></div>
+<div class="b">
+<table>
+<tr><th>版本</th><th>新特性</th><th>对嵌入式开发的影响</th></tr>
+<tr><td>3.30</td><td><code>CMAKE_C_COMPILER_FRONTEND_VARIANT</code> 变量</td><td>更好识别 ARM GCC / Clang 前端类型</td></tr>
+<tr><td>3.30</td><td><code>find_file()</code> 支持 <code>VALIDATOR</code> 关键字</td><td>链接脚本查找更可靠</td></tr>
+<tr><td>3.29</td><td><code>CMAKE_EXECUTE_PROCESS_COMMAND_ECHO</code></td><td>调试 CMake 外部命令执行更方便</td></tr>
+<tr><td>3.29</td><td><code>target_link_options()</code> 支持 <code>BEFORE</code></td><td>链接器参数顺序控制更精确</td></tr>
+<tr><td>3.28</td><td><code>CMAKE_C_COMPILER_ID</code> 支持 ARMClang</td><td>支持 ARM 官方 Clang 工具链</td></tr>
+</table>
+</div></div>
+
+<div class="note">📌 <b>升级建议：</b>CMake 3.20+ 是嵌入式开发的最低推荐版本，3.28+ 对 ARMClang 支持更好。如果配合 <a href="arm-gcc.html">ARM GCC 14.x</a>，建议 CMake ≥ 3.30 以获得最佳 LTO 支持。</div>
+
+<h2 id="real-case-cmake">🛠️ 实战案例：多目标构建（Debug/Release/Size）</h2>
+
+<p>实际项目中需要同时支持多种构建配置：调试用 Debug（带符号、无优化），发布用 Release（有优化），空间受限用 MinSize（最小体积）。</p>
+
+<pre><code># CMakeLists.txt - 多配置构建示例
+cmake_minimum_required(VERSION 3.20)
+project(multi-config-demo C ASM)
+
+# ===== 定义自定义构建类型 =====
+set(CMAKE_BUILD_TYPE "Debug" CACHE STRING "Build type")
+
+# 定义三种构建配置
+set(CMAKE_C_FLAGS_DEBUG "-Og -g -Wall -Wextra -DDEBUG")
+set(CMAKE_C_FLAGS_RELEASE "-O2 -DNDEBUG")
+set(CMAKE_C_FLAGS_MINSIZE "-Os -DNDEBUG -DMinSize")
+
+# ===== 工具链配置（同前）=====
+set(CMAKE_SYSTEM_NAME Generic)
+set(CMAKE_SYSTEM_PROCESSOR ARM)
+set(TOOLCHAIN_PATH "C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1")
+set(CMAKE_C_COMPILER "${TOOLCHAIN_PATH}/bin/arm-none-eabi-gcc.exe")
+
+# ===== 公共编译参数 =====
+set(COMMON_FLAGS "-mcpu=cortex-m4 -mthumb -mfpu=fpv4-sp-d16 -mfloat-abi=hard")
+add_compile_options(${COMMON_FLAGS} -ffunction-sections -fdata-sections)
+
+# ===== 源文件 =====
+file(GLOB SRC_FILES "src/*.c" "drivers/*.c")
+add_executable(${PROJECT_NAME}.elf ${SRC_FILES})
+
+# ===== 链接参数（按配置区分）=====
+target_link_options(${PROJECT_NAME}.elf PRIVATE
+    ${COMMON_FLAGS}
+    -T${CMAKE_SOURCE_DIR}/STM32F407.ld
+    -Wl,--gc-sections
+    -Wl,-Map=${PROJECT_NAME}.map
+    --specs=nosys.specs
+)
+
+# ===== 生成 .bin 和 .hex =====
+add_custom_command(TARGET ${PROJECT_NAME}.elf POST_BUILD
+    COMMAND ${CMAKE_OBJCOPY} -O binary ${PROJECT_NAME}.elf ${PROJECT_NAME}.bin
+    COMMAND ${CMAKE_OBJCOPY} -O ihex ${PROJECT_NAME}.elf ${PROJECT_NAME}.hex
+    COMMAND ${CMAKE_SIZE} ${PROJECT_NAME}.elf
+    COMMENT "Generating binary and hex files..."
+)
+
+# ===== 添加自定义目标：打印内存使用 =====
+add_custom_target(memory-usage
+    COMMAND ${CMAKE_SIZE} --format=berkeley ${PROJECT_NAME}.elf
+    DEPENDS ${PROJECT_NAME}.elf
+    COMMENT "Memory usage report:"
+)
+</code></pre>
+
+<pre><code># 使用方法：
+
+# Debug 构建（带调试符号，无优化）
+cmake -B build/debug -DCMAKE_BUILD_TYPE=Debug
+cmake --build build/debug
+
+# Release 构建（优化速度）
+cmake -B build/release -DCMAKE_BUILD_TYPE=Release
+cmake --build build/release
+
+# MinSize 构建（优化体积）
+cmake -B build/minsize -DCMAKE_BUILD_TYPE=MinSize
+cmake --build build/minsize
+
+# 查看内存使用
+cmake --build build/debug --target memory-usage
+</code></pre>
+
+<div class="tip">✅ <b>成果：</b>一套 CMakeLists.txt 支持三种构建模式，配合 <a href="flash-debug.html">GDB 调试教程</a> 使用 Debug 构建可实现完整源码级调试。Release 和 MinSize 构建适合量产烧录。</div>
+
+<h2 id="faq-cmake">❓ CMake 常见问题 FAQ</h2>
+
+<div class="card">
+<div class="h"><span class="name">CMake 常见问题</span><span class="tag o">FAQ</span></div>
+<div class="b">
+
+<h4>Q1：CMake 报错 "CMAKE_C_COMPILER not set" 怎么办？</h4>
+<p>这是因为 CMake 缓存了旧配置。解决方法：删除 <code>build/</code> 目录重新配置，或者在首次配置前就设置好工具链。最佳实践是将工具链配置写入独立文件 <code>arm-gcc.cmake</code>，然后用 <code>cmake -DCMAKE_TOOLCHAIN_FILE=arm-gcc.cmake ...</code> 指定。</p>
+
+<h4>Q2：如何为不同源文件设置不同的编译参数？</h4>
+<pre><code># 方式1：对特定文件设置参数
+set_source_files_properties(src/optimized.c PROPERTIES
+    COMPILE_FLAGS "-O2"   # 强制 -O2 优化
+)
+
+# 方式2：对特定 target 设置参数
+target_compile_options(my-app PRIVATE
+    $<$<CONFIG:Debug>:-Og -g>   # Debug 配置用 -Og
+    $<$<CONFIG:Release>:-O2>     # Release 配置用 -O2
+)
+</code></pre>
+
+<h4>Q3：file(GLOB ...) 有什么坑？为什么文件增删后不重新编译？</h4>
+<p><code>file(GLOB ...)</code> 在配置时（cmake 执行时）查找文件，如果之后新增了 <code>.c</code> 文件，CMake 不会自动感知，需要手动重新运行 cmake。生产项目推荐明确列出所有源文件，或者用 <code>add_subdirectory()</code> + 每个目录一个 <code>CMakeLists.txt</code>。</p>
+
+<h4>Q4：如何集成 STM32CubeMX 生成的代码？</h4>
+<p>CubeMX 生成代码在 <code>Core/</code> 和 <code>Drivers/</code> 目录。在 CMakeLists.txt 中用 <code>add_subdirectory(Drivers/STM32F1xx_HAL_Driver)</code> 添加 HAL 库，然后在主 CMakeLists.txt 中 <code>target_link_libraries(app HAL::STM32F1)</code> 链接。详见 <a href="stm32.html">STM32 开发教程</a>中的 CubeMX 配置部分。</p>
+
+<h4>Q5：CMake 和 Makefile 是什么关系？能不能只用 Makefile？</h4>
+<p>CMake 是 <b>构建系统生成器</b>，它生成 Makefile（或 Ninja 文件），然后由 make/ninja 执行编译。只用 Makefile 也可以（参见 <a href="makefile.html">Makefile 教程</a>），但 CMake 更适合跨平台和多配置管理。新手建议先学 Makefile 理解原理，再用 CMake 提高效率。</p>
+
+<h4>Q6：如何查看 CMake 执行了哪些编译命令？</h4>
+<pre><code># 方法1：verbose 模式（显示完整编译命令）
+cmake --build build/ -- VERBOSE=1
+
+# 方法2：CMAKE_EXPORT_COMPILE_COMMANDS=ON
+cmake -B build -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+# 会生成 compile_commands.json，供 VS Code / clangd 使用
+</code></pre>
+
+</div></div>
+
+<h3>问题1：CMakeCache.txt 缓存了旧配置</h3>
+<pre><code># 每次改CMakeLists.txt前，先清缓存
+Remove-Item -Recurse -Force build/
+
+# 或者单独删一个变量的缓存
+# 编辑 build/CMakeCache.txt，删掉对应行，再重新cmake</code></pre>
+
+<h3>问题2：编译器找不到（路径含空格/中文）</h3>
+<pre><code># 错误：No CMAKE_C_COMPILER could be found
+# 解决：路径用引号括起来，或者安装到无空格目录
+
+# cmake/toolchain-arm.cmake中：
+set(TOOLCHAIN_DIR "C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1")
+# PowerShell中构建：
+cmake -G Ninja "-DCMAKE_TOOLCHAIN_FILE=$PWD/cmake/toolchain-arm.cmake" ..</code></pre>
+
+<h3>问题3：重复定义（.c被编译了两次）</h3>
+<pre><code># 错误：ld: ... multiple definition of ...
+# 原因：同一个.c文件在两个target中被编译了
+# 解决：检查aux_source_directory是否扫到了不该编译的.c</code></pre>
+
+<h3>问题4：ninja.exe not found</h3>
+<pre><code># 解决：安装Ninja或改用Make
+cmake -G "Unix Makefiles" ..   # 用make代替ninja
+# 或安装Ninja后：
+winget install Ninja-build.Ninja</code></pre>
+
+<h3>问题5：链接脚本路径不对</h3>
+<pre><code># 错误：cannot open linker script file
+# 解决：用绝对路径或正确引用
+# ❌ 错：-TSTM32F103C8.ld         （相对路径，cmake构建时无效）
+# ✅ 对：-T"${CMAKE_SOURCE_DIR}/STM32F103C8.ld"
+# ✅ 对：-T"${CMAKE_CURRENT_SOURCE_DIR}/STM32F103C8.ld"</code></pre>
+
+<!-- ==================== 速查 ==================== -->
+<h2 id="cheatsheet">📋 CMake 速查表</h2>
+
+<table>
+<tr><th>操作</th><th>命令</th></tr>
+<tr><td>配置（生成Makefile）</td><td><code>cmake -G "Unix Makefiles" -DCMAKE_BUILD_TYPE=MinSizeRel ..</code></td></tr>
+<tr><td>配置（Ninja，更快）</td><td><code>cmake -G Ninja -DCMAKE_BUILD_TYPE=MinSizeRel ..</code></td></tr>
+<tr><td>配置（指定工具链）</td><td><code>cmake -DCMAKE_TOOLCHAIN_FILE=../cmake/toolchain-arm.cmake ..</code></td></tr>
+<tr><td>构建</td><td><code>cmake --build . -j 4</code></td></tr>
+<tr><td>清缓存重配</td><td><code>Remove-Item -Recurse build; mkdir build; cd build; cmake ..</code></td></tr>
+<tr><td>查看所有target</td><td><code>cmake --build . --target help</code></td></tr>
+<tr><td>只生成.bin</td><td><code>cmake --build . --target app.bin</code></td></tr>
+</table>
+
+<table>
+<tr><th>命令</th><th>作用</th></tr>
+<tr><td><code>cmake_minimum_required()</code></td><td>最低CMake版本要求</td></tr>
+<tr><td><code>project()</code></td><td>定义项目名和语言</td></tr>
+<tr><td><code>add_executable()</code></td><td>生成可执行目标</td></tr>
+<tr><td><code>add_library()</code></td><td>生成库（STATIC/SHARED/MODULE）</td></tr>
+<tr><td><code>add_subdirectory()</code></td><td>包含子目录的CMakeLists</td></tr>
+<tr><td><code>target_include_directories()</code></td><td>设置include搜索路径</td></tr>
+<tr><td><code>target_link_libraries()</code></td><td>链接库</td></tr>
+<tr><td><code>target_compile_options()</code></td><td>设置编译选项</td></tr>
+<tr><td><code>add_custom_command()</code></td><td>添加自定义构建步骤</td></tr>
+<tr><td><code>add_custom_target()</code></td><td>添加自定义构建目标</td></tr>
+<tr><td><code>aux_source_directory()</code></td><td>自动收集目录中的源文件</td></tr>
+<tr><td><code>file(GLOB)</code></td><td>用通配符收集文件</td></tr>
+<tr><td><code>option()</code></code></td><td>定义可配置选项</td></tr>
+<tr><td><code>set()</code></td><td>定义变量</td></tr>
+<tr><td><code>if/endif()</code></td><td>条件判断</td></tr>
+</table>
+
+<div class="tip">💡 <b>下一步：</b>CMake生成Makefile让make执行编译。学习<a href="tool-makefile.html">Makefile</a>理解底层构建逻辑，或者直接用<a href="tool-arm-gcc.html">ARM GCC</a>看编译器细节。</div>
+
+<div class="breadcrumb">📐 <a href="index.html">返回工具教程合集</a></div>
+
+</body></html>

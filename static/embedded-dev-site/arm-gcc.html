@@ -1,0 +1,691 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ARM GCC 编译工具链 细致教程</title>
+<style>
+:root{--bg:#0d1117;--bg2:#161b22;--bg3:#21262d;--br:#30363d;--t:#c9d1d9;--t2:#8b949e;--a:#58a6ff;--g:#3fb950;--o:#d2991d;--r:#f85149;--p:#a371f7;--c1:#39c5cf}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--t);line-height:1.9;max-width:880px;margin:0 auto;padding:18px}
+h1{font-size:1.6em;text-align:center;padding:18px 0;background:linear-gradient(135deg,var(--a),var(--p));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:16px}
+h2{font-size:1.25em;color:var(--a);margin:32px 0 12px;padding-bottom:6px;border-bottom:1px solid var(--br)}
+h3{font-size:1.1em;color:var(--c1);margin:22px 0 8px}
+h4{font-size:1em;color:var(--o);margin:16px 0 6px}
+p{margin:8px 0}
+pre{background:var(--bg2);border:1px solid var(--br);border-radius:8px;padding:14px;margin:10px 0;overflow-x:auto;font-size:.88em;line-height:1.6}
+code{font-family:'Cascadia Code','Fira Code',Consolas,monospace;font-size:.9em}
+:not(pre)>code{background:var(--bg3);padding:2px 6px;border-radius:4px;color:var(--c1)}
+table{width:100%;border-collapse:collapse;margin:12px 0;font-size:.9em}
+th{background:var(--bg3);color:var(--a);padding:8px 12px;text-align:left;border:1px solid var(--br)}
+td{padding:8px 12px;border:1px solid var(--br)}
+tr:nth-child(even){background:var(--bg2)}
+.note{background:rgba(88,166,255,.08);border-left:3px solid var(--a);padding:12px 16px;margin:12px 0;border-radius:0 8px 8px 0}
+.warn{background:rgba(248,81,73,.08);border-left:3px solid var(--r);padding:12px 16px;margin:12px 0;border-radius:0 8px 8px 0}
+.tip{background:rgba(63,185,80,.08);border-left:3px solid var(--g);padding:12px 16px;margin:12px 0;border-radius:0 8px 8px 0}
+.analogy{background:rgba(163,113,247,.08);border-left:3px solid var(--p);padding:12px 16px;margin:12px 0;border-radius:0 8px 8px 0}
+.step{background:var(--bg2);border:1px solid var(--br);border-radius:8px;padding:10px 14px;margin:8px 0}
+.card{background:var(--bg2);border:1px solid var(--br);border-radius:10px;margin:14px 0;overflow:hidden}
+.card .h{background:var(--bg3);padding:10px 14px;display:flex;align-items:center;gap:8px}
+.card .name{font-weight:600;flex:1}
+.card .b{padding:12px 14px}
+.tag{display:inline-block;padding:2px 8px;border-radius:12px;font-size:.75em;font-weight:600}
+.tag.g{background:rgba(63,185,80,.15);color:var(--g)}.tag.b{background:rgba(88,166,255,.15);color:var(--a)}
+.tag.o{background:rgba(210,153,29,.15);color:var(--o)}.tag.r{background:rgba(248,81,73,.15);color:var(--r)}
+.tag.y{background:rgba(210,153,29,.15);color:var(--o)}
+.btn-copy{position:absolute;top:6px;right:6px;background:var(--bg3);border:1px solid var(--br);color:var(--t2);padding:2px 10px;border-radius:4px;cursor:pointer;font-size:.78em}
+.btn-copy:hover{background:var(--a);color:#fff}
+pre{position:relative}
+.nav-top{position:fixed;top:0;left:50%;transform:translateX(-50%);background:var(--bg2);border:1px solid var(--br);border-top:none;border-radius:0 0 10px 10px;padding:6px 16px;z-index:999;font-size:.85em;display:flex;gap:12px;flex-wrap:wrap;justify-content:center}
+.nav-top a{color:var(--t2);text-decoration:none;padding:2px 8px;border-radius:4px;transition:all .2s}
+.nav-top a:hover{color:var(--a);background:var(--bg3)}
+.breadcrumb{color:var(--t2);font-size:.85em;margin-bottom:16px}
+.breadcrumb a{color:var(--a);text-decoration:none}
+.breadcrumb a:hover{text-decoration:underline}
+</style>
+</head>
+<body>
+
+<div class="nav-top">
+<a href="#install">安装</a><a href="#verify">验证</a><a href="#commands">命令详解</a><a href="#compile">编译流程</a><a href="#flags">编译参数</a><a href="#linker">链接脚本</a><a href="#startup">启动文件</a><a href="#troubleshoot">排错</a><a href="#cheatsheet">速查表</a>
+</div>
+
+<div class="breadcrumb">📐 <a href="index.html">工具教程合集</a> / <strong>ARM GCC 工具链</strong></div>
+
+<h1>🔧 ARM GCC 编译工具链 细致教程</h1>
+
+<p>ARM GCC 是嵌入式开发的<strong>核心编译工具</strong>，把C代码变成STM32/ESP32能运行的机器码。本教程从安装到精通，一步步带你搞懂。</p>
+
+<div class="analogy">💡 <b>类比：</b>ARM GCC就像一个翻译官——你写C语言（人类能读的），它翻译成机器码（MCU能执行的）。没有它，你写的代码就是纯文本，芯片看不懂。</div>
+
+<!-- ==================== 安装 ==================== -->
+<h2 id="install">📦 安装 ARM GCC</h2>
+
+<h3>方法1：winget安装（推荐，最快）</h3>
+<pre><code>winget install ARM.GCC</code></pre>
+
+<h3>方法2：手动下载</h3>
+<div class="step"><b>步骤1：</b>访问 <code>developer.arm.com/tools-and-software/open-source-software/developer-tools/gnu-toolchain</code></div>
+<div class="step"><b>步骤2：</b>下载 <code>arm-gnu-toolchain-14.2.rel1-mingw-w64-i686-arm-none-eabi.exe</code>（Windows x86安装器）</div>
+<div class="step"><b>步骤3：</b>运行安装器，记住安装路径（默认 <code>C:\Program Files (x86)\Arm GNU Toolchain arm-none-eabi\14.2 rel1</code>）</div>
+<div class="step"><b>步骤4：</b>勾选"Add to PATH"</div>
+
+<div class="warn">⚠️ <b>网络问题：</b>ARM官网下载可能很慢或被墙。winget方式通常更快。如果都下不了，可以找国内镜像或同学帮忙传安装包（约200MB）。</div>
+
+<h3>方法3：便携版（免安装）</h3>
+<pre><code># 下载zip版，解压到 D:\EmbeddedTools\arm-gcc\
+# 手动添加到PATH：
+# PowerShell（管理员）：
+[Environment]::SetEnvironmentVariable(
+    "Path",
+    [Environment]::GetEnvironmentVariable("Path", "User") + ";D:\EmbeddedTools\arm-gcc\bin",
+    "User"
+)
+# 重启Powerhell后生效</code></pre>
+
+<!-- ==================== 验证 ==================== -->
+<h2 id="verify">✅ 验证安装</h2>
+
+<pre><code># 检查版本（能输出版本号就说明安装成功）
+arm-none-eabi-gcc --version
+# 预期输出类似：
+# arm-none-eabi-gcc (Arm GNU Toolchain 14.2.Rel1 (Build arm-14-5679)) 14.2.0
+
+# 检查所有工具是否可用
+arm-none-eabi-gcc -v        # 编译器
+arm-none-eabi-gdb -v        # 调试器
+arm-none-eabi-objdump -V    # 反汇编工具
+arm-none-eabi-size --version # 段大小查看
+arm-none-eabi-objcopy -V    # 格式转换</code></pre>
+
+<div class="note">⚠️ <b>命令找不到？</b>重启终端/PowerShell。如果还不行，检查PATH是否包含arm-none-eabi-gcc.exe所在目录：<code>$env:Path -split ';' | Select-String 'arm'</code></div>
+
+<!-- ==================== 命令详解 ==================== -->
+<h2 id="commands">🔧 工具链命令详解</h2>
+
+<p>ARM GCC不只是gcc一个命令，它是一套工具。以下是每个命令的用途：</p>
+
+<table>
+<tr><th>命令</th><th>用途</th><th>常用场景</th></tr>
+<tr><td><code>arm-none-eabi-gcc</code></td><td>C/C++编译器</td><td>编译.c文件 → .o目标文件</td></tr>
+<tr><td><code>arm-none-eabi-g++</code></td><td>C++编译器</td><td>编译.cpp文件</td></tr>
+<tr><td><code>arm-none-eabi-as</code></td><td>汇编器</td><td>编译.s/.S汇编文件</td></tr>
+<tr><td><code>arm-none-eabi-ld</code></td><td>链接器</td><td>把.o文件链接成.elf（通常通过gcc调用）</td></tr>
+<tr><td><code>arm-none-eabi-objcopy</code></td><td>格式转换</td><td>.elf → .bin / .hex</td></tr>
+<tr><td><code>arm-none-eabi-objdump</code></td><td>反汇编/查看</td><td>查看.elf的反汇编代码、段信息</td></tr>
+<tr><td><code>arm-none-eabi-size</code></td><td>段大小统计</td><td>查看Flash/RAM占用</td></tr>
+<tr><td><code>arm-none-eabi-nm</code></td><td>符号表查看</td><td>查看函数/变量的地址映射</td></tr>
+<tr><td><code>arm-none-eabi-readelf</code></td><td>ELF文件分析</td><td>查看ELF头、段表、调试信息</td></tr>
+<tr><td><code>arm-none-eabi-gdb</code></td><td>调试器</td><td>在线调试（配合OpenOCD/st-util）</td></tr>
+<tr><td><code>arm-none-eabi-strip</code></td><td>去调试信息</td><td>减小.elf体积（发布时用）</td></tr>
+<tr><td><code>arm-none-eabi-strings</code></td><td>提取字符串</td><td>从.bin中找可读字符串</td></tr>
+</table>
+
+<h3>💡 命名规则</h3>
+<p>所有命令前缀 <code>arm-none-eabi-</code> 的含义：</p>
+<table>
+<tr><th>部分</th><th>含义</th><th>说明</th></tr>
+<tr><td><code>arm</code></td><td>目标架构</td><td>ARM架构（Cortex-M系列）</td></tr>
+<tr><td><code>none</code></td><td>操作系统</td><td>裸机（无操作系统）</td></tr>
+<tr><td><code>eabi</code></td><td>ABI接口</td><td>嵌入式应用二进制接口</td></tr>
+</table>
+
+<div class="tip">💡 <b>为什么不直接用gcc？</b>你电脑上的gcc编译出来的是x86机器码（给CPU跑的），arm-none-eabi-gcc编译出来的是ARM机器码（给STM32跑的）。架构不同，必须用对应的编译器。</div>
+
+<!-- ==================== 编译流程 ==================== -->
+<h2 id="compile">🏗️ 完整编译流程 <span class="tag g">🟢入门</span></h2>
+
+<p>从C代码到可烧录文件，要经过4个阶段：</p>
+
+<div class="card">
+<div class="h"><span class="name">编译四阶段</span><span class="tag g">核心知识</span></div>
+<div class="b">
+<table>
+<tr><th>阶段</th><th>输入 → 输出</th><th>命令</th><th>做什么</th></tr>
+<tr><td>① 预处理</td><td>.c → .i</td><td>gcc -E</td><td>展开#include、#define、#ifdef</td></tr>
+<tr><td>② 编译</td><td>.i → .s</td><td>gcc -S</td><td>C代码 → ARM汇编代码</td></tr>
+<tr><td>③ 汇编</td><td>.s → .o</td><td>gcc -c / as</td><td>汇编代码 → 机器码目标文件</td></tr>
+<tr><td>④ 链接</td><td>.o → .elf</td><td>gcc / ld</td><td>合并所有.o + 启动文件 + 库 → 可执行文件</td></tr>
+</table>
+</div></div>
+
+<h3>🚀 最简编译示例</h3>
+
+<pre><code># 项目结构
+project/
+├── src/
+│   ├── main.c          # 你的代码
+│   ├── startup.c       # 启动文件（向量表+Reset_Handler）
+│   └── system.c        # SystemInit等系统函数
+├── ld/
+│   └── STM32F103C8.ld  # 链接脚本
+└── inc/                # 头文件目录
+
+# 步骤1：编译每个.c文件（生成.o）
+arm-none-eabi-gcc -mcpu=cortex-m3 -mthumb -Os -Wall -Iinc -c src/main.c -o build/main.o
+arm-none-eabi-gcc -mcpu=cortex-m3 -mthumb -Os -Wall -Iinc -c src/startup.c -o build/startup.o
+arm-none-eabi-gcc -mcpu=cortex-m3 -mthumb -Os -Wall -Iinc -c src/system.c -o build/system.o
+
+# 步骤2：链接所有.o（生成.elf）
+arm-none-eabi-gcc -mcpu=cortex-m3 -mthumb -Tld/STM32F103C8.ld \
+    -Wl,--gc-sections -Wl,-Map=build/app.map \
+    build/main.o build/startup.o build/system.o \
+    -o build/app.elf
+
+# 步骤3：生成.bin（用于st-flash烧录）
+arm-none-eabi-objcopy -O binary build/app.elf build/app.bin
+
+# 步骤4：生成.hex（用于串口烧录/J-Link）
+arm-none-eabi-objcopy -O ihex build/app.elf build/app.hex
+
+# 步骤5：查看Flash/RAM占用
+arm-none-eabi-size build/app.elf
+#    text    data     bss     dec     hex filename
+#   1234      20     200    1454     5ae build/app.elf
+#   ↑Flash   ↑Flash  ↑RAM
+#   Flash占 = text + data = 1254 字节
+#   RAM占 = data + bss = 220 字节</code></pre>
+
+<div class="analogy">💡 <b>类比：</b>编译就像做饭——<br>
+① 预处理 = 准备食材（展开头文件、宏）<br>
+② 编译 = 看菜谱写出步骤（C→汇编）<br>
+③ 汇编 = 按步骤加工食材（汇编→机器码）<br>
+④ 链接 = 把所有菜摆上桌（合并所有.o → .elf）<br>
+objcopy = 打包外卖（.elf → .bin/.hex）</div>
+
+<!-- ==================== 编译参数 ==================== -->
+<h2 id="flags">⚙️ 编译参数详解 <span class="tag o">🟡进阶</span></h2>
+
+<h3>必选参数（每次都要加）</h3>
+<table>
+<tr><th>参数</th><th>含义</th><th>说明</th></tr>
+<tr><td><code>-mcpu=cortex-m3</code></td><td>指定CPU型号</td><td>STM32F1=M3, F4=M4, F0/G0=M0, H7=M7</td></tr>
+<tr><td><code>-mthumb</code></td><td>使用Thumb指令集</td><td>Cortex-M只支持Thumb，必须加</td></tr>
+<tr><td><code>-T xxx.ld</code></td><td>指定链接脚本</td><td>告诉链接器内存布局（Flash/RAM起止地址）</td></tr>
+</table>
+
+<h3>CPU型号对应表</h3>
+<table>
+<tr><th>STM32系列</th><th>CPU参数</th><th>代表型号</th></tr>
+<tr><td>STM32F0/G0</td><td><code>-mcpu=cortex-m0</code></td><td>F030, G070</td></tr>
+<tr><td>STM32F1</td><td><code>-mcpu=cortex-m3</code></td><td>F103C8（蓝色药丸）</td></tr>
+<tr><td>STM32F4/F3/L4</td><td><code>-mcpu=cortex-m4</code></td><td>F407, L476</td></tr>
+<tr><td>STM32F7</td><td><code>-mcpu=cortex-m7</code></td><td>F767</td></tr>
+<tr><td>STM32H7</td><td><code>-mcpu=cortex-m7</code></td><td>H743</td></tr>
+<tr><td>ESP32</td><td>不用ARM GCC</td><td>用xtensa-esp32-elf-gcc或ESP-IDF</td></tr>
+</table>
+
+<h3>优化参数</h3>
+<table>
+<tr><th>参数</th><th>含义</th><th>适用场景</th></tr>
+<tr><td><code>-O0</code></td><td>不优化</td><td>调试用（断点准确，变量可查看）</td></tr>
+<tr><td><code>-O1</code></td><td>基本优化</td><td>调试+少量优化</td></tr>
+<tr><td><code>-O2</code></td><td>标准优化</td><td>发布常用</td></tr>
+<tr><td><code>-Os</code></td><td>体积优化</td><td><strong>嵌入式最常用</strong>，省Flash空间</td></tr>
+<tr><td><code>-Og</code></td><td>调试优化</td><td>GDB调试体验好，代码不过度内联</td></tr>
+</table>
+
+<div class="tip">💡 <b>建议：</b>开发阶段用<code>-Og</code>（调试友好），发布时用<code>-Os</code>（省空间）。绝不要用<code>-O0</code>，因为有些bug只在优化后出现，<code>-Og</code>是最佳平衡点。</div>
+
+<h3>警告参数</h3>
+<table>
+<tr><th>参数</th><th>含义</th></tr>
+<tr><td><code>-Wall</code></td><td>开启常见警告</td></tr>
+<tr><td><code>-Wextra</code></td><td>更多警告</td></tr>
+<tr><td><code>-Werror</code></td><td>警告当错误处理（严格模式）</td></tr>
+<tr><td><code>-Wno-unused-parameter</code></td><td>忽略"未使用参数"警告（HAL回调常用）</td></tr>
+</table>
+
+<h3>链接参数（-Wl,xxx）</h3>
+<table>
+<tr><th>参数</th><th>含义</th><th>说明</th></tr>
+<tr><td><code>-Wl,--gc-sections</code></td><td>删除未用代码段</td><td>配合-ffunction-sections -fdata-sections，大幅减小体积</td></tr>
+<tr><td><code>-Wl,-Map=app.map</code></td><td>生成map文件</td><td>记录每个函数/变量的地址，排错用</td></tr>
+<tr><td><code>-Wl,--print-memory-usage</code></td><td>打印内存使用</td><td>链接时显示Flash/RAM占用百分比</td></tr>
+<tr><td><code>-Wl,--wrap=malloc</code></td><td>包装函数</td><td>可以拦截malloc调用做内存追踪</td></tr>
+</table>
+
+<h3>实用参数组合</h3>
+<pre><code># 调试版（开发阶段）
+CFLAGS = -mcpu=cortex-m3 -mthumb -Og -g3 -Wall -Wextra \
+         -ffunction-sections -fdata-sections -fno-common
+
+# 发布版（烧录到产品）
+CFLAGS = -mcpu=cortex-m3 -mthumb -Os -Wall -Wextra \
+         -ffunction-sections -fdata-sections -fno-common \
+         -DNDEBUG
+
+# 链接参数
+LDFLAGS = -mcpu=cortex-m3 -mthumb -TSTM32F103C8.ld \
+          -Wl,--gc-sections -Wl,-Map=app.map \
+          --specs=nano.specs --specs=nosys.specs</code></pre>
+
+<h3>specs文件说明</h3>
+<table>
+<tr><th>参数</th><th>含义</th><th>效果</th></tr>
+<tr><td><code>--specs=nano.specs</code></td><td>使用精简C库</td><td>printf/scanf体积减半，但浮点打印需额外配置</td></tr>
+<tr><td><code>--specs=nosys.specs</code></td><td>空系统调用</td><td>提供空的_exit/_sbrk等，裸机必需</td></tr>
+<tr><td><code>-u _printf_float</code></td><td>启用浮点打印</td><td>nano.specs默认不支持%f，加这个开启（体积+8KB）</td></tr>
+</table>
+
+<!-- ==================== 链接脚本 ==================== -->
+<h2 id="linker">📐 链接脚本（Linker Script）详解 <span class="tag r">🔴高级</span></h2>
+
+<p>链接脚本告诉编译器：Flash从哪开始、RAM从哪开始、各个段怎么排。这是嵌入式<strong>最核心的配置文件</strong>之一。</p>
+
+<h3>STM32F103C8 链接脚本</h3>
+<pre><code>/* STM32F103C8T6: 64KB Flash, 20KB RAM */
+
+/* 入口点（芯片上电后执行的第一条指令的地址） */
+ENTRY(Reset_Handler)
+
+/* 内存区域定义 */
+MEMORY
+{
+    FLASH (rx)  : ORIGIN = 0x08000000, LENGTH = 64K
+    RAM   (rwx) : ORIGIN = 0x20000000, LENGTH = 20K
+}
+
+/* 段布局 */
+SECTIONS
+{
+    /* 中断向量表（必须放在Flash最开头！） */
+    .isr_vector :
+    {
+        . = ALIGN(4);
+        KEEP(*(.isr_vector))
+        . = ALIGN(4);
+    } > FLASH
+
+    /* 代码段 */
+    .text :
+    {
+        *(.text)
+        *(.text*)
+        *(.rodata)       /* 只读数据（const变量、字符串） */
+        *(.rodata*)
+        . = ALIGN(4);
+        _etext = .;      /* 代码段结束标记 */
+    } > FLASH
+
+    /* 已初始化数据（Flash中存副本，启动时复制到RAM） */
+    .data :
+    {
+        . = ALIGN(4);
+        _sdata = .;      /* 数据段RAM起始 */
+        *(.data)
+        *(.data*)
+        . = ALIGN(4);
+        _edata = .;      /* 数据段RAM结束 */
+    } > RAM AT > FLASH   /* 运行在RAM，加载在Flash */
+
+    /* 未初始化数据（BSS段，启动时清零） */
+    .bss :
+    {
+        . = ALIGN(4);
+        _sbss = .;       /* BSS段起始 */
+        *(.bss)
+        *(.bss*)
+        *(COMMON)
+        . = ALIGN(4);
+        _ebss = .;       /* BSS段结束 */
+    } > RAM
+
+    /* 堆栈定义 */
+    ._user_heap_stack :
+    {
+        . = ALIGN(8);
+        PROVIDE(end = .);       /* 堆起始 */
+        . = . + 2K;            /* 堆大小 */
+        . = ALIGN(8);
+    } > RAM
+
+    /* 丢弃不需要的段 */
+    /DISCARD/ :
+    {
+        *(.ARM.attributes)
+        *(.comment)
+        *(.ARM.exidx*)
+    }
+}</code></pre>
+
+<h3>关键符号的作用</h3>
+<table>
+<tr><th>符号</th><th>含义</th><th>谁用</th></tr>
+<tr><td><code>_sdata / _edata</code></td><td>.data段在RAM中的起止</td><td>startup.c中把Flash数据复制到RAM</td></tr>
+<tr><td><code>_sbss / _ebss</code></td><td>.bss段的起止</td><td>startup.c中把BSS段清零</td></tr>
+<tr><td><code>_etext</code></td><td>代码段结束地址</td><td>知道Flash中数据副本的起始位置</td></tr>
+<tr><td><code>end</code></td><td>堆起始地址</td><td>malloc使用的起始点</td></tr>
+</table>
+
+<div class="note">⚠️ <b>AT > FLASH 是什么意思？</b><code>.data</code>段的运行地址在RAM（变量在RAM中读写），但加载地址在Flash（掉电不丢）。启动代码负责把Flash中的初始值复制到RAM。这就是startup.c中那段"看起来没用"的memcpy代码的作用。</div>
+
+<h3>不同MCU的内存地址</h3>
+<table>
+<tr><th>芯片</th><th>Flash起始</th><th>Flash大小</th><th>RAM起始</th><th>RAM大小</th></tr>
+<tr><td>STM32F103C8</td><td>0x08000000</td><td>64K</td><td>0x20000000</td><td>20K</td></tr>
+<tr><td>STM32F103RE</td><td>0x08000000</td><td>512K</td><td>0x20000000</td><td>64K</td></tr>
+<tr><td>STM32F407VG</td><td>0x08000000</td><td>1M</td><td>0x20000000</td><td>192K</td></tr>
+<tr><td>STM32F030F4</td><td>0x08000000</td><td>16K</td><td>0x20000000</td><td>4K</td></tr>
+<tr><td>STM32H743</td><td>0x08000000</td><td>2M</td><td>0x20000000</td><td>1M</td></tr>
+</table>
+
+<div class="tip">💡 <b>规律：</b>所有STM32的Flash都从0x08000000开始，RAM都从0x20000000开始。不同型号只是大小不同。改链接脚本只需改LENGTH。</div>
+
+<!-- ==================== 启动文件 ==================== -->
+<h2 id="startup">🚀 启动文件（Startup Code）详解 <span class="tag r">🔴高级</span></h2>
+
+<p>启动文件是MCU上电后执行的<strong>第一段代码</strong>，在main()之前运行。它负责：初始化堆栈 → 复制.data → 清零.bss → 调用main()。</p>
+
+<pre><code>/* startup.c - 最小启动文件（STM32F103） */
+#include &lt;stdint.h&gt;
+
+/* 链接脚本中定义的符号 */
+extern uint32_t _estack;    /* 栈顶（RAM末尾） */
+extern uint32_t _etext;     /* Flash中代码段结束 */
+extern uint32_t _sdata;     /* .data段RAM起始 */
+extern uint32_t _edata;     /* .data段RAM结束 */
+extern uint32_t _sbss;      /* .bss段起始 */
+extern uint32_t _ebss;      /* .bss段结束 */
+
+/* 主函数声明 */
+int main(void);
+
+/* 默认中断处理函数 */
+void Default_Handler(void) {
+    while(1);  /* 死循环，调试时断点会停在这里 */
+}
+
+/* Cortex-M3核心中断 */
+void Reset_Handler(void);     /* 复位，入口点 */
+void NMI_Handler(void)        __attribute__((weak, alias("Default_Handler")));
+void HardFault_Handler(void)  __attribute__((weak, alias("Default_Handler")));
+void MemManage_Handler(void)  __attribute__((weak, alias("Default_Handler")));
+void BusFault_Handler(void)   __attribute__((weak, alias("Default_Handler")));
+void UsageFault_Handler(void) __attribute__((weak, alias("Default_Handler")));
+void SVC_Handler(void)        __attribute__((weak, alias("Default_Handler")));
+void PendSV_Handler(void)     __attribute__((weak, alias("Default_Handler")));
+void SysTick_Handler(void)    __attribute__((weak, alias("Default_Handler")));
+
+/* 外设中断（STM32F103C8，按编号排列） */
+void WWDG_IRQHandler(void)       __attribute__((weak, alias("Default_Handler")));
+void PVD_IRQHandler(void)        __attribute__((weak, alias("Default_Handler")));
+void TAMPER_IRQHandler(void)     __attribute__((weak, alias("Default_Handler")));
+void RTC_IRQHandler(void)        __attribute__((weak, alias("Default_Handler")));
+void FLASH_IRQHandler(void)      __attribute__((weak, alias("Default_Handler")));
+void RCC_IRQHandler(void)        __attribute__((weak, alias("Default_Handler")));
+void EXTI0_IRQHandler(void)      __attribute__((weak, alias("Default_Handler")));
+void EXTI1_IRQHandler(void)      __attribute__((weak, alias("Default_Handler")));
+void EXTI2_IRQHandler(void)      __attribute__((weak, alias("Default_Handler")));
+void EXTI3_IRQHandler(void)      __attribute__((weak, alias("Default_Handler")));
+void EXTI4_IRQHandler(void)      __attribute__((weak, alias("Default_Handler")));
+void DMA1_Channel1_IRQHandler(void) __attribute__((weak, alias("Default_Handler")));
+/* ... 其他中断省略，完整版约40个 ... */
+void USART1_IRQHandler(void)     __attribute__((weak, alias("Default_Handler")));
+void USART2_IRQHandler(void)     __attribute__((weak, alias("Default_Handler")));
+void TIM1_UP_IRQHandler(void)    __attribute__((weak, alias("Default_Handler")));
+void TIM2_IRQHandler(void)       __attribute__((weak, alias("Default_Handler")));
+void TIM3_IRQHandler(void)       __attribute__((weak, alias("Default_Handler")));
+void I2C1_EV_IRQHandler(void)    __attribute__((weak, alias("Default_Handler")));
+void I2C1_ER_IRQHandler(void)    __attribute__((weak, alias("Default_Handler")));
+void SPI1_IRQHandler(void)       __attribute__((weak, alias("Default_Handler")));
+
+/* 中断向量表（必须放在Flash最开头，链接脚本中用.isr_vector段） */
+__attribute__((section(".isr_vector")))
+const void (* const vector_table[])(void) = {
+    (void *)&_estack,          /* 栈顶指针（MSP初始值） */
+    Reset_Handler,              /* 复位 */
+    NMI_Handler,                /* NMI */
+    HardFault_Handler,          /* HardFault */
+    MemManage_Handler,          /* MemManage */
+    BusFault_Handler,           /* BusFault */
+    UsageFault_Handler,         /* UsageFault */
+    0, 0, 0, 0,                 /* 保留 */
+    SVC_Handler,                /* SVCall */
+    DebugMon_Handler,           /* Debug Monitor - 可省略 */
+    0,                          /* 保留 */
+    PendSV_Handler,             /* PendSV */
+    SysTick_Handler,            /* SysTick */
+    /* 外设中断，从IRQ0开始... */
+    WWDG_IRQHandler,            /* IRQ0 */
+    PVD_IRQHandler,             /* IRQ1 */
+    TAMPER_IRQHandler,          /* IRQ2 */
+    RTC_IRQHandler,             /* IRQ3 */
+    FLASH_IRQHandler,           /* IRQ4 */
+    RCC_IRQHandler,             /* IRQ5 */
+    EXTI0_IRQHandler,           /* IRQ6 */
+    EXTI1_IRQHandler,           /* IRQ7 */
+    /* ... 完整列表需查参考手册 ... */
+};
+
+/* Reset_Handler - 上电后第一个执行的函数 */
+void Reset_Handler(void) {
+    uint32_t *src, *dst;
+
+    /* 1. 把.data段从Flash复制到RAM */
+    src = &_etext;          /* Flash中数据副本的起始 */
+    dst = &_sdata;          /* RAM中.data的起始 */
+    while (dst < &_edata) {
+        *dst++ = *src++;
+    }
+
+    /* 2. 把.bss段清零 */
+    dst = &_sbss;
+    while (dst < &_ebss) {
+        *dst++ = 0;
+    }
+
+    /* 3. 调用SystemInit（如果有的话，配置时钟） */
+    extern void SystemInit(void);
+    SystemInit();
+
+    /* 4. 调用libc初始化（如果使用nano.specs） */
+    extern void __libc_init_array(void);
+    __libc_init_array();
+
+    /* 5. 终于进入main！ */
+    main();
+
+    /* 6. main不应该返回，如果返回则死循环 */
+    while(1);
+}</code></pre>
+
+<div class="warn">⚠️ <b>不要自己写startup.c！</b>CubeMX和芯片厂商都提供了现成的启动文件（通常是.s汇编格式）。手写只是为了理解原理。实际项目直接用现成的。</div>
+
+<div class="analogy">💡 <b>类比：</b>启动文件就像开店前的准备工作——<br>
+① 设好栈顶 = 摆好收银台<br>
+② 复制.data = 把商品从仓库搬到货架<br>
+③ 清零.bss = 把空柜台擦干净<br>
+④ SystemInit = 检查水电<br>
+⑤ main() = 开门营业！</div>
+
+<!-- ==================== 排错 ==================== -->
+<h2 id="troubleshoot">🔍 常见问题与排错 <span class="tag o">🟠实战</span></h2>
+
+<h3>问题1：undefined reference to `_exit'</h3>
+<pre><code># 原因：没有指定nosys.specs，裸机缺少系统调用
+# 解决：链接时加参数
+--specs=nosys.specs</code></pre>
+
+<h3>问题2：region `FLASH' overflowed</h3>
+<pre><code># 原因：代码太大，Flash装不下
+# 解决1：改用-Os优化（体积优先）
+# 解决2：加上段清理参数
+-ffunction-sections -fdata-sections -Wl,--gc-sections
+# 解决3：用nano.specs（精简C库，省数KB）
+--specs=nano.specs
+# 解决4：检查是否有大的const数组，考虑用PROGMEM/放在外部Flash</code></pre>
+
+<h3>问题3：region `RAM' overflowed</h3>
+<pre><code># 原因：全局变量+栈太大，RAM装不下
+# 解决1：减小栈大小（链接脚本中的栈定义）
+# 解决2：减少全局数组，改用局部变量或动态分配
+# 解决3：查看map文件找大头：哪个变量最占空间
+arm-none-eabi-nm --size-sort --print-size app.elf | Select-Object -Last 20</code></pre>
+
+<h3>问题4：Hard Fault（程序崩溃）</h3>
+<pre><code># 查看崩溃地址
+arm-none-eabi-addr2line -e app.elf 0x08001234
+# 输出：main.c:42（崩溃在第42行！）
+
+# 查看反汇编（定位具体指令）
+arm-none-eabi-objdump -d app.elf | Select-String "8001234"</code></pre>
+
+<h3>问题5：.bin文件太大（比Flash大）</h3>
+<pre><code># .bin不是实际大小！它包含从0到最高地址的所有内容
+# 如果高地址有数据（如OTA分区），.bin会很大
+# 正确查看大小：
+arm-none-eabi-size app.elf
+# 看 text+data 列 = 实际Flash占用</code></pre>
+
+<h3>问题6：printf不输出浮点数</h3>
+<pre><code># nano.specs默认省略浮点支持以节省空间
+# 解决：链接时加上
+-u _printf_float
+# 注意：会增大约8KB Flash占用</code></pre>
+
+<!-- ==================== 速查表 ==================== -->
+<h2 id="cheatsheet">📋 ARM GCC 速查表</h2>
+
+<h2 id="whats-new-2026">🆕 ARM GCC 14.x 新特性（2025-2026）</h2>
+
+<div class="card">
+<div class="h"><span class="name">ARM GCC 14.x 重要更新</span><span class="tag b">前沿</span></div>
+<div class="b">
+<table>
+<tr><th>特性</th><th>说明</th><th>影响</th></tr>
+<tr><td>Arm v9.6-A 支持</td><td>新增 Cortex-A720AE / Cortex-R82AE 处理器支持</td><td>汽车安全场景</td></tr>
+<tr><td>-fstack-protector-strong 默认</td><td>更强栈保护，减少缓冲区溢出风险</td><td>嵌入式安全增强</td></tr>
+<tr><td>Link-Time Optimization (LTO) 改进</td><td>LTO 速度提升约30%，内存占用降低</td><td>大项目编译更快</td></tr>
+<tr><td>新 -Wbidi-chars 警告</td><td>检测 Unicode 双向字符注入攻击（Trojan Source）</td><td>代码安全审计</td></tr>
+<tr><td>Cortex-M55/M85 优化</td><td>针对 Helium M-profile 向量扩展优化代码生成</td><td>ML/AI 嵌入式场景</td></tr>
+</table>
+</div></div>
+
+<div class="note">📌 <b>升级建议：</b>从 GCC 12.x/13.x 升级到 14.x 时，注意 <code>-fstack-protector-strong</code> 可能导致代码体积略增。可在链接脚本中预留更多 Flash 空间，或用 <code>-fno-stack-protector</code> 回退（不推荐）。详见 <a href="flash-debug.html">烧录与调试教程</a>中的 Flash 分区规划。</div>
+
+<h2 id="real-case">🛠️ 实战案例：从零构建 STM32F103 LED 闪烁项目</h2>
+
+<p>下面演示如何只用 ARM GCC（不用 IDE）从零编译一个完整的 LED 闪烁程序：</p>
+
+<pre><code>// main.c - STM32F103 LED 闪烁（寄存器版本，无 HAL 依赖）
+#include &lt;stdint.h&gt;
+
+// RCC 寄存器基址（复位和时钟控制）
+#define RCC_BASE      0x40021000U
+// GPIOC 寄存器基址（LED 在 PC13）
+#define GPIOC_BASE    0x40011000U
+
+// RCC APB2 外设时钟使能寄存器
+#define RCC_APB2ENR   (*(volatile uint32_t *)(RCC_BASE + 0x18))
+// GPIOC 端口配置寄存器（高16位对应 Pin8-15）
+#define GPIOC_CRH     (*(volatile uint32_t *)(GPIOC_BASE + 0x04))
+// GPIOC 端口输出数据寄存器
+#define GPIOC_ODR     (*(volatile uint32_t *)(GPIOC_BASE + 0x0C))
+
+// 简单延时函数（约 500ms @72MHz）
+static void delay(void) {
+    for (volatile uint32_t i = 0; i &lt; 500000; i++) {
+        __asm volatile("nop");  // 插入空指令，防止被优化掉
+    }
+}
+
+int main(void) {
+    // 步骤1：使能 GPIOC 时钟（APB2 总线上第4位）
+    RCC_APB2ENR |= (1 &lt;&lt; 4);
+
+    // 步骤2：配置 PC13 为推挽输出，最大速度 50MHz
+    // CRH 控制 Pin8-15，Pin13 对应 [23:20] 四位
+    // 通用推挽输出 = 0b0011，50MHz = CNF=00, MODE=11
+    GPIOC_CRH &amp;= ~(0xF &lt;&lt; 20);  // 先清零 Pin13 的4位配置
+    GPIOC_CRH |=  (0x3 &lt;&lt; 20);  // 设置为输出模式，50MHz
+
+    // 步骤3：循环闪烁 LED
+    while (1) {
+        GPIOC_ODR ^= (1 &lt;&lt; 13);  // 翻转 PC13（异或操作）
+        delay();                   // 延时约 500ms
+    }
+}
+</code></pre>
+
+<pre><code># 编译命令（逐步执行）
+
+# 1. 编译 main.c → main.o
+arm-none-eabi-gcc -mcpu=cortex-m3 -mthumb -Os -Wall \
+    -ffunction-sections -fdata-sections \
+    -c main.c -o main.o
+
+# 2. 链接（使用最小启动代码）→ main.elf
+arm-none-eabi-gcc -mcpu=cortex-m3 -mthumb \
+    -nostartfiles -T STM32F103C8.ld \
+    -Wl,--gc-sections \
+    main.o -o main.elf
+
+# 3. 生成 .bin 和 .hex
+arm-none-eabi-objcopy -O binary main.elf main.bin
+arm-none-eabi-objcopy -O ihex main.elf main.hex
+
+# 4. 检查大小
+arm-none-eabi-size main.elf
+#   text    data     bss     dec     hex filename
+#   184       0       0     184      b8 main.elf   ← 极小！</code></pre>
+
+<div class="tip">✅ <b>成果：</b>纯寄存器操作，无 HAL 依赖，编译后仅 184 字节！这是理解底层硬件的最佳起点。后续可以用 <a href="stm32.html">STM32 HAL 库教程</a>学习更高级的开发方式。</div>
+
+<div class="warn">⚠️ <b>常见坑：</b>如果 LED 不亮，检查：①是否使能了 GPIOC 时钟（最常遗漏）②PC13 配置是否正确（CRH 不是 CRL）③链接脚本中 Flash 起始地址是否为 0x08000000。更多排错方法见 <a href="flash-debug.html">烧录与调试教程</a>。</div>
+
+<h2 id="faq">❓ 常见问题 FAQ</h2>
+
+<div class="card">
+<div class="h"><span class="name">ARM GCC 常见问题</span><span class="tag o">FAQ</span></div>
+<div class="b">
+
+<h4>Q1：arm-none-eabi-gcc 和 arm-linux-gnueabihf-gcc 有什么区别？</h4>
+<p><code>arm-none-eabi-</code> 是 <b>裸机工具链</b>，用于无操作系统的嵌入式开发（STM32、ESP32 等）。<code>arm-linux-gnueabihf-</code> 是 <b>Linux 工具链</b>，用于开发运行在 ARM Linux 上的应用程序，依赖 glibc 和 Linux 系统调用。嵌入式开发必须选 <code>arm-none-eabi-</code>。</p>
+
+<h4>Q2：编译时出现 multiple definition of `xxx' 怎么办？</h4>
+<p>通常是因为头文件中定义了变量（不是声明）。正确做法：头文件中用 <code>extern</code> 声明，在 <code>.c</code> 文件中定义。GCC 14.x 默认使用 <code>-fno-common</code>，不再允许多次定义合并。</p>
+
+<h4>Q3：-Os 和 -O2 该选哪个？</h4>
+<p>嵌入式一般选 <code>-Os</code>（优化代码大小），因为 Flash 空间有限。<code>-O2</code> 优化速度但体积更大。如果对性能敏感的中断处理函数，可以对特定文件用 <code>-O2</code>：在 Makefile 中用 <code>CFLAGS_isr = -O2</code> 单独设置。</p>
+
+<h4>Q4：如何查看编译后各个函数占用的 Flash 大小？</h4>
+<pre><code># 生成详细段大小信息
+arm-none-eabi-objdump -h app.elf
+
+# 按符号大小排序（找出最占空间的函数）
+arm-none-eabi-nm --size-sort --print-size app.elf | tail -20
+
+# 生成 map 文件查看详细内存映射
+arm-none-eabi-gcc ... -Wl,-Map=app.map ...</code></pre>
+
+<h4>Q5：链接脚本中 VMA 和 LMA 有什么区别？</h4>
+<p><b>VMA</b>（Virtual Memory Address）是程序运行时的地址；<b>LMA</b>（Load Memory Address）是程序存储在 Flash 中的地址。通常 VMA = LMA（代码直接在 Flash 运行），但 <b>重定位代码</b>（如从 Flash 拷贝到 RAM 执行）时 VMA ≠ LMA。详见 <a href="flash-debug.html">烧录与调试教程</a>中的 IAP 章节和 <a href="makefile.html">Makefile 教程</a>中的链接脚本配置。</p>
+
+<h4>Q6：GCC 14.x 升级后代码变大了怎么办？</h4>
+<p>GCC 14 默认启用了 <code>-fstack-protector-strong</code>，每个函数添加栈保护代码。可用以下方法优化：① <code>-fno-stack-protector</code> 关闭（牺牲安全性）② <code>-fstack-protector</code> 改用轻量版 ③ 仅对关键函数单独启用。相关内容参见 <a href="cmake.html">CMake 教程</a>中的 per-target 编译选项。</p>
+
+</div></div>
+
+<table>
+<tr><th>操作</th><th>命令</th></tr>
+<tr><td>编译.c → .o</td><td><code>arm-none-eabi-gcc -c -mcpu=cortex-m3 -mthumb -Os main.c</code></td></tr>
+<tr><td>链接.o → .elf</td><td><code>arm-none-eabi-gcc -Tstm32.ld -o app.elf main.o startup.o</code></td></tr>
+<tr><td>.elf → .bin</td><td><code>arm-none-eabi-objcopy -O binary app.elf app.bin</code></td></tr>
+<tr><td>.elf → .hex</td><td><code>arm-none-eabi-objcopy -O ihex app.elf app.hex</code></td></tr>
+<tr><td>查看Flash/RAM占</td><td><code>arm-none-eabi-size app.elf</code></td></tr>
+<tr><td>查看反汇编</td><td><code>arm-none-eabi-objdump -d app.elf</code></td></tr>
+<tr><td>崩溃地址→源码行</td><td><code>arm-none-eabi-addr2line -e app.elf 0x08001234</code></td></tr>
+<tr><td>查看符号表</td><td><code>arm-none-eabi-nm -n app.elf</code></td></tr>
+<tr><td>查看最大变量</td><td><code>arm-none-eabi-nm --size-sort -S app.elf</code></td></tr>
+<tr><td>查看段信息</td><td><code>arm-none-eabi-objdump -h app.elf</code></td></tr>
+<tr><td>去调试信息</td><td><code>arm-none-eabi-strip app.elf</code></td></tr>
+<tr><td>只预处理</td><td><code>arm-none-eabi-gcc -E main.c > main.i</code></td></tr>
+<tr><td>只生成汇编</td><td><code>arm-none-eabi-gcc -S -Os main.c -o main.s</code></td></tr>
+</table>
+
+<div class="tip">💡 <b>下一步：</b>ARM GCC是手动编译，实际项目推荐用<a href="tool-cmake.html">CMake</a>或<a href="tool-makefile.html">Makefile</a>自动化构建流程。点击继续学习！</div>
+
+<div class="breadcrumb">📐 <a href="index.html">返回工具教程合集</a></div>
+
+</body></html>

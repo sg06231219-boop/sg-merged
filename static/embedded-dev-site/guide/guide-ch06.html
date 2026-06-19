@@ -1,0 +1,1012 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第6章：STM32开发实战 - 嵌入式小白完全指南</title>
+<style>
+:root{--bg:#0d1117;--bg2:#161b22;--bg3:#21262d;--br:#30363d;--t:#c9d1d9;--t2:#8b949e;--a:#58a6ff;--g:#3fb950;--o:#d2991d;--r:#f85149;--p:#a371f7;--c1:#39c5cf}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--t);line-height:1.8;max-width:880px;margin:0 auto;padding:14px}
+h1{font-size:1.55em;text-align:center;padding:16px 0;background:linear-gradient(135deg,var(--a),var(--p));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+h2{font-size:1.15em;color:var(--a);margin:30px 0 10px;padding-bottom:6px;border-bottom:2px solid var(--br)}
+h3{font-size:1.02em;color:var(--g);margin:18px 0 7px}
+h4{font-size:.95em;color:var(--o);margin:12px 0 5px}
+pre{background:#1c2128;border:1px solid var(--br);border-radius:8px;padding:12px 14px;overflow-x:auto;margin:8px 0 12px;font-size:.82em;line-height:1.6;white-space:pre-wrap;word-break:break-all;position:relative}
+code{font-family:'SF Mono','Fira Code',monospace}
+pre code{color:#e6edf3}
+.note{background:rgba(210,153,29,.08);border:1px solid rgba(210,153,29,.3);border-radius:8px;padding:10px 14px;margin:10px 0;font-size:.83em;color:var(--o)}
+.warn{background:rgba(248,81,73,.08);border:1px solid rgba(248,81,73,.3);border-radius:8px;padding:10px 14px;margin:10px 0;font-size:.83em;color:var(--r)}
+.tip{background:rgba(63,185,80,.06);border:1px solid rgba(63,185,80,.25);border-radius:8px;padding:10px 14px;margin:10px 0;font-size:.83em;color:var(--g)}
+.example{background:rgba(88,166,255,.06);border:1px solid rgba(88,166,255,.25);border-radius:8px;padding:10px 14px;margin:8px 0;font-size:.82em;color:var(--a)}
+.example b{color:var(--g)}
+.trouble{background:rgba(163,113,247,.06);border:1px solid rgba(163,113,247,.3);border-radius:8px;padding:10px 14px;margin:8px 0;font-size:.82em;color:var(--p)}
+.trouble b{color:var(--p)}
+.card{background:var(--bg2);border:1px solid var(--br);border-radius:10px;margin:14px 0;overflow:hidden}
+.card>.h{padding:10px 14px;background:var(--bg3);display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.card>.h>.name{font-weight:700;font-size:.9em;color:var(--t);font-family:monospace}
+.card>.h>.tag{font-size:.65em;padding:2px 8px;border-radius:8px;white-space:nowrap;border:1px solid var(--br);color:var(--t2)}
+.card>.h>.tag.g{background:rgba(63,185,80,.15);border-color:var(--g);color:var(--g)}
+.card>.h>.tag.y{background:rgba(210,153,29,.15);border-color:var(--o);color:var(--o)}
+.card>.h>.tag.r{background:rgba(248,81,73,.15);border-color:var(--r);color:var(--r)}
+.card>.h>.tag.b{background:rgba(88,166,255,.15);border-color:var(--a);color:var(--a)}
+.card>.h>.tag.p{background:rgba(163,113,247,.15);border-color:var(--p);color:var(--p)}
+.card>.b{padding:10px 14px;font-size:.87em}
+.card>.b>.desc{font-size:.92em;color:var(--t2);margin-bottom:8px}
+table{width:100%;border-collapse:collapse;margin:10px 0;font-size:.81em;background:var(--bg2);border-radius:8px;overflow:hidden;border:1px solid var(--br)}
+td,th{padding:8px 12px;border-bottom:1px solid var(--br);text-align:left}
+th{background:var(--bg3);color:var(--a);font-weight:600}
+tr:last-child td{border-bottom:none}
+.step{background:var(--bg3);border-radius:6px;padding:8px 13px;margin:6px 0;font-size:.83em}
+.step b{color:var(--a)}
+.summary{background:linear-gradient(135deg,rgba(88,166,255,.1),rgba(163,113,247,.1));border:1px solid var(--br);border-radius:10px;padding:12px 16px;margin:18px 0;font-size:.88em;color:var(--t)}
+.summary b{color:var(--a)}
+.analogy{background:rgba(57,197,207,.07);border-left:3px solid var(--c1);padding:8px 13px;margin:8px 0;font-size:.82em;color:var(--c1);border-radius:0 6px 6px 0}
+.analogy b{color:var(--c1)}
+.chnav{display:flex;justify-content:space-between;margin:30px 0 10px;gap:12px;border-top:1px solid var(--br);padding-top:16px;flex-wrap:wrap}
+.chnav a{flex:1;text-align:center;padding:10px 14px;background:var(--bg2);border:1px solid var(--br);border-radius:8px;color:var(--a);text-decoration:none;font-size:.85em;transition:all .2s;min-width:120px;cursor:pointer}
+.chnav a:hover{background:var(--bg3);border-color:var(--a)}
+.chnav .toc-link{flex:0;min-width:80px;background:var(--bg3);color:var(--t2)}
+.chnav .toc-link:hover{color:var(--a)}
+.copy-btn{position:absolute;top:4px;right:4px;padding:3px 10px;background:var(--bg3);border:1px solid var(--br);border-radius:5px;color:var(--t2);font-size:.72em;cursor:pointer;opacity:0;transition:opacity .2s}
+pre:hover .copy-btn{opacity:1}
+.copy-btn:hover{background:var(--a);color:var(--bg)}
+.copy-btn.copied{background:var(--g);color:var(--bg);border-color:var(--g)}
+@media(max-width:480px){body{padding:10px}h1{font-size:1.3em}h2{font-size:1.05em}pre{font-size:.75em}}
+</style>
+</head>
+<body>
+
+<h1>第6章：STM32开发实战</h1>
+<div class="summary"><b>📖 小白完全指南 · 6/14</b> | 阅读时间约20分钟</div>
+
+<p>STM32是ARM Cortex-M系列最流行的单片机，市场占有率超过50%。学会STM32，其他MCU都是触类旁通。这一章从寄存器到HAL库，从GPIO到DMA，带你彻底掌握STM32开发。</p>
+
+<div class="analogy">💡 <b>类比：</b>STM32就像一辆<strong>手动挡汽车</strong>——GPIO是方向盘（控制方向），UART是对讲机（通信），TIM是转速表（计时），ADC是油量表（测模拟量）。HAL库就是自动挡模式，LL库是手动挡模式。</div>
+
+<h2>📊 HAL库 vs LL库 vs 寄存器</h2>
+
+<table>
+<tr><th>特性</th><th>HAL库</th><th>LL库</th><th>直接寄存器</th></tr>
+<tr><td>抽象层级</td><td>高（封装完善）</td><td>低（接近寄存器）</td><td>无（裸寄存器）</td></tr>
+<tr><td>代码量</td><td>大</td><td>中</td><td>小</td></tr>
+<tr><td>执行效率</td><td>中等</td><td>高</td><td>最高</td></tr>
+<tr><td>学习难度</td><td>低</td><td>中</td><td>高</td></tr>
+<tr><td>可移植性</td><td>好（跨系列）</td><td>一般（同系列）</td><td>差</td></tr>
+<tr><td>适用场景</td><td>快速开发/初学者</td><td>极致优化/专业项目</td><td>教学/极小Flash</td></tr>
+</table>
+
+<div class="tip">💡 <b>建议：</b>入门先用HAL库，做产品时关键代码换LL库优化。两者可以混用——例如用HAL做初始化，LL做中断处理。</div>
+
+<h2>🎛 时钟系统：理解STM32的心脏</h2>
+
+<div class="card">
+<div class="h"><span class="name">STM32F103时钟树</span><span class="tag b">进阶</span></div>
+<div class="b">
+<div class="desc">时钟是STM32最容易被忽视但最关键的配置。时钟不对，所有外设（UART波特率、TIM定时、ADC采样率）都会出错。</div>
+<table>
+<tr><th>时钟源</th><th>频率</th><th>精度</th><th>用途</th></tr>
+<tr><td>HSE（外部高速）</td><td>4-16MHz（常用8MHz）</td><td>±10ppm</td><td>主时钟源（推荐）</td></tr>
+<tr><td>HSI（内部高速）</td><td>8MHz</td><td>±1%（校准后）</td><td>备用/低功耗</td></tr>
+<tr><td>LSE（外部低速）</td><td>32.768kHz</td><td>±5ppm</td><td>RTC时钟</td></tr>
+<tr><td>LSI（内部低速）</td><td>~40kHz</td><td>差（温度漂移大）</td><td>看门狗/低功耗唤醒</td></tr>
+<tr><td>PLL（锁相环）</td><td>HSI或HSE倍频</td><td>取决于输入</td><td>产生72MHz系统时钟</td></tr>
+</table>
+<pre><code>// 手动配置时钟（寄存器版——理解底层原理）
+// 目标：HSE(8MHz) → PLL×9 → SYSCLK=72MHz
+
+// 1. 等待HSE稳定
+RCC->CR |= RCC_CR_HSEON;            // 开启HSE
+while (!(RCC->CR & RCC_CR_HSERDY)); // 等待HSE就绪
+
+// 2. 配置Flash延时（72MHz需要2个等待周期）
+FLASH->ACR |= FLASH_ACR_LATENCY_2;
+
+// 3. 配置PLL: HSE作为输入，倍频9 → 8MHz×9=72MHz
+RCC->CFGR |= RCC_CFGR_PLLSRC;       // HSE作为PLL输入
+RCC->CFGR |= RCC_CFGR_PLLMULL9;     // 9倍频
+
+// 4. 配置AHB/APB1/APB2预分频
+RCC->CFGR |= RCC_CFGR_HPRE_DIV1;    // AHB=72MHz
+RCC->CFGR |= RCC_CFGR_PPRE1_DIV2;   // APB1=36MHz（最大36MHz！）
+RCC->CFGR |= RCC_CFGR_PPRE2_DIV1;   // APB2=72MHz
+
+// 5. 使能PLL，等待锁定
+RCC->CR |= RCC_CR_PLLON;
+while (!(RCC->CR & RCC_CR_PLLRDY));
+
+// 6. 切换到PLL作为系统时钟
+RCC->CFGR |= RCC_CFGR_SW_PLL;
+while ((RCC->CFGR & RCC_CFGR_SWS) != RCC_CFGR_SWS_PLL);
+
+// 完成！SYSCLK=72MHz, AHB=72MHz, APB1=36MHz, APB2=72MHz</code></pre>
+<div class="note">⚠️ <b>重要限制：</b>APB1最大频率是<strong>36MHz</strong>！如果你把APB1也配成72MHz，芯片不会烧（有保护电路），但外设可能工作异常。UART/TIM2-7挂在APB1上，注意时钟来源。</div>
+</div></div>
+
+<div class="trouble">🔍 <b>常见错误：时钟配置不对，程序跑飞或外设不工作</b><br><br>
+❌ <b>现象：</b>程序下载后无反应、UART输出乱码、定时器不准<br>
+✅ <b>排查：</b><br>
+1. 检查HSE_VALUE宏是否等于你的晶振频率（常见8MHz/25MHz）<br>
+2. APB1最大36MHz(F103)/42MHz(F4)，APB2最大72MHz(F103)/84MHz(F4)<br>
+3. USB要用48MHz，需要精确的PLL配置（F103: PLL×6 if HSE=8MHz→仅HSI可用）<br>
+4. 用CubeMX的Clock Configuration页面验证所有外设时钟是否正确</div>
+
+<h2>💡 GPIO点灯 — 嵌入式的"Hello World"</h2>
+
+<h3>方式1：纯寄存器版（无需CubeMX，5分钟跑通）</h3>
+
+<pre><code>// main.c - STM32F103 点亮LED（PC13）— 纯寄存器版
+// 最小依赖：只需要启动文件+链接脚本
+
+// 寄存器地址定义
+#define RCC_APB2ENR  (*(volatile uint32_t*)0x40021018)
+#define GPIOC_CRH    (*(volatile uint32_t*)0x40011004)
+#define GPIOC_ODR    (*(volatile uint32_t*)0x4001100C)
+#define GPIOC_BSRR   (*(volatile uint32_t*)0x40011010)
+
+void delay(volatile uint32_t count) {
+    while(count--);
+}
+
+int main(void) {
+    // 步骤1：使能GPIOC时钟（必须先开时钟，否则引脚不工作！）
+    RCC_APB2ENR |= (1 << 4);  // bit4 = IOPCEN
+    
+    // 步骤2：配置PC13为推挽输出（50MHz）
+    // CRH控制PC8-PC15，PC13对应bits [23:20]
+    // MODE13[1:0]=11(50MHz) CNF13[1:0]=00(通用推挽)
+    GPIOC_CRH = (GPIOC_CRH & ~0x00F00000) | 0x00300000;
+    
+    // 步骤3：循环翻转LED
+    while (1) {
+        // 方法A：XOR翻转（最简洁）
+        GPIOC_ODR ^= (1 << 13);
+        
+        // 方法B：BSRR原子操作（推荐，不会误改其他引脚）
+        // GPIOC_BSRR = (1 << 13);      // 置高
+        // delay(500000);
+        // GPIOC_BSRR = (1 << (13+16)); // 置低（高16位对应复位）
+        
+        delay(500000);  // 约500ms延时（72MHz下）
+    }
+}</code></pre>
+
+<h3>方式2：CubeMX + HAL库版</h3>
+
+<div class="note">⚠️ <b>前提：</b>已经安装STM32CubeMX并生成工程，把下面的代码放在 <code>/* USER CODE BEGIN */</code> 区域内。</div>
+
+<pre><code>// main.c - STM32F103 点亮LED（PC13）— HAL库版
+// 前提：CubeMX已启用GPIOC Pin13为GPIO_Output
+#include "stm32f1xx_hal.h"
+
+int main(void) {
+    HAL_Init();
+    SystemClock_Config();
+    MX_GPIO_Init();  // CubeMX自动生成，配置所有GPIO
+
+    while (1) {
+        HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13);  // 翻转LED
+        HAL_Delay(500);                            // 延时500ms
+    }
+}</code></pre>
+
+<h3>GPIO速度与上下拉</h3>
+
+<table>
+<tr><th>速度等级</th><th>最大频率</th><th>适用场景</th></tr>
+<tr><td>GPIO_SPEED_FREQ_LOW</td><td>2 MHz</td><td>LED、按钮、低速信号</td></tr>
+<tr><td>GPIO_SPEED_FREQ_MEDIUM</td><td>25 MHz</td><td>普通IO、UART、I2C</td></tr>
+<tr><td>GPIO_SPEED_FREQ_HIGH</td><td>50 MHz</td><td>SPI、PWM、高速信号</td></tr>
+<tr><td>GPIO_SPEED_FREQ_VERY_HIGH</td><td>100 MHz</td><td>FMC/SDRAM、高速并行总线</td></tr>
+</table>
+
+<div class="note">💊 <b>EMI提示：</b>不要把不必要的高速IO设太高——速度越快，电磁干扰(EMI)越大，功耗也更高。LED用Low就够了。</div>
+
+<h2>📡 UART发送接收</h2>
+
+<pre><code>// UART初始化和收发 — HAL库版
+#include &lt;stdio.h&gt;
+
+UART_HandleTypeDef huart1;
+uint8_t rx_buffer[64];  // 接收缓冲区
+
+// printf重定向到UART1
+int fputc(int ch, FILE *f) {
+    HAL_UART_Transmit(&amp;huart1, (uint8_t *)&amp;ch, 1, HAL_MAX_DELAY);
+    return ch;
+}
+
+// UART初始化（CubeMX生成的基础 + 中断接收）
+void UART_Init(void) {
+    // ... 前面的HAL_UART_Init由CubeMX生成 ...
+    // 启动中断接收（一次收1字节，收到后自动进回调）
+    HAL_UART_Receive_IT(&amp;huart1, rx_buffer, 1);
+}
+
+// 发送字符串（阻塞方式，适合调试输出）
+void uart_send(const char *str) {
+    HAL_UART_Transmit(&amp;huart1, (uint8_t *)str, strlen(str), 100);
+}
+
+// 接收中断回调
+void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
+    if (huart->Instance == USART1) {
+        uint8_t ch = rx_buffer[0];
+        // 回显
+        HAL_UART_Transmit(&amp;huart1, &amp;ch, 1, 10);
+        // 重新开启接收（重要！否则只收一次）
+        HAL_UART_Receive_IT(&amp;huart1, rx_buffer, 1);
+    }
+}
+
+// 主循环中使用
+while (1) {
+    printf("System uptime: %lu ms\r\n", HAL_GetTick());
+    HAL_Delay(1000);
+}</code></pre>
+
+<h2>⏱ TIM定时器</h2>
+
+<h3>基本定时中断</h3>
+
+<pre><code>// 1ms定时器中断
+TIM_HandleTypeDef htim2;
+
+void MX_TIM2_Init(void) {
+    htim2.Instance = TIM2;
+    htim2.Init.Prescaler = 72 - 1;       // 72MHz/72 = 1MHz
+    htim2.Init.CounterMode = TIM_COUNTERMODE_UP;
+    htim2.Init.Period = 1000 - 1;         // 1MHz/1000 = 1kHz = 1ms
+    htim2.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_ENABLE;
+    HAL_TIM_Base_Init(&amp;htim2);
+    HAL_TIM_Base_Start_IT(&amp;htim2);       // 启动定时器并使能中断
+}
+
+// 中断回调（每1ms执行一次）
+volatile uint32_t sys_ticks = 0;
+
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
+    if (htim->Instance == TIM2) {
+        sys_ticks++;  // 软件时钟累加
+    }
+}</code></pre>
+
+<h3>PWM输出（呼吸灯）</h3>
+
+<pre><code>// 使用TIM3 CH1（PA6）输出PWM
+TIM_HandleTypeDef htim3;
+
+void PWM_Init(void) {
+    htim3.Instance = TIM3;
+    htim3.Init.Prescaler = 72 - 1;        // 72MHz/72 = 1MHz
+    htim3.Init.Period = 1000 - 1;          // 1MHz/1000 = 1KHz PWM
+    htim3.Init.CounterMode = TIM_COUNTERMODE_UP;
+    HAL_TIM_PWM_Init(&amp;htim3);
+    
+    TIM_OC_InitTypeDef oc = {0};
+    oc.OCMode = TIM_OCMODE_PWM1;
+    oc.Pulse = 500;                         // 50%占空比(500/1000)
+    oc.OCPolarity = TIM_OCPOLARITY_HIGH;
+    HAL_TIM_PWM_ConfigChannel(&amp;htim3, &amp;oc, TIM_CHANNEL_1);
+    HAL_TIM_PWM_Start(&amp;htim3, TIM_CHANNEL_1);
+}
+
+// 呼吸灯效果：占空比从0→100%→0
+void breathe_led(void) {
+    static int dir = 1;
+    static uint32_t duty = 0;
+    
+    duty += dir * 10;
+    if (duty >= 1000) dir = -1;
+    if (duty == 0) dir = 1;
+    
+    __HAL_TIM_SET_COMPARE(&amp;htim3, TIM_CHANNEL_1, duty);
+    HAL_Delay(10);
+}</code></pre>
+
+<h3>输入捕获（测量频率）</h3>
+
+<pre><code>// 用TIM4 CH1测量外部信号的频率和占空比
+TIM_HandleTypeDef htim4;
+volatile uint32_t freq_hz = 0, duty_pct = 0;
+
+void IC_Init(void) {
+    htim4.Instance = TIM4;
+    htim4.Init.Prescaler = 72 - 1;    // 1MHz计数频率
+    htim4.Init.Period = 0xFFFF;
+    HAL_TIM_IC_Init(&amp;htim4);
+    
+    TIM_IC_InitTypeDef ic = {0};
+    ic.ICPolarity = TIM_ICPOLARITY_RISING;
+    ic.ICSelection = TIM_ICSELECTION_DIRECTTI;
+    ic.ICPrescaler = TIM_ICPSC_DIV1;
+    ic.ICFilter = 0;
+    HAL_TIM_IC_ConfigChannel(&amp;htim4, &amp;ic, TIM_CHANNEL_1);
+    HAL_TIM_IC_Start_IT(&amp;htim4, TIM_CHANNEL_1);
+}
+
+// 输入捕获中断
+void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim) {
+    static uint32_t last_capture = 0;
+    uint32_t now = HAL_TIM_ReadCapturedValue(htim, TIM_CHANNEL_1);
+    
+    if (now > last_capture) {
+        uint32_t period = now - last_capture;
+        freq_hz = 1000000 / period;  // 1MHz / 计数值 = 频率
+    }
+    last_capture = now;
+}</code></pre>
+
+<h2>📊 ADC读取</h2>
+
+<pre><code>// ADC1单通道轮询读取
+ADC_HandleTypeDef hadc1;
+
+void ADC_Init(void) {
+    hadc1.Instance = ADC1;
+    hadc1.Init.ScanConvMode = ADC_SCAN_DISABLE;
+    hadc1.Init.ContinuousConvMode = ENABLE;  // 连续转换模式
+    hadc1.Init.DiscontinuousConvMode = DISABLE;
+    hadc1.Init.ExternalTrigConv = ADC_SOFTWARE_START;
+    hadc1.Init.DataAlign = ADC_DATAALIGN_RIGHT;
+    hadc1.Init.NbrOfConversion = 1;
+    HAL_ADC_Init(&amp;hadc1);
+}
+
+uint16_t read_adc(void) {
+    HAL_ADC_Start(&amp;hadc1);
+    if (HAL_ADC_PollForConversion(&amp;hadc1, 10) == HAL_OK) {
+        return HAL_ADC_GetValue(&amp;hadc1);  // 0-4095 (12位ADC)
+    }
+    return 0xFFFF;  // 超时返回错误值
+}
+
+float read_voltage(void) {
+    return read_adc() * 3.3f / 4096.0f;
+}
+
+// 多通道扫描（ADC1 CH0=PA0, CH1=PA1）
+void ADC_MultiChannel_Init(void) {
+    hadc1.Init.ScanConvMode = ADC_SCAN_ENABLE;
+    hadc1.Init.NbrOfConversion = 2;
+    HAL_ADC_Init(&amp;hadc1);
+}
+
+uint32_t adc_read_multi(uint16_t *buf, uint8_t channels) {
+    HAL_ADC_Start_DMA(&amp;hadc1, (uint32_t*)buf, channels);
+    // DMA完成后在回调中处理
+}</code></pre>
+
+<h2>📨 I2C通信（EEPROM读写）</h2>
+
+<p>I2C是传感器和存储芯片最常用的接口。以AT24C02（256字节EEPROM）为例。</p>
+
+<pre><code>// I2C1读写AT24C02 EEPROM
+I2C_HandleTypeDef hi2c1;
+
+void I2C_Init(void) {
+    hi2c1.Instance = I2C1;
+    hi2c1.Init.ClockSpeed = 100000;       // 100KHz（标准模式）
+    hi2c1.Init.DutyCycle = I2C_DUTYCYCLE_2;
+    hi2c1.Init.OwnAddress1 = 0;
+    hi2c1.Init.AddressingMode = I2C_ADDRESSINGMODE_7BIT;
+    HAL_I2C_Init(&amp;hi2c1);
+}
+
+// 写入一个字节到指定地址
+HAL_StatusTypeDef EEPROM_WriteByte(uint8_t addr, uint8_t data) {
+    // AT24C02地址=0xA0，器件地址<<1 + R/W位
+    uint8_t buf[2] = {addr, data};
+    return HAL_I2C_Master_Transmit(&amp;hi2c1, 0xA0, buf, 2, 100);
+}
+
+// 从指定地址读取一个字节
+uint8_t EEPROM_ReadByte(uint8_t addr) {
+    uint8_t data = 0xFF;
+    // 先发送要读的地址
+    HAL_I2C_Master_Transmit(&amp;hi2c1, 0xA0, &amp;addr, 1, 100);
+    // 再读取数据
+    HAL_I2C_Master_Receive(&amp;hi2c1, 0xA0, &amp;data, 1, 100);
+    return data;
+}
+
+// 页写入（AT24C02页大小=8字节）
+HAL_StatusTypeDef EEPROM_WritePage(uint8_t addr, uint8_t *data, uint8_t len) {
+    uint8_t buf[9];  // 1字节地址 + 最多8字节数据
+    buf[0] = addr;
+    memcpy(&amp;buf[1], data, len);
+    return HAL_I2C_Master_Transmit(&amp;hi2c1, 0xA0, buf, len + 1, 100);
+}
+
+// 测试：写入字符串并读出验证
+void EEPROM_Test(void) {
+    const char *str = "Hello!";
+    EEPROM_WritePage(0, (uint8_t*)str, 6);
+    HAL_Delay(10);  // EEPROM写入需要时间（内部写周期）
+    
+    char buf[7] = {0};
+    for (int i = 0; i < 6; i++) {
+        buf[i] = EEPROM_ReadByte(i);
+    }
+    printf("Read from EEPROM: %s\r\n", buf);  // 期望: Hello!
+}</code></pre>
+
+<h2>🔗 SPI通信（Flash读写）</h2>
+
+<p>SPI是高速外设（Flash、显示屏、SD卡）的首选。以W25Q16（2MB Flash）为例。</p>
+
+<pre><code>// SPI1读写W25Q16 Flash
+SPI_HandleTypeDef hspi1;
+
+// W25Q16指令
+#define W25Q_READ_ID    0x9F
+#define W25Q_READ_DATA  0x03
+#define W25Q_WRITE_EN   0x06
+#define W25Q_PAGE_PROG  0x02
+#define W25Q_READ_SR1   0x05
+#define W25Q_SECTOR_ERASE 0x20
+
+void SPI_Init(void) {
+    hspi1.Instance = SPI1;
+    hspi1.Init.Mode = SPI_MODE_MASTER;
+    hspi1.Init.Direction = SPI_DIRECTION_2LINES;
+    hspi1.Init.DataSize = SPI_DATASIZE_8BIT;
+    hspi1.Init.CLKPolarity = SPI_POLARITY_LOW;
+    hspi1.Init.CLKPhase = SPI_PHASE_1EDGE;
+    hspi1.Init.NSS = SPI_NSS_SOFT;
+    hspi1.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_4; // 18MHz
+    hspi1.Init.FirstBit = SPI_FIRSTBIT_MSB;
+    HAL_SPI_Init(&amp;hspi1);
+}
+
+// 读芯片ID（确认SPI通信正常）
+uint16_t W25Q_ReadID(void) {
+    uint8_t tx[4] = {W25Q_READ_ID, 0, 0, 0};
+    uint8_t rx[4] = {0};
+    HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4, GPIO_PIN_RESET); // CS低
+    HAL_SPI_TransmitReceive(&amp;hspi1, tx, rx, 4, 100);
+    HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4, GPIO_PIN_SET);   // CS高
+    return (rx[1] << 8) | rx[2];  // 期望: 0xEF15(W25Q16)
+}
+
+// 从指定地址读取数据
+void W25Q_Read(uint32_t addr, uint8_t *buf, uint16_t len) {
+    uint8_t cmd[4] = {
+        W25Q_READ_DATA,
+        (uint8_t)(addr >> 16),
+        (uint8_t)(addr >> 8),
+        (uint8_t)(addr)
+    };
+    HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4, GPIO_PIN_RESET);
+    HAL_SPI_Transmit(&amp;hspi1, cmd, 4, 100);
+    HAL_SPI_Receive(&amp;hspi1, buf, len, 1000);
+    HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4, GPIO_PIN_SET);
+}
+
+// 写使能（任何写操作前必须执行）
+void W25Q_WriteEnable(void) {
+    uint8_t cmd = W25Q_WRITE_EN;
+    HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4, GPIO_PIN_RESET);
+    HAL_SPI_Transmit(&amp;hspi1, &amp;cmd, 1, 100);
+    HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4, GPIO_PIN_SET);
+}</code></pre>
+
+<h2>📡 DMA（直接存储器访问）实战</h2>
+
+<p>DMA是STM32最强大的特性之一。理解它，你的程序效率能提升10倍——CPU可以完全不参与数据传输。</p>
+
+<pre><code>// ADC + DMA 连续采样：CPU零干预采集2048个样本
+#define ADC_BUF_SIZE 2048
+uint16_t adc_buffer[ADC_BUF_SIZE];
+DMA_HandleTypeDef hdma_adc;
+
+void ADC_DMA_Init(void) {
+    // 1. 使能DMA时钟
+    __HAL_RCC_DMA1_CLK_ENABLE();
+    
+    // 2. 配置DMA
+    hdma_adc.Instance = DMA1_Channel1;
+    hdma_adc.Init.Direction = DMA_PERIPH_TO_MEMORY;       // 外设→内存
+    hdma_adc.Init.PeriphInc = DMA_PINC_DISABLE;           // 外设地址不变(ADC_DR)
+    hdma_adc.Init.MemInc = DMA_MINC_ENABLE;               // 内存地址递增
+    hdma_adc.Init.PeriphDataAlignment = DMA_PDATAALIGN_HALFWORD; // 16位
+    hdma_adc.Init.MemDataAlignment = DMA_MDATAALIGN_HALFWORD;
+    hdma_adc.Init.Mode = DMA_CIRCULAR;                    // 循环模式(不停)
+    hdma_adc.Init.Priority = DMA_PRIORITY_HIGH;
+    HAL_DMA_Init(&amp;hdma_adc);
+    
+    // 3. 关联ADC和DMA
+    __HAL_LINKDMA(&amp;hadc1, DMA_Handle, hdma_adc);
+    
+    // 4. 启动ADC DMA传输
+    HAL_ADC_Start_DMA(&amp;hadc1, (uint32_t*)adc_buffer, ADC_BUF_SIZE);
+    // 此后CPU完全不用管，DMA会自动把每次ADC结果写到adc_buffer[]
+}
+
+// DMA半传输完成回调（前1024个样本就绪）
+void HAL_ADC_ConvHalfCpltCallback(ADC_HandleTypeDef* hadc) {
+    // 处理前半段数据（adc_buffer[0..1023]）
+    // 此时DMA正在填充后半段，互不干扰！（双缓冲技巧）
+}
+
+// DMA全部传输完成回调（后1024个样本就绪）
+void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc) {
+    // 处理后半段数据（adc_buffer[1024..2047]）
+    float sum = 0;
+    for (int i = 1024; i < ADC_BUF_SIZE; i++) {
+        sum += adc_buffer[i];
+    }
+    float avg = sum / 1024.0f;
+    printf("ADC average (2nd half): %.2f mV\r\n", avg * 3300 / 4096);
+}
+
+// DMA传输方向总结
+// PERIPH_TO_MEMORY:  ADC采样, UART接收, SPI接收
+// MEMORY_TO_PERIPH:  UART发送大段, SPI发送显存, DAC输出波形
+// MEMORY_TO_MEMORY:  快速memcpy (不占用CPU循环)</code></pre>
+
+<div class="card">
+<div class="h"><span class="name">DMA双缓冲技巧</span><span class="tag b">进阶</span></div>
+<div class="b">
+<div class="desc">利用半传输和全传输中断实现"零拷贝"数据处理：DMA在填充后半段时，CPU处理前半段；DMA填满后半段回到开头时，CPU处理后半段。这在示波器、音频处理中至关重要。<br><br>
+<b>关键API：</b><br>
+• <code>HAL_ADC_ConvHalfCpltCallback()</code> — 前半段OK→CPU处理前半段<br>
+• <code>HAL_ADC_ConvCpltCallback()</code> — 后半段OK→CPU处理后半段<br>
+• <code>__HAL_DMA_GET_COUNTER(&amp;hdma)</code> — 查询DMA剩余传输次数
+</div></div>
+
+<h2>🔧 HAL库深度解析</h2>
+
+<h3>HAL库状态机</h3>
+
+<pre><code>// 每个HAL函数返回HAL_StatusTypeDef
+typedef enum {
+  HAL_OK       = 0x00,  // 成功
+  HAL_ERROR    = 0x01,  // 一般错误
+  HAL_BUSY     = 0x02,  // 资源忙（DMA/外设正在使用）
+  HAL_TIMEOUT  = 0x03   // 超时（通常外设没响应）
+} HAL_StatusTypeDef;
+
+// 黄金法则：永远检查返回值！
+HAL_StatusTypeDef ret = HAL_UART_Transmit(&amp;huart2, data, len, 100);
+if (ret != HAL_OK) {
+    // 记录错误类型
+    switch (ret) {
+    case HAL_BUSY:
+        printf("UART busy, retrying...\r\n");
+        break;
+    case HAL_TIMEOUT:
+        printf("UART timeout! Check wiring.\r\n");
+        break;
+    default:
+        Error_Handler();
+    }
+}</code></pre>
+
+<h3>Tick定时器与HAL_Delay的陷阱</h3>
+
+<div class="warn">⚠ <b>关键坑：</b>HAL_Delay依赖SysTick中断。如果你在中断服务函数（尤其是优先级高于SysTick的中断）里调用HAL_Delay，会死循环——因为SysTick中断被阻塞了，计数器永远不会更新！</div>
+
+<pre><code>// 正确做法1：在中断中用非阻塞轮询
+void process_in_isr(void) {
+    uint32_t tickstart = HAL_GetTick();
+    while ((HAL_GetTick() - tickstart) < 100) {  // 最多等100ms
+        if (HAL_UART_Transmit(&amp;huart2, data, 1, 1) == HAL_OK) break;
+    }
+}
+
+// 正确做法2：实现独立的微秒延时（不依赖SysTick）
+void delay_us(uint32_t us) {
+    // DWT（Data Watchpoint）计数器，不受中断影响
+    uint32_t start = DWT->CYCCNT;
+    uint32_t ticks = us * (SystemCoreClock / 1000000);
+    while ((DWT->CYCCNT - start) < ticks);
+}
+
+// DWT初始化（main开头调用一次）
+void DWT_Init(void) {
+    CoreDebug->DEMCR |= CoreDebug_DEMCR_TRCENA_Msk;
+    DWT->CTRL |= DWT_CTRL_CYCCNTENA_Msk;
+}
+
+// 正确做法3：用软件定时器代替HAL_Delay
+volatile uint32_t g_ms_ticks = 0;  // 在SysTick或TIM中断中递增
+
+void nonblock_delay(uint32_t ms) {
+    uint32_t start = g_ms_ticks;
+    while ((g_ms_ticks - start) < ms) {
+        __WFI();  // 等待中断（省电）
+    }
+}</code></pre>
+
+<h2>🛡 看门狗</h2>
+
+<h3>独立看门狗（IWDG）——防死机最后防线</h3>
+
+<pre><code>// IWDG由内部LSI(~40kHz)驱动，系统时钟挂了也能复位
+IWDG_HandleTypeDef hiwdg;
+
+void IWDG_Init(void) {
+    hiwdg.Instance = IWDG;
+    hiwdg.Init.Prescaler = IWDG_PRESCALER_64;  // 40kHz/64 ≈ 625Hz
+    hiwdg.Init.Reload = 625;                     // 625/625 = 1秒超时
+    // 即：1秒内不喂狗就复位
+    HAL_IWDG_Init(&amp;hiwdg);
+}
+
+// 在while(1)中定期喂狗
+void IWDG_Feed(void) {
+    HAL_IWDG_Refresh(&amp;hiwdg);
+}
+
+// 使用示例
+int main(void) {
+    // ... 初始化 ...
+    IWDG_Init();  // 启动看门狗（此后不能停止！）
+    
+    while (1) {
+        IWDG_Feed();  // 喂狗
+        do_task_a();
+        IWDG_Feed();  // 再喂（如果task_a耗时较长）
+        do_task_b();
+        // 如果do_task_b卡死超过1秒 → 狗饿了 → 系统自动复位
+    }
+}
+// ⚠ IWDG一旦启动就无法软件停止（硬件设计）</code></pre>
+
+<h3>窗口看门狗（WWDG）——更精确的守护</h3>
+
+<pre><code>// WWDG有"喂狗窗口"：太早喂和太晚喂都会触发复位
+// 适用于检测"代码跑飞后提前回来"的异常情况
+WWDG_HandleTypeDef hwwdg;
+
+void WWDG_Init(void) {
+    hwwdg.Instance = WWDG;
+    hwwdg.Init.Prescaler = WWDG_PRESCALER_8;
+    hwwdg.Init.Window = 0x50;      // 窗口上限（低于此值才能喂）
+    hwwdg.Init.Counter = 0x7F;     // 初始计数值
+    // PCLK1=36MHz, 分频8 → 36M/4096/8 ≈ 1.1kHz
+    // 计数器从0x7F减到0x3F需要 (127-63)*0.91ms ≈ 58ms
+    // 窗口在0x50(80)以上，即前27ms不能喂，后31ms必须喂
+    HAL_WWDG_Init(&amp;hwwdg);
+}
+
+// 在窗口期喂狗
+void WWDG_Feed(void) {
+    HAL_WWDG_Refresh(&amp;hwwdg, 0x7F);
+}</code></pre>
+
+<h2>⏰ RTC实时时钟</h2>
+
+<pre><code>// RTC使用外部32.768kHz晶振（LSE），精度可达±5ppm
+RTC_HandleTypeDef hrtc;
+
+void RTC_Init(void) {
+    hrtc.Instance = RTC;
+    hrtc.Init.AsynchPrediv = 127;     // 32768/(127+1) = 256Hz
+    hrtc.Init.SynchPrediv = 255;      // 256/(255+1) = 1Hz
+    hrtc.Init.OutPut = RTC_OUTPUT_DISABLE;
+    HAL_RTC_Init(&amp;hrtc);
+}
+
+// 设置时间
+void RTC_SetTime(uint8_t h, uint8_t m, uint8_t s) {
+    RTC_TimeTypeDef time = {0};
+    time.Hours = h;
+    time.Minutes = m;
+    time.Seconds = s;
+    HAL_RTC_SetTime(&amp;hrtc, &amp;time, RTC_FORMAT_BIN);
+}
+
+// 读取时间
+void RTC_GetTimeStr(char *buf) {
+    RTC_TimeTypeDef time;
+    HAL_RTC_GetTime(&amp;hrtc, &amp;time, RTC_FORMAT_BIN);
+    sprintf(buf, "%02d:%02d:%02d", time.Hours, time.Minutes, time.Seconds);
+}
+
+// 配置闹钟（每秒中断）
+void RTC_AlarmInit(void) {
+    RTC_AlarmTypeDef alarm = {0};
+    alarm.AlarmTime.Seconds = 0;
+    alarm.AlarmMask = RTC_ALARMMASK_DATEWEEKDAY | 
+                      RTC_ALARMMASK_HOURS | RTC_ALARMMASK_MINUTES;
+    // 屏蔽日期/小时/分钟，只匹配秒 → 每分钟的00秒触发
+    HAL_RTC_SetAlarm_IT(&amp;hrtc, &amp;alarm, RTC_FORMAT_BIN);
+}
+
+void HAL_RTC_AlarmAEventCallback(RTC_HandleTypeDef *hrtc) {
+    // 每分钟执行一次
+    printf("Minute tick!\r\n");
+}</code></pre>
+
+<h2>🔌 中断优先级 NVIC</h2>
+
+<pre><code>// 设置优先级分组（在main开头调用一次）
+HAL_NVIC_SetPriorityGrouping(NVIC_PRIORITYGROUP_4);  // 4位全给抢占优先级
+
+// 设置具体中断优先级（数字越小优先级越高）
+HAL_NVIC_SetPriority(USART1_IRQn,   0, 0);   // UART最高优先级(0)
+HAL_NVIC_SetPriority(TIM2_IRQn,     1, 0);   // 定时器次之(1)
+HAL_NVIC_SetPriority(ADC1_IRQn,     2, 0);   // ADC(2)
+HAL_NVIC_SetPriority(EXTI0_IRQn,    3, 0);   // 外部中断(3)
+HAL_NVIC_SetPriority(SysTick_IRQn, 15, 0);   // SysTick最低！
+
+// 使能中断
+HAL_NVIC_EnableIRQ(USART1_IRQn);
+HAL_NVIC_EnableIRQ(TIM2_IRQn);
+
+// 优先级分组说明
+// NVIC_PRIORITYGROUP_4: 抢占4位(0-15), 无子优先级
+// NVIC_PRIORITYGROUP_3: 抢占3位(0-7), 子优先级1位(0-1)
+// NVIC_PRIORITYGROUP_2: 抢占2位(0-3), 子优先级2位(0-3)
+// NVIC_PRIORITYGROUP_0: 无抢占, 子优先级4位(0-15)
+// 抢占优先级高的可以打断低的；同抢占优先级看子优先级</code></pre>
+
+<h2>💤 低功耗模式</h2>
+
+<div class="card">
+<div class="h"><span class="name">STM32F103低功耗模式对比</span><span class="tag y">必掌握</span></div>
+<div class="b">
+<div class="desc">
+<table>
+<tr><th>模式</th><th>功耗</th><th>唤醒方式</th><th>唤醒后</th><th>适用场景</th></tr>
+<tr><td>Sleep</td><td>~5mA</td><td>任意中断/事件</td><td>继续执行下一条</td><td>等待外设中断</td></tr>
+<tr><td>Stop</td><td>~20μA</td><td>EXTI线/唤醒引脚</td><td>从停止处继续</td><td>电池设备长休眠</td></tr>
+<tr><td>Standby</td><td>~2μA</td><td>WKUP引脚/RTC闹钟</td><td>系统复位（重跑main）</td><td>超长待机</td></tr>
+</table>
+</div></div>
+
+<pre><code>// Sleep模式 — 最简单，CPU停但外设继续
+void enter_sleep(void) {
+    HAL_SuspendTick();          // 暂停SysTick（避免唤醒）
+    HAL_PWR_EnterSLEEPMode(PWR_MAINREGULATOR_ON, PWR_SLEEPENTRY_WFI);
+    HAL_ResumeTick();
+}
+// 用法：HAL_UART_Receive_IT() 后调用sleep，有数据时自动唤醒
+
+// Stop模式 — PDA断电，所有时钟停
+void enter_stop(void) {
+    HAL_PWR_EnterSTOPMode(PWR_LOWPOWERREGULATOR_ON, PWR_STOPENTRY_WFI);
+    // 唤醒后需要重新配置时钟！
+    SystemClock_Config();
+}
+// 用法：配置PA0为EXTI唤醒源，按键唤醒
+
+// Standby模式 — 最省电，唤醒=复位
+void enter_standby(void) {
+    __HAL_RCC_PWR_CLK_ENABLE();
+    HAL_PWR_EnableWakeUpPin(PWR_WAKEUP_PIN1);  // PA0作为WKUP
+    __HAL_PWR_CLEAR_FLAG(PWR_FLAG_WU);
+    HAL_PWR_EnterSTANDBYMode();
+    // 永远不会执行到这里！唤醒后从main开头重跑
+}</code></pre>
+
+<h2>🐛 调试技巧</h2>
+
+<h3>HardFault排查</h3>
+
+<div class="trouble">🔍 <b>程序跑飞进HardFault_Handler</b><br><br>
+❌ <b>最常见原因：</b><br>
+1. 访问了未初始化的外设（没开时钟就操作寄存器）<br>
+2. 数组越界/栈溢出（局部变量太多或递归太深）<br>
+3. 函数指针为NULL（忘了注册回调就调用）<br>
+4. 除零错误（Cortex-M3/4支持，需使能）<br>
+5. 非对齐访问（Cortex-M0不支持非对齐）<br><br>
+✅ <b>排查方法：</b><br>
+1. 在HardFault_Handler中设断点<br>
+2. 查看SP（栈指针）指向的栈帧<br>
+3. 从栈帧中取出PC（程序计数器）→ 定位出错的指令地址<br>
+4. 在.map文件中查找该地址对应的函数<br>
+5. 用GDB命令行：<code>arm-none-eabi-addr2line -e app.elf 0x0800xxxx</code></div>
+
+<pre><code>// HardFault调试代码：保存现场信息
+void HardFault_Handler(void) {
+    __asm volatile (
+        "TST LR, #4               \n"
+        "ITE EQ                   \n"
+        "MRSEQ R0, MSP            \n"  // 主栈
+        "MRSNE R0, PSP            \n"  // 进程栈
+        "B hard_fault_handler_c   \n"
+    );
+}
+
+// C语言处理函数（可以通过串口或LED输出调试信息）
+void hard_fault_handler_c(uint32_t *stack) {
+    printf("!!! HARDFAULT !!!\r\n");
+    printf("  R0  = 0x%08X\r\n", stack[0]);
+    printf("  R1  = 0x%08X\r\n", stack[1]);
+    printf("  R2  = 0x%08X\r\n", stack[2]);
+    printf("  R3  = 0x%08X\r\n", stack[3]);
+    printf("  R12 = 0x%08X\r\n", stack[4]);
+    printf("  LR  = 0x%08X\r\n", stack[5]);
+    printf("  PC  = 0x%08X\r\n", stack[6]);  // ← 出错的指令地址！
+    printf("  xPSR= 0x%08X\r\n", stack[7]);
+    
+    // 用addr2line定位：
+    // arm-none-eabi-addr2line -e firmware.elf 0x08000xxx
+    
+    while(1);  // 停在这里方便调试
+}</code></pre>
+
+<h3>printf调试技巧</h3>
+
+<pre><code>// 条件编译控制调试输出等级
+#define LOG_LEVEL 3  // 0=关闭 1=ERROR 2=WARN 3=INFO 4=DEBUG
+
+#if LOG_LEVEL >= 1
+#define LOG_E(fmt, ...) printf("[E] " fmt "\r\n", ##__VA_ARGS__)
+#else
+#define LOG_E(...)
+#endif
+
+#if LOG_LEVEL >= 2
+#define LOG_W(fmt, ...) printf("[W] " fmt "\r\n", ##__VA_ARGS__)
+#else
+#define LOG_W(...)
+#endif
+
+#if LOG_LEVEL >= 3
+#define LOG_I(fmt, ...) printf("[I] " fmt "\r\n", ##__VA_ARGS__)
+#else
+#define LOG_I(...)
+#endif
+
+#if LOG_LEVEL >= 4
+#define LOG_D(fmt, ...) printf("[D] %s:%d " fmt "\r\n", __func__, __LINE__, ##__VA_ARGS__)
+#else
+#define LOG_D(...)
+#endif
+
+// 使用示例
+LOG_D("ADC value = %d", val);    // 调试版：打印文件名+行号
+LOG_I("System started");          // 信息版
+LOG_W("Battery low: %d%%", 15);  // 警告版
+LOG_E("I2C timeout!");           // 错误版</code></pre>
+
+<h2>🎯 实战项目：多传感器数据采集系统</h2>
+
+<pre><code>// 综合项目：定时采集温度(ADC)+存储到EEPROM+串口上报
+// 硬件：STM32F103C8T6 + NTC热敏电阻(PA0) + AT24C02 + USART1
+
+#define LOG_INTERVAL_MS  5000   // 每5秒采集一次
+#define EEPROM_BASE_ADDR 0x00
+#define MAX_RECORDS      32     // 最多存32条记录
+
+typedef struct {
+    uint32_t timestamp;  // 系统启动后的秒数
+    uint16_t adc_raw;    // ADC原始值
+    float voltage;       // 电压值
+    float temp_c;        // 摄氏温度
+} sensor_record_t;
+
+sensor_record_t g_records[MAX_RECORDS];
+uint8_t g_record_count = 0;
+
+// NTC温度转换（10K NTC, B=3950, 串联10K上拉电阻到3.3V）
+float ntc_to_temp(uint16_t adc) {
+    float v = adc * 3.3f / 4096.0f;           // 电压
+    float r = v * 10000.0f / (3.3f - v);      // NTC电阻
+    // Steinhart-Hart简化公式
+    float temp = 1.0f / (1.0f/298.15f + log(r/10000.0f)/3950.0f) - 273.15f;
+    return temp;
+}
+
+void collect_and_store(void) {
+    if (g_record_count >= MAX_RECORDS) {
+        // 环形覆盖最早的记录
+        g_record_count = 0;
+    }
+    
+    sensor_record_t *rec = &amp;g_records[g_record_count];
+    rec->timestamp = HAL_GetTick() / 1000;
+    rec->adc_raw = read_adc();
+    rec->voltage = rec->adc_raw * 3.3f / 4096.0f;
+    rec->temp_c = ntc_to_temp(rec->adc_raw);
+    
+    // 保存到EEPROM
+    EEPROM_WritePage(EEPROM_BASE_ADDR + g_record_count * sizeof(sensor_record_t),
+                     (uint8_t*)rec, sizeof(sensor_record_t));
+    g_record_count++;
+    
+    // 串口上报
+    printf("[%05lu] ADC=%4d V=%.3fV Temp=%.1f°C (record %d/%d)\r\n",
+           rec->timestamp, rec->adc_raw, rec->voltage, rec->temp_c,
+           g_record_count, MAX_RECORDS);
+}
+
+// 主循环
+int main(void) {
+    HAL_Init();
+    SystemClock_Config();
+    MX_GPIO_Init();
+    MX_USART1_UART_Init();
+    MX_ADC1_Init();
+    MX_I2C1_Init();
+    MX_TIM2_Init();
+    
+    printf("=== Multi-Sensor Logger ===\r\n");
+    printf("Interval: %dms, Max records: %d\r\n", LOG_INTERVAL_MS, MAX_RECORDS);
+    
+    uint32_t last_log = 0;
+    while (1) {
+        uint32_t now = HAL_GetTick();
+        if (now - last_log >= LOG_INTERVAL_MS) {
+            last_log = now;
+            collect_and_store();
+        }
+        // 其余时间可以处理串口命令等
+    }
+}</code></pre>
+
+<div class="trouble">🔍 <b>常见问题：HAL_Delay卡死</b><br>
+❌ <b>现象：</b>调用HAL_Delay后程序卡住不返回<br>
+✅ <b>原因：</b>HAL_Delay依赖SysTick中断。如果在中断里调用且中断优先级高于SysTick，SysTick无法触发导致死锁<br>
+✅ <b>解决：</b>确保调用HAL_Delay的中断优先级数字 > SysTick优先级数字（数字越大优先级越低）</div>
+
+<div class="trouble">🔍 <b>常见问题：外设不工作（已开时钟）</b><br>
+❌ <b>现象：</b>RCC时钟已使能，但外设寄存器读写无效<br>
+✅ <b>排查：</b><br>
+1. 确认使用了正确的总线时钟（APB1/APB2）<br>
+2. 检查外设是否在APB总线上被禁用了（某些F4/F7有额外门控）<br>
+3. GPIO的AF（复用功能）是否正确配置<br>
+4. 如果有重映射（Remap），是否已使能AFIO时钟并配置重映射</div>
+
+<div class="trouble">🔍 <b>常见问题：编译OK但烧录后不运行</b><br>
+❌ <b>现象：</b>程序编译下载成功，但LED不闪、串口无输出<br>
+✅ <b>排查清单：</b><br>
+1. 启动文件(startup_xxx.s)是否匹配MCU型号<br>
+2. 链接脚本中的Flash/RAM起始地址和大小是否正确<br>
+3. BOOT0引脚是否接GND（拉高会进Bootloader不跑用户程序）<br>
+4. 复位引脚是否被意外拉低<br>
+5. 用调试器单步看是否卡在HardFault_Handler<br>
+6. 检查晶振是否起振（示波器测HSE引脚）</div>
+
+<h2>📋 知识点回顾</h2>
+<div class="summary">
+<b>✅ STM32开发核心：</b><br>
+• 三层次开发：寄存器(教学) → HAL库(快速开发) → LL库(性能优化)<br>
+• 时钟树：HSE→PLL→AHB→APB1(≤36MHz)/APB2(≤72MHz)→外设<br>
+• GPIO：速度等级匹配场景(LED用Low, SPI用High)，BSRR原子操作更安全<br>
+• UART：阻塞发送(调试)、中断接收(单字节)、DMA+IDLE(不定长数据)<br>
+• TIM：基本定时(中断)、PWM输出(呼吸灯/舵机)、输入捕获(测频率)<br>
+• ADC：轮询读取(简单)、DMA连续采样(高效)、双缓冲(示波器)<br>
+• I2C/SPI：标准外设总线，EEPROM/Flash/传感器都走它们<br>
+• DMA：P→M(ADC)、M→P(UART发送)、M→M(快拷)<br>
+• 看门狗：IWDG(防死机)、WWDG(检测时序异常)<br><br>
+<b>🛠 调试利器：</b><br>
+• HardFault_Handler改造 → 获取PC/LR定位崩溃点<br>
+• 条件编译日志宏 → 开发时全开，发布时一键关闭<br>
+• HAL返回值检查 → 每个API调用检查HAL_OK<br>
+• ISR中不用HAL_Delay → 用非阻塞轮询或独立us延时<br><br>
+<b>📖 进阶方向：</b><br>
+• FreeRTOS移植 → 任务调度让多任务变成简单函数调用<br>
+• CMSIS-DSP → 数字信号处理库(FFT/FIR/矩阵运算)<br>
+• TouchGFX → 图形界面开发<br>
+• USB协议栈 → CDC/HID/MSC设备开发
+</div>
+
+<div class="chnav">
+  <a onclick="window.parent.loadPage('guide-ch05')">◀ 上一章：烧录调试</a>
+  <a class="toc-link" onclick="window.parent.loadPage('guide')">📑 章节目录</a>
+  <a onclick="window.parent.loadPage('guide-ch07')">ESP32 ：下一章 ▶</a>
+</div>
+
+<script>
+document.querySelectorAll('pre').forEach(pre => {
+  const btn = document.createElement('button');
+  btn.className = 'copy-btn';
+  btn.textContent = 'Copy';
+  btn.onclick = () => {
+    navigator.clipboard.writeText(pre.textContent).then(() => {
+      btn.textContent = 'Copied!';
+      btn.classList.add('copied');
+      setTimeout(() => { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 1500);
+    });
+  };
+  pre.appendChild(btn);
+});
+</script>
+
+</body>
+</html>

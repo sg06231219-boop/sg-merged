@@ -1,0 +1,642 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0"><title>教程7：红外遥控解码 - STM32嵌入式开发</title><style>:root{--bg:#0d1117;--bg2:#161b22;--bg3:#21262d;--br:#30363d;--t:#c9d1d9;--t2:#8b949e;--a:#58a6ff;--g:#3fb950;--o:#d29922;--r:#f85149;--p:#a371f7;--c1:#39c5cf}body{background:var(--bg);color:var(--t);font-family:system-ui,sans-serif;line-height:1.8;max-width:900px;margin:0 auto;padding:20px}h1{text-align:center;background:linear-gradient(135deg,var(--a),var(--p));-webkit-background-clip:text;-webkit-text-fill-color:transparent}h2{color:var(--a);border-bottom:2px solid var(--br);padding-bottom:6px;margin-top:32px}h3{color:var(--c1);margin-top:22px}pre{background:#1c2128;border:1px solid var(--br);border-radius:8px;padding:14px;overflow-x:auto;font-size:.84em}code{font-family:'Cascadia Code',Consolas,monospace}:not(pre)>code{background:var(--bg3);padding:2px 6px;border-radius:4px;color:var(--c1)}table{width:100%;border-collapse:collapse;margin:12px 0}th{background:var(--bg3);color:var(--a);padding:8px 12px;border:1px solid var(--br);text-align:left}td{padding:8px 12px;border:1px solid var(--br)}.note{background:rgba(88,166,255,.08);border-left:3px solid var(--a);border-radius:8px;padding:12px 16px;margin:12px 0}.warn{background:rgba(248,81,73,.08);border-left:3px solid var(--r);border-radius:8px;padding:12px 16px;margin:12px 0}.tip{background:rgba(63,185,80,.08);border-left:3px solid var(--g);border-radius:8px;padding:12px 16px;margin:12px 0}.step{background:var(--bg2);border:1px solid var(--br);border-radius:8px;padding:12px 16px;margin:10px 0}</style></head><body>
+<h1>📡 教程7：红外遥控解码</h1>
+<p style="text-align:center;color:var(--t2)">STM32F103C8T6 + VS1838B | NEC协议 | 外部中断+定时器测脉宽</p>
+
+<h2>📖 你将学到什么</h2>
+<ul>
+<li>NEC红外通信协议原理</li>
+<li>外部中断+定时器测量脉冲宽度</li>
+<li>状态机设计实现NEC解码</li>
+<li>遥控器键值映射与应用</li>
+<li>用遥控器控制LED、电机等外设</li>
+</ul>
+
+<h2>🧰 硬件清单</h2>
+<table>
+<tr><th>元件</th><th>数量</th><th>说明</th></tr>
+<tr><td>STM32F103C8T6 最小系统板</td><td>1</td><td>Blue Pill</td></tr>
+<tr><td>VS1838B 红外接收模块</td><td>1</td><td>或其他1838系列</td></tr>
+<tr><td>红外遥控器</td><td>1</td><td>任意NEC协议遥控器</td></tr>
+<tr><td>LED</td><td>3</td><td>红、绿、蓝各1</td></tr>
+<tr><td>220Ω 电阻</td><td>3</td><td>LED限流</td></tr>
+</table>
+
+<h2>🔬 NEC 红外协议详解</h2>
+
+<h3>NEC协议帧结构</h3>
+<p>NEC协议一次传输32位数据（4字节），结构如下：</p>
+
+<pre><code>NEC 红外协议 — 单帧结构
+
+┌──────────┬────────┬────────┬────────┬────────┐
+│ 引导码   │ 地址码  │ 地址反码│ 数据码  │ 数据反码│
+│ (9ms+4.5ms)│ 8bit   │ 8bit   │ 8bit   │ 8bit   │
+└──────────┴────────┴────────┴────────┴────────┘
+  引导码部分     数据部分（16bit地址 + 16bit数据）
+
+引导码详解：
+  9ms低电平 → 4.5ms高电平（起始位）
+  9ms低电平 → 2.5ms高电平 = 重复码（按住不放时发送）
+
+数据位编码（逻辑0和逻辑1）：
+  逻辑0:  560μs低 + 560μs高   = 1.125ms
+  逻辑1:  560μs低 + 1690μs高  = 2.25ms
+
+完整一帧 = 9ms + 4.5ms + 32×1.125ms(平均) ≈ 67.5ms</code></pre>
+
+<h3>引导码与数据位时序图</h3>
+<pre><code>引导码（Init）：
+    ─────┐          ┌──────────
+    9ms  │ 4.5ms   │ 4.5ms   │
+         └──────────┘          ← 高电平
+
+逻辑0：
+         ┌──┐     ┌──┐
+    560μs└──┘560μs└──┘
+
+逻辑1：
+         ┌──┐           ┌──────┐
+    560μs└──┘  1690μs  └──────┘</code></pre>
+
+<h3>NEC 协议关键参数</h3>
+<table>
+<tr><th>参数</th><th>数值</th><th>说明</th></tr>
+<tr><td>载波频率</td><td>38kHz</td><td>红外载波</td></tr>
+<tr><td>引导码低</td><td>9000μs ±10%</td><td>起始信号</td></tr>
+<tr><td>引导码高</td><td>4500μs ±10%</td><td>起始信号</td></tr>
+<tr><td>重复码高</td><td>2250μs</td><td>按住不放</td></tr>
+<tr><td>逻辑0</td><td>560μs低+560μs高</td><td>数据0</td></tr>
+<tr><td>逻辑1</td><td>560μs低+1690μs高</td><td>数据1</td></tr>
+<tr><td>容差范围</td><td>±100μs</td><td>判断逻辑时使用</td></tr>
+</table>
+
+<h2>🔌 接线图</h2>
+
+<pre><code>STM32F103C8T6          VS1838B 模块
+─────────────          ───────────
+PA0 (EXTI0)   ──────── OUT (数据输出)
+3.3V          ──────── VCC
+GND           ──────── GND
+
+VS1838B 实物引脚（从正面看，左到右）：
+  [OUT] [GND] [VCC]
+  
+⚠ VS1838B 使用 3.3V 供电即可工作（输出高电平为3.3V）
+⚠ 如果使用5V供电的IR模块，输出高电平为5V，需要串联1kΩ电阻
+
+STM32F103C8T6          LED 指示灯
+─────────────          ───────────
+PC13 (GPIO)   ──────── LED红 ─┬─ 220Ω ─┬─ GND
+PC14 (GPIO)   ──────── LED绿 ─┘
+PC15 (GPIO)   ──────── LED蓝 ─┘</code></pre>
+
+<div class="note">
+<strong>接线注意：</strong><br>
+- VS1838B的OUT引脚输出的是<strong>解调后的信号</strong>（38kHz载波被移除）<br>
+- 模块输出低电平表示收到了红外信号（空闲时为高电平）<br>
+- 确保STM32的EXTI中断已使能
+</div>
+
+<h2>📝 分步操作指引</h2>
+
+<div class="step">
+<strong>Step 1：CubeMX 配置</strong><br>
+1. 配置PA0为GPIO_EXTI0（下降沿/上升沿触发）<br>
+2. 配置TIM2为输入捕获（用于测脉宽）或仅用作计数器<br>
+3. 配置PC13/PC14/PC15为GPIO_Output（LED）<br>
+4. 配置USART1用于打印解码结果<br>
+5. 使能EXTI0中断
+</div>
+
+<div class="step">
+<strong>Step 2：理解测距原理</strong><br>
+利用外部中断检测引脚电平变化，配合定时器计数器测量两次中断间的时间差。
+</div>
+
+<div class="step">
+<strong>Step 3：编写状态机解码</strong><br>
+按照"引导码→地址码→数据码"的状态顺序，逐位解析红外信号。
+</div>
+
+<div class="step">
+<strong>Step 4：打印键值</strong><br>
+先不绑定功能，只打印解码出的键值，确认能正常工作。
+</div>
+
+<div class="step">
+<strong>Step 5：绑定功能</strong><br>
+根据打印出的键值，绑定LED、电机等控制逻辑。
+</div>
+
+<h2>💻 完整代码</h2>
+
+<h3>main.c — 红外解码完整实现</h3>
+<pre><code>/* USER CODE BEGIN Includes */
+#include &lt;stdio.h&gt;
+#include &lt;string.h&gt;
+#include &lt;stdint.h&gt;
+/* USER CODE END Includes */
+
+/* USER CODE BEGIN PV */
+
+// NEC 解码状态
+typedef enum {
+    IR_STATE_IDLE = 0,      // 空闲，等待引导码
+    IR_STATE_LEADER_LOW,     // 引导码低电平
+    IR_STATE_LEADER_HIGH,    // 引导码高电平
+    IR_STATE_DATA_LOW,       // 数据位低电平
+    IR_STATE_DATA_HIGH,      // 数据位高电平
+    IR_STATE_DONE            // 解码完成
+} IR_State_t;
+
+// 解码结果
+typedef struct {
+    uint8_t address;    // 地址码
+    uint8_t addr_inv;   // 地址反码
+    uint8_t command;   // 命令码
+    uint8_t cmd_inv;    // 命令反码
+    uint8_t valid;      // 校验标志
+} IR_Data_t;
+
+// 全局变量
+volatile IR_State_t g_ir_state = IR_STATE_IDLE;
+volatile IR_Data_t g_ir_data;
+volatile uint32_t g_ir_raw_data = 0;   // 32bit原始数据
+volatile uint8_t g_ir_bit_index = 0;   // 当前解析的bit位
+volatile uint16_t g_last_tick = 0;     // 上次中断的计数器值
+
+// 定时器计数器（需要配置TIM2或TIM3）
+extern TIM_HandleTypeDef htim2;
+
+// NEC 协议时间参数（单位：μs）
+#define NEC_LEADER_LOW_MIN  8500   // 引导码低电平最小 9ms - 10%
+#define NEC_LEADER_LOW_MAX  9900   // 引导码低电平最大 9ms + 10%
+#define NEC_LEADER_HIGH_MIN 4000   // 引导码高电平最小 4.5ms - 10%
+#define NEC_LEADER_HIGH_MAX 5400   // 引导码高电平最大 4.5ms + 10%
+#define NEC_REPEAT_HIGH_MIN 2000   // 重复码高电平最小
+#define NEC_REPEAT_HIGH_MAX 2500   // 重复码高电平最大
+#define NEC_BIT_LOW_MIN     400    // 数据低电平最小
+#define NEC_BIT_LOW_MAX     800    // 数据低电平最大
+#define NEC_BIT0_HIGH_MIN   400    // 逻辑0高电平最小
+#define NEC_BIT0_HIGH_MAX   800    // 逻辑0高电平最大
+#define NEC_BIT1_HIGH_MIN   1400   // 逻辑1高电平最小
+#define NEC_BIT1_HIGH_MAX   2000   // 逻辑1高电平最大
+
+// 遥控器键值映射（根据你的遥控器修改）
+// 先用串口打印command值，然后在此表中添加对应键名
+typedef struct {
+    uint8_t key_code;
+    const char *key_name;
+} IR_KeyMap_t;
+
+const IR_KeyMap_t g_key_map[] = {
+    {0x45, "CH-"},
+    {0x46, "CH"},
+    {0x47, "CH+"},
+    {0x44, "PREV"},
+    {0x40, "NEXT"},
+    {0x43, "PLAY/PAUSE"},
+    {0x07, "VOL-"},
+    {0x15, "VOL+"},
+    {0x09, "EQ"},
+    {0x16, "0"},
+    {0x19, "100+"},
+    {0x0D, "200+"},
+    {0x0C, "1"},
+    {0x18, "2"},
+    {0x5E, "3"},
+    {0x08, "4"},
+    {0x1C, "5"},
+    {0x5A, "6"},
+    {0x42, "7"},
+    {0x52, "8"},
+    {0x4A, "9"},
+};
+
+// LED状态
+volatile uint8_t g_led_brightness[3] = {0, 0, 0}; // R, G, B
+/* USER CODE END PV */
+
+/* USER CODE BEGIN 0 */
+
+// 获取按键名称
+const char* IR_GetKeyName(uint8_t code)
+{
+    for (uint8_t i = 0; i &lt; sizeof(g_key_map)/sizeof(IR_KeyMap_t); i++) {
+        if (g_key_map[i].key_code == code) {
+            return g_key_map[i].key_name;
+        }
+    }
+    return "UNKNOWN";
+}
+
+// 获取当前定时器计数（微秒）
+static inline uint16_t Get_Timer_US(void)
+{
+    return (uint16_t)__HAL_TIM_GET_COUNTER(&amp;htim2);
+}
+
+// 重置定时器
+static inline void Reset_Timer(void)
+{
+    __HAL_TIM_SET_COUNTER(&amp;htim2, 0);
+}
+
+// 外部中断回调 — 核心解码逻辑
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
+{
+    if (GPIO_Pin != GPIO_PIN_0) return;  // 只处理PA0
+    
+    uint16_t now = Get_Timer_US();
+    uint16_t duration = now - g_last_tick;
+    g_last_tick = now;
+    
+    GPIO_PinState pin_state = HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_0);
+    
+    switch (g_ir_state) {
+        
+        case IR_STATE_IDLE:
+            if (pin_state == GPIO_PIN_LOW) {
+                // 引导码低电平开始
+                Reset_Timer();
+                g_ir_state = IR_STATE_LEADER_LOW;
+            }
+            break;
+            
+        case IR_STATE_LEADER_LOW:
+            if (pin_state == GPIO_PIN_HIGH) {
+                // 引导码低电平结束，检查时间
+                if (duration &gt;= NEC_LEADER_LOW_MIN &amp;&amp; duration &lt;= NEC_LEADER_LOW_MAX) {
+                    Reset_Timer();
+                    g_ir_state = IR_STATE_LEADER_HIGH;
+                } else {
+                    g_ir_state = IR_STATE_IDLE; // 超时，重新检测
+                }
+            }
+            break;
+            
+        case IR_STATE_LEADER_HIGH:
+            if (pin_state == GPIO_PIN_LOW) {
+                // 引导码高电平结束
+                if (duration &gt;= NEC_LEADER_HIGH_MIN &amp;&amp; duration &lt;= NEC_LEADER_HIGH_MAX) {
+                    // 有效引导码，开始接收数据
+                    Reset_Timer();
+                    g_ir_bit_index = 0;
+                    g_ir_raw_data = 0;
+                    g_ir_state = IR_STATE_DATA_LOW;
+                } else if (duration &gt;= NEC_REPEAT_HIGH_MIN &amp;&amp; duration &lt;= NEC_REPEAT_HIGH_MAX) {
+                    // 重复码（按住不放）
+                    g_ir_state = IR_STATE_IDLE;
+                    // 可以在此处理重复码
+                } else {
+                    g_ir_state = IR_STATE_IDLE;
+                }
+            }
+            break;
+            
+        case IR_STATE_DATA_LOW:
+            if (pin_state == GPIO_PIN_HIGH) {
+                // 数据位低电平结束
+                if (duration &lt; NEC_BIT_LOW_MIN || duration &gt; NEC_BIT_LOW_MAX) {
+                    g_ir_state = IR_STATE_IDLE; // 无效低电平
+                } else {
+                    Reset_Timer();
+                    g_ir_state = IR_STATE_DATA_HIGH;
+                }
+            }
+            break;
+            
+        case IR_STATE_DATA_HIGH:
+            if (pin_state == GPIO_PIN_LOW) {
+                // 数据位高电平结束，判断是0还是1
+                if (duration &gt;= NEC_BIT0_HIGH_MIN &amp;&amp; duration &lt;= NEC_BIT0_HIGH_MAX) {
+                    // 逻辑0，什么都不用做（g_ir_raw_data默认0）
+                } else if (duration &gt;= NEC_BIT1_HIGH_MIN &amp;&amp; duration &lt;= NEC_BIT1_HIGH_MAX) {
+                    // 逻辑1，设置对应位
+                    g_ir_raw_data |= (1UL &lt;&lt; g_ir_bit_index);
+                } else {
+                    g_ir_state = IR_STATE_IDLE;
+                    break;
+                }
+                
+                g_ir_bit_index++;
+                Reset_Timer();
+                
+                if (g_ir_bit_index &gt;= 32) {
+                    // 32位接收完毕
+                    g_ir_state = IR_STATE_DONE;
+                } else {
+                    g_ir_state = IR_STATE_DATA_LOW;
+                }
+            }
+            break;
+            
+        case IR_STATE_DONE:
+            // 解码完成（主循环会处理）
+            g_ir_state = IR_STATE_IDLE;
+            break;
+            
+        default:
+            g_ir_state = IR_STATE_IDLE;
+            break;
+    }
+}
+
+// 处理解码结果
+void IR_ProcessResult(void)
+{
+    if (g_ir_state == IR_STATE_DONE) {
+        g_ir_state = IR_STATE_IDLE;
+        
+        // 解析32bit数据
+        g_ir_data.address   = (g_ir_raw_data &gt;&gt; 0) &amp; 0xFF;
+        g_ir_data.addr_inv  = (g_ir_raw_data &gt;&gt; 8) &amp; 0xFF;
+        g_ir_data.command   = (g_ir_raw_data &gt;&gt; 16) &amp; 0xFF;
+        g_ir_data.cmd_inv   = (g_ir_raw_data &gt;&gt; 24) &amp; 0xFF;
+        
+        // 校验地址码
+        g_ir_data.valid = (g_ir_data.address == (uint8_t)~g_ir_data.addr_inv)
+                       &amp;&amp; (g_ir_data.command == (uint8_t)~g_ir_data.cmd_inv);
+        
+        // 串口打印
+        printf("IR: Addr=0x%02X, Cmd=0x%02X [%s] %s\r\n",
+               g_ir_data.address,
+               g_ir_data.command,
+               IR_GetKeyName(g_ir_data.command),
+               g_ir_data.valid ? "OK" : "ERR");
+        
+        // 执行功能
+        IR_ExecCommand(g_ir_data.command);
+    }
+}
+
+// 根据键值执行对应功能
+void IR_ExecCommand(uint8_t cmd)
+{
+    switch(cmd) {
+        case 0x0C: // 1 - 红色LED
+            HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13);
+            break;
+        case 0x18: // 2 - 绿色LED
+            HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_14);
+            break;
+        case 0x5E: // 3 - 蓝色LED
+            HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_15);
+            break;
+        case 0x08: // 4 - 全灭
+            HAL_GPIO_WritePin(GPIOC, GPIO_PIN_13|GPIO_PIN_14|GPIO_PIN_15, GPIO_PIN_SET);
+            break;
+        case 0x52: // 8 - 全亮
+            HAL_GPIO_WritePin(GPIOC, GPIO_PIN_13|GPIO_PIN_14|GPIO_PIN_15, GPIO_PIN_RESET);
+            break;
+        case 0x46: // CH - 彩虹灯效果
+            // 简单的RGB循环效果
+            static uint8_t rgb_step = 0;
+            rgb_step = (rgb_step + 1) % 6;
+            HAL_GPIO_WritePin(GPIOC, GPIO_PIN_13|GPIO_PIN_14|GPIO_PIN_15, GPIO_PIN_SET);
+            switch(rgb_step) {
+                case 0: HAL_GPIO_WritePin(GPIOC, GPIO_PIN_13, GPIO_PIN_RESET); break;
+                case 1: HAL_GPIO_WritePin(GPIOC, GPIO_PIN_14, GPIO_PIN_RESET); break;
+                case 2: HAL_GPIO_WritePin(GPIOC, GPIO_PIN_15, GPIO_PIN_RESET); break;
+                case 3: HAL_GPIO_WritePin(GPIOC, GPIO_PIN_13|GPIO_PIN_14, GPIO_PIN_RESET); break;
+                case 4: HAL_GPIO_WritePin(GPIOC, GPIO_PIN_14|GPIO_PIN_15, GPIO_PIN_RESET); break;
+                case 5: HAL_GPIO_WritePin(GPIOC, GPIO_PIN_13|GPIO_PIN_15, GPIO_PIN_RESET); break;
+            }
+            break;
+    }
+}
+
+// printf 重定向
+#ifdef __GNUC__
+int __io_putchar(int ch)
+#else
+int fputc(int ch, FILE *f)
+#endif
+{
+    HAL_UART_Transmit(&amp;huart1, (uint8_t *)&amp;ch, 1, HAL_MAX_DELAY);
+    return ch;
+}
+
+/* USER CODE END 0 */
+
+int main(void)
+{
+    HAL_Init();
+    SystemClock_Config();
+    MX_GPIO_Init();
+    MX_TIM2_Init();
+    MX_USART1_UART_Init();
+
+    /* USER CODE BEGIN 2 */
+    // 启动TIM2计数器（1MHz, 用于测脉宽）
+    HAL_TIM_Base_Start(&amp;htim2);
+    
+    // LED初始化（PC13/14/15）
+    HAL_GPIO_WritePin(GPIOC, GPIO_PIN_13|GPIO_PIN_14|GPIO_PIN_15, GPIO_PIN_SET);
+    
+    printf("IR Remote Decoder Ready!\r\n");
+    printf("Press any button on the remote...\r\n");
+    printf("Keys: 1=R LED, 2=G LED, 3=B LED, 4=All OFF, 8=All ON, CH=Rainbow\r\n");
+    /* USER CODE END 2 */
+
+    /* USER CODE BEGIN WHILE */
+    while (1)
+    {
+        // 处理解码结果（在主循环中处理，避免在中断中做耗时操作）
+        IR_ProcessResult();
+        
+        HAL_Delay(10);
+    }
+    /* USER CODE END WHILE */
+}</code></pre>
+
+<h3>CubeMX 配置说明</h3>
+<pre><code>TIM2 配置（用于测脉宽）：
+  Prescaler: 72-1    → 1MHz (1μs/计数)
+  Counter Period: 65535 (最大, 用uint16_t)
+  用途: __HAL_TIM_GET_COUNTER(&amp;htim2) 获取当前计数
+
+GPIO PA0 配置：
+  Mode: External Interrupt Mode with Falling/Rising edge trigger
+  (CubeMX会自动配置AFIO和NVIC)
+
+NVIC 设置：
+  Enable EXTI line[0] interrupt
+  Preemption Priority: 0 (最高优先级，确保及时响应)</code></pre>
+
+<h2>❓ 常见问题排查</h2>
+
+<h3>问题1：解码失败，串口一直打印乱码</h3>
+<div class="warn">
+<strong>可能原因：</strong><br>
+1. <strong>脉宽容差设置太严格</strong> — NEC协议允许±10%的误差，如果MCU主频不对或定时器频率不准，判断会出错。<br>
+2. <strong>定时器PSC设置错误</strong> — PSC=72时，TIM2计数频率=72MHz/72=1MHz，即每微秒计数+1。如果PSC不是72，脉宽计算会完全错误。<br>
+3. <strong>中断优先级不够</strong> — 确保EXTI0中断优先级较高。<br>
+4. <strong>使用了错误的定时器</strong> — 确认在回调中使用的htim2句柄与CubeMX配置的一致。
+</div>
+
+<h3>问题2：按一下遥控器，串口打印多次相同键值</h3>
+<div class="note">
+这是正常现象！遥控器按一次会发送多帧数据（引导码+若干重复码）。<br>
+解决方案：<br>
+<pre><code>// 方法1：按键去抖（推荐）
+static uint32_t last_key_time = 0;
+static uint8_t last_key = 0;
+if (cmd != last_key || (now - last_key_time) &gt; 300) {
+    last_key = cmd;
+    last_key_time = now;
+    IR_ExecCommand(cmd);  // 执行功能
+}
+
+// 方法2：忽略重复码
+// 状态机中添加对重复码的处理，重复码时只打印不执行</code></pre>
+</div>
+
+<h3>问题3：遥控器键值和预设不匹配</h3>
+<div class="note">
+<strong>每个遥控器的键值不同！</strong>需要先打印学习：<br>
+1. 先注释掉 IR_ExecCommand() 的调用<br>
+2. 上传程序，按遥控器每个按键<br>
+3. 串口会打印每个键的十六进制码（如 0x45）<br>
+4. 记录下来后，填入 g_key_map 表<br>
+5. 再放开 IR_ExecCommand() 的功能调用
+</div>
+
+<h3>问题4：中断回调里不能做耗时操作</h3>
+<div class="warn">
+<strong>绝对禁止在 HAL_GPIO_EXTI_Callback 中：</strong><br>
+- 调用 printf / HAL_UART_Transmit<br>
+- 使用 HAL_Delay<br>
+- 进行复杂的字符串处理<br>
+- 访问文件系统<br><br>
+正确做法：回调中只设置标志位或更新全局变量，<strong>主循环中</strong>处理业务逻辑。
+</div>
+
+<h3>问题5：VS1838B没有输出</h3>
+<div class="tip">
+1. 检查VCC和GND是否接反（有些模块有防反接二极管，接反不工作）<br>
+2. 用手机摄像头对准遥控器红外LED，按键时能在屏幕上看到红外光（发光）<br>
+3. 示波器测量VS1838B OUT脚，按遥控器应有脉冲输出<br>
+4. 确认遥控器是NEC协议（常见电视遥控器通常都是）<br>
+5. 遥控器和接收头距离不要太远（1~3米最佳）
+</div>
+
+<h2>🎯 进阶练习</h2>
+<ol>
+<li>在OLED上显示当前按键名称</li>
+<li>用遥控器控制电机转速（PWM占空比）</li>
+<li>实现遥控器学习模式（动态存储键值）</li>
+<li>用遥控器做一个万能遥控器（发射红外信号）</li>
+<li>实现长按加速、短按微调的交互逻辑</li>
+<li>添加蜂鸣器音效：不同按键不同音调</li>
+</ol>
+
+
+
+<h2>📡 红外遥控协议深度对比</h2>
+<table>
+<tr><th>协议</th><th>载波频率</th><th>编码方式</th><th>地址位</th><th>命令位</th><th>数据长度</th><th>典型设备</th></tr>
+<tr><td>NEC</td><td>38kHz</td><td>脉冲距离</td><td>8+8(反)</td><td>8+8(反)</td><td>32bit</td><td>日系家电</td></tr>
+<tr><td>Sony SIRC</td><td>40kHz</td><td>脉冲宽度</td><td>5/8/13</td><td>7</td><td>12/15/20bit</td><td>Sony全系列</td></tr>
+<tr><td>RC-5</td><td>36kHz</td><td>Manchester</td><td>5</td><td>6</td><td>14bit</td><td>飞利浦</td></tr>
+<tr><td>RC-6</td><td>36kHz</td><td>Manchester+</td><td>8</td><td>8</td><td>20bit+</td><td>飞利浦新款</td></tr>
+<tr><td>Samsung</td><td>38kHz</td><td>脉冲距离</td><td>16</td><td>16+16</td><td>48bit</td><td>三星电视</td></tr>
+</table>
+
+<h3>NEC协议细节（最常用）</h3>
+<pre><code>NEC帧结构:
+┌──────┐┌───┐  ┌─┐┌─┐┌─┐          ┌─┐┌─┐┌─┐┌─┐
+│9ms   ││4.5│  │ ││ ││ │   ...    │ ││ ││ ││ │
+│引导码││ms │  │0││1││1│          │0││0││1││0│
+└──────┘└───┘  └─┘└─┘└─┘          └─┘└─┘└─┘└─┘
+  Leader     地址(8bit) 地址反(8bit) 命令(8bit) 命令反(8bit)
+             总32bit数据 + 1bit Stop
+
+逻辑0: 562.5&mu;s载波 + 562.5&mu;s空闲 = 1.125ms
+逻辑1: 562.5&mu;s载波 + 1687.5&mu;s空闲 = 2.25ms
+重复码: 9ms载波 + 2.25ms空闲 + 562.5&mu;s载波(按住不放时每110ms发送)
+
+// NEC解码的容差范围(避免因晶振误差导致解码失败)
+#define NEC_PULSE    560   // &mu;s
+#define NEC_TOLERANCE 0.30  // 30%容差
+#define NEC_LEADER_H 9000
+#define NEC_LEADER_L 4500
+#define NEC_REPEAT_L 2250</code></pre>
+
+<h2>🔧 红外学习/克隆功能实现</h2>
+<pre><code>// 使用输入捕获测量脉冲宽度 → 存储 → 回放
+#define IR_CODE_MAX_LEN 200  // 最大脉冲数(含引导码+停止)
+
+typedef struct {
+    uint16_t pulses[IR_CODE_MAX_LEN];  // 脉宽序列(&mu;s)
+    uint16_t len;                       // 脉冲数
+    uint8_t protocol;                   // NEC=0, SIRC=1, RAW=2
+    uint32_t decoded;                   // 解码后的值
+} IR_Code;
+
+// 学习模式：记录所有脉冲宽度，不做解码
+void IR_LearnMode(void) {
+    // 1. 使能TIM输入捕获(上升沿/下降沿交替)
+    // 2. 每次捕获记录脉冲宽度
+    // 3. 超时3秒无新脉冲 → 保存
+    
+    IR_Code code;
+    code.len = 0;
+    // ... 捕获逻辑 ...
+}
+
+// 回放模式：按记录脉冲序列输出
+void IR_Replay(IR_Code* code) {
+    for (int i = 0; i < code->len; i++) {
+        IR_SendCarrier(code->pulses[i]);  // 38kHz载波开
+        if (++i < code->len)
+            IR_NoCarrier(code->pulses[i]);  // 载波关
+    }
+}
+
+// 压缩存储: 一个32bit NEC码占8字节(原始RAW约200字节)
+// 适合做"万能遥控器"的学习功能</code></pre>
+
+<h2>📊 红外发射功率与距离</h2>
+<table>
+<tr><th>电路</th><th>峰值电流</th><th>有效距离</th><th>波束角</th></tr>
+<tr><td>GPIO直驱(20mA)</td><td>~20mA</td><td>1-3m</td><td>~30°</td></tr>
+<tr><td>三极管驱动(S8050)</td><td>~100mA</td><td>5-8m</td><td>~30°</td></tr>
+<tr><td>MOSFET驱动+多管并联</td><td>~500mA</td><td>15-20m</td><td>~30°</td></tr>
+<tr><td>TSAL6200专用管@100mA</td><td>100mA</td><td>10-15m</td><td>±17°</td></tr>
+</table>
+
+<div class="tip">
+<strong>提升红外距离的实用技巧：</strong><br>
+1. 用PWM+三极管驱动(不要GPIO直驱) → 距离翻3倍<br>
+2. 占空比用33%(1/3载波)而非50% → 峰值电流更大但RMS不过热<br>
+3. 接收端加红外滤光片 → 减少环境光干扰 → 有效距离提升<br>
+4. 38kHz载波用TIM硬件生成 → 比bit-bang准确、不占CPU
+</div>
+
+<h2>🔐 红外通信安全与加密</h2>
+<div class="note">
+红外遥控信号是明文的，任何人都可以用接收头捕获。对于门禁、保险箱等安全应用：<br>
+- 滚动码(Rolling Code)：每次按发送递增计数器+加密，防止重放攻击<br>
+- 双向认证：设备收到命令后发送随机挑战码，遥控器计算响应<br>
+- 时间戳+签名：防止信号被录制后重放
+</div><hr><h2>❓ 常见问题 FAQ</h2>
+
+<div style="margin:12px 0;padding:12px 16px;background:var(--bg2);border-left:3px solid var(--a);border-radius:0 8px 8px 0">
+  <p style="font-weight:600;color:var(--c1);margin-bottom:4px">Q: 解码不稳定？</p>
+  <p style="color:var(--t)">A: 1)用输入捕获不要轮询 2)定时器时钟精度够高(1MHz以上) 3)加状态机容错 4)屏蔽重复码</p>
+</div>
+
+<div style="margin:12px 0;padding:12px 16px;background:var(--bg2);border-left:3px solid var(--a);border-radius:0 8px 8px 0">
+  <p style="font-weight:600;color:var(--c1);margin-bottom:4px">Q: 不同遥控器协议不同？</p>
+  <p style="color:var(--t)">A: 最常见NEC协议。还有Sony SIRC、Philips RC-5。一般只支持NEC就够了。</p>
+</div>
+
+<hr><h2>🔗 相关教程</h2>
+<div style="display:flex;flex-wrap:wrap;gap:8px;margin:12px 0">
+<a href="#" onclick="parent.loadPage && parent.loadPage('proj-smart-car')" style="display:inline-block;padding:6px 14px;background:var(--bg3);border:1px solid var(--br);border-radius:6px;color:var(--a);text-decoration:none;font-size:.85em">智能小车 →</a>
+<a href="#" onclick="parent.loadPage && parent.loadPage('proj-led-button')" style="display:inline-block;padding:6px 14px;background:var(--bg3);border:1px solid var(--br);border-radius:6px;color:var(--a);text-decoration:none;font-size:.85em">LED+按键 →</a>
+</div>
+
+</body></html>
