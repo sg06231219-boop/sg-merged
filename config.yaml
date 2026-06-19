@@ -1,0 +1,60 @@
+# 自动独立站生成平台 - 配置
+# 类似 pyproject.toml 的分组配置风格
+
+app:
+  name: "自动独立站生成平台"
+  port: 8866
+  host: "0.0.0.0"
+
+# AI 后端配置
+# 系统按优先级自动选择可用后端: deepseek > glm > mock
+ai:
+  # DeepSeek 优先（需要申请 API Key: platform.deepseek.com）
+  deepseek:
+    base_url: "https://api.deepseek.com/v1"
+    model: "deepseek-chat"
+    # api_key: "sk-xxxxx"  # 在环境变量 DEEPSEEK_API_KEY 中设置更安全
+  
+  # 智谱 GLM（备选一）
+  glm:
+    base_url: "https://open.bigmodel.cn/api/paas/v4"
+    model: "glm-4-flash"
+    # api_key: "xxxxx"  # 在环境变量 GLM_API_KEY 中设置
+  
+  # Mock（备选二 - 始终可用，零成本）
+  mock:
+    enabled: true
+
+# 模板引擎配置
+template:
+  # Jinja2 优先，Simple 兜底
+  # 内置模板存储于此目录
+  templates_dir: "templates"
+
+# 输出配置
+output:
+  dir: "outputs"
+  max_age_hours: 24  # 清理 24h 前的文件
+  max_size_mb: 500   # 输出目录最大容量
+
+# 安全配置
+security:
+  cors_origins:
+    - "*"  # 开发模式，生产改为具体域名
+  max_input_length: 5000
+  allowed_html_tags:
+    - p
+    - br
+    - strong
+    - em
+    - ul
+    - ol
+    - li
+    - a
+    - h1
+    - h2
+    - h3
+    - h4
+    - img
+    - span
+    - div

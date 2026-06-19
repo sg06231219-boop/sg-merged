@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>小白完全指南 - 目录</title>
+<style>
+:root{--bg:#0d1117;--bg2:#161b22;--bg3:#21262d;--br:#30363d;--t:#c9d1d9;--t2:#8b949e;--a:#58a6ff;--g:#3fb950;--o:#d2991d;--r:#f85149;--p:#a371f7;--c1:#39c5cf}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,sans-serif;background:var(--bg);color:var(--t);line-height:1.8;max-width:700px;margin:0 auto;padding:20px}
+h1{text-align:center;background:linear-gradient(135deg,var(--a),var(--p));-webkit-background-clip:text;-webkit-text-fill-color:transparent;font-size:1.8em;margin-bottom:8px}
+.subtitle{text-align:center;color:var(--t2);margin-bottom:20px;font-size:.9em}
+.chapter-list{display:flex;flex-direction:column;gap:6px}
+.chapter-item{display:flex;align-items:center;gap:12px;padding:12px 16px;background:var(--bg2);border:1px solid var(--br);border-radius:10px;cursor:pointer;transition:all .2s}
+.chapter-item:hover{border-color:var(--a);transform:translateX(4px)}
+.chapter-num{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.8em;flex-shrink:0}
+.c0{background:rgba(63,185,80,.15);color:var(--g)}
+.c1{background:rgba(88,166,255,.15);color:var(--a)}
+.c2{background:rgba(210,153,29,.15);color:var(--o)}
+.c3{background:rgba(248,81,73,.15);color:var(--r)}
+.chapter-info{flex:1}
+.chapter-info .title{font-weight:600;font-size:.92em}
+.chapter-info .meta{font-size:.72em;color:var(--t2);margin-top:2px}
+.guide-tip{background:var(--bg2);border:1px solid var(--br);border-radius:10px;padding:14px 18px;margin:20px 0;font-size:.85em;color:var(--t2);text-align:center}
+</style></head>
+<body>
+<h1>📖 小白完全指南</h1>
+<p class="subtitle">14章 · 从环境搭建到项目实战 · 按顺序学习效果最佳</p>
+<div class="guide-tip">💡 <b>建议：</b>每天1-2章，2周完成。每章约5-8分钟阅读 + 30分钟动手实践。</div>
+<div class="chapter-list">
+<div class="chapter-item" onclick="window.parent.loadPage('guide-ch00')">
+  <div class="chapter-num c0">0</div>
+  <div class="chapter-info"><div class="title">环境搭建 — Windows嵌入式开发环境</div><div class="meta">16KB · ~3分钟</div></div>
+</div>
+<div class="chapter-item" onclick="window.parent.loadPage('guide-ch01')">
+  <div class="chapter-num c0">1</div>
+  <div class="chapter-info"><div class="title">ARM GCC编译工具链详解</div><div class="meta">14KB · ~3分钟</div></div>
+</div>
+<div class="chapter-item" onclick="window.parent.loadPage('guide-ch02')">
+  <div class="chapter-num c1">2</div>
+  <div class="chapter-info"><div class="title">CMake构建系统</div><div class="meta">14KB · ~4分钟</div></div>
+</div>
+<div class="chapter-item" onclick="window.parent.loadPage('guide-ch03')">
+  <div class="chapter-num c1">3</div>
+  <div class="chapter-info"><div class="title">Makefile实战</div><div class="meta">10KB · ~3分钟</div></div>
+</div>
+<div class="chapter-item" onclick="window.parent.loadPage('guide-ch04')">
+  <div class="chapter-num c1">4</div>
+  <div class="chapter-info"><div class="title">串口通信 — 单片机与电脑对话</div><div class="meta">11KB · ~3分钟</div></div>
+</div>
+<div class="chapter-item" onclick="window.parent.loadPage('guide-ch05')">
+  <div class="chapter-num c2">5</div>
+  <div class="chapter-info"><div class="title">烧录与调试</div><div class="meta">13KB · ~3分钟</div></div>
+</div>
+<div class="chapter-item" onclick="window.parent.loadPage('guide-ch06')">
+  <div class="chapter-num c2">6</div>
+  <div class="chapter-info"><div class="title">STM32开发实战</div><div class="meta">13KB · ~3分钟</div></div>
+</div>
+<div class="chapter-item" onclick="window.parent.loadPage('guide-ch07')">
+  <div class="chapter-num c2">7</div>
+  <div class="chapter-info"><div class="title">ESP32开发实战</div><div class="meta">11KB · ~3分钟</div></div>
+</div>
+<div class="chapter-item" onclick="window.parent.loadPage('guide-ch08')">
+  <div class="chapter-num c3">8</div>
+  <div class="chapter-info"><div class="title">FreeRTOS入门</div><div class="meta">13KB · ~3分钟</div></div>
+</div>
+<div class="chapter-item" onclick="window.parent.loadPage('guide-ch09')">
+  <div class="chapter-num c3">9</div>
+  <div class="chapter-info"><div class="title">通信协议详解</div><div class="meta">13KB · ~3分钟</div></div>
+</div>
+<div class="chapter-item" onclick="window.parent.loadPage('guide-ch10')">
+  <div class="chapter-num c3">10</div>
+  <div class="chapter-info"><div class="title">PCB与硬件基础</div><div class="meta">10KB · ~3分钟</div></div>
+</div>
+<div class="chapter-item" onclick="window.parent.loadPage('guide-ch11')">
+  <div class="chapter-num c3">11</div>
+  <div class="chapter-info"><div class="title">调试技巧大全</div><div class="meta">10KB · ~3分钟</div></div>
+</div>
+<div class="chapter-item" onclick="window.parent.loadPage('guide-ch12')">
+  <div class="chapter-num c3">12</div>
+  <div class="chapter-info"><div class="title">项目实战 — 环境监测站</div><div class="meta">15KB · ~4分钟</div></div>
+</div>
+<div class="chapter-item" onclick="window.parent.loadPage('guide-ch13')">
+  <div class="chapter-num c3">13</div>
+  <div class="chapter-info"><div class="title">常用代码速查</div><div class="meta">15KB · ~3分钟</div></div>
+</div>
+
+</div>
+</body>
+</html>

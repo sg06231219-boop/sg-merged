@@ -1,0 +1,812 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0"><title>教程11: 智能小车综合项目</title><style>:root{--bg:#0d1117;--bg2:#161b22;--bg3:#21262d;--br:#30363d;--t:#c9d1d9;--t2:#8b949e;--a:#58a6ff;--g:#3fb950;--o:#d29922;--r:#f85149;--p:#a371f7;--c1:#39c5cf}body{background:var(--bg);color:var(--t);font-family:system-ui,sans-serif;line-height:1.8;max-width:900px;margin:0 auto;padding:20px}h1{text-align:center;background:linear-gradient(135deg,var(--a),var(--p));-webkit-background-clip:text;-webkit-text-fill-color:transparent}h2{color:var(--a);border-bottom:2px solid var(--br);padding-bottom:6px;margin-top:32px}h3{color:var(--c1);margin-top:22px}pre{background:#1c2128;border:1px solid var(--br);border-radius:8px;padding:14px;overflow-x:auto;font-size:.84em}code{font-family:'Cascadia Code',Consolas,monospace}:not(pre)>code{background:var(--bg3);padding:2px 6px;border-radius:4px;color:var(--c1)}table{width:100%;border-collapse:collapse;margin:12px 0}th{background:var(--bg3);color:var(--a);padding:8px 12px;border:1px solid var(--br);text-align:left}td{padding:8px 12px;border:1px solid var(--br)}.note{background:rgba(88,166,255,.08);border-left:3px solid var(--a);border-radius:8px;padding:12px 16px;margin:12px 0}.warn{background:rgba(248,81,73,.08);border-left:3px solid var(--r);border-radius:8px;padding:12px 16px;margin:12px 0}.tip{background:rgba(63,185,80,.08);border-left:3px solid var(--g);border-radius:8px;padding:12px 16px;margin:12px 0}.step{background:var(--bg2);border:1px solid var(--br);border-radius:8px;padding:12px 16px;margin:10px 0}</style></head><body>
+
+<h1>教程11: 智能小车综合项目</h1>
+
+<h2>📋 项目概述</h2>
+<p>本项目构建一台多功能智能小车，搭载STM32F103C8T6主控，集成电机驱动、超声波避障、红外遥控、蓝牙APP控制和PID速度闭环。通过状态机设计统一协调各功能模块，是嵌入式开发的经典综合实战项目。</p>
+
+<h2>🔧 硬件清单</h2>
+<table>
+<tr><th>元件</th><th>数量</th><th>说明</th></tr>
+<tr><td>STM32F103C8T6 最小系统板</td><td>1</td><td>主控72MHz</td></tr>
+<tr><td>L298N 电机驱动模块</td><td>2</td><td>每块驱动2路电机</td></tr>
+<tr><td>TT减速直流电机+轮子</td><td>4</td><td>1:48减速比</td></tr>
+<tr><td>HC-SR04 超声波模块</td><td>1</td><td>2cm~4m测距</td></tr>
+<tr><td>0.96寸 OLED(SSD1306)</td><td>1</td><td>I2C接口</td></tr>
+<tr><td>HX1838 红外接收模块</td><td>1</td><td>38KHz红外解码</td></tr>
+<tr><td>HC-05 蓝牙模块</td><td>1</td><td>经典蓝牙SPP</td></tr>
+<tr><td>18650锂电池组(7.4V)</td><td>1</td><td>动力电源</td></tr>
+<tr><td>小车底盘+螺丝柱</td><td>1套</td><td>亚克力/3D打印</td></tr>
+</table>
+
+<h2>🔌 接线图</h2>
+<h3>接线总表</h3>
+<table>
+<tr><th>STM32引脚</th><th>外设</th><th>说明</th></tr>
+<tr><td>PA0</td><td>L298N-1 IN1</td><td>左前电机方向A</td></tr>
+<tr><td>PA1</td><td>L298N-1 IN2</td><td>左前电机方向B</td></tr>
+<tr><td>PA2</td><td>L298N-1 IN3</td><td>右前电机方向A</td></tr>
+<tr><td>PA3</td><td>L298N-1 IN4</td><td>右前电机方向B</td></tr>
+<tr><td>PA4</td><td>HC-SR04 Trig</td><td>触发信号</td></tr>
+<tr><td>PA5</td><td>HC-SR04 Echo</td><td>回波信号(5V→3.3V分压)</td></tr>
+<tr><td>PA6</td><td>HX1838 OUT</td><td>红外接收数据</td></tr>
+<tr><td>PA9</td><td>HC-05 RXD</td><td>USART1_TX→蓝牙</td></tr>
+<tr><td>PA10</td><td>HC-05 TXD</td><td>USART1_RX←蓝牙</td></tr>
+<tr><td>PB6</td><td>OLED SCL</td><td>I2C1时钟</td></tr>
+<tr><td>PB7</td><td>OLED SDA</td><td>I2C1数据</td></tr>
+<tr><td>PB8</td><td>L298N-2 IN1</td><td>左后电机方向A</td></tr>
+<tr><td>PB9</td><td>L298N-2 IN2</td><td>左后电机方向B</td></tr>
+<tr><td>PB12</td><td>L298N-2 IN3</td><td>右后电机方向A</td></tr>
+<tr><td>PB13</td><td>L298N-2 IN4</td><td>右后电机方向B</td></tr>
+<tr><td>PB0</td><td>L298N-1 ENA</td><td>左前PWM(TIM3_CH3)</td></tr>
+<tr><td>PB1</td><td>L298N-1 ENB</td><td>右前PWM(TIM3_CH4)</td></tr>
+<tr><td>PB14</td><td>L298N-2 ENA</td><td>左后PWM(TIM12_CH1)</td></tr>
+<tr><td>PB15</td><td>L298N-2 ENB</td><td>右后PWM(TIM12_CH2)</td></tr>
+</table>
+
+<div class="note">
+<strong>📝 接线文字描述：</strong><br>
+STM32最小系统板安装在小车底盘中央。两块L298N分别固定在左右两侧：L298N-1驱动前方两个电机，L298N-2驱动后方两个电机。每块L298N的12V输入接7.4V电池正极，GND接电池负极并连到STM32的GND形成共地。L298N的5V输出可不接（跳线帽保持EN常开或用PWM控制）。HC-SR04超声波安装在小车前端，Trig接PA4，Echo经10K+20K分压后接PA5（将5V降到3.3V）。HX1838红外接收头装在车顶，OUT接PA6。HC-05蓝牙模块RXD接PA9，TXD接PA10，VCC接5V。OLED固定在车尾或车顶，SCL→PB6，SDA→PB7。电池组通过开关连接L298N和降压模块（降压到5V给STM32和模块供电）。
+</div>
+
+<h2>🏗️ 系统架构设计</h2>
+
+<h3>状态机设计</h3>
+<pre><code>typedef enum {
+    CAR_STATE_IDLE,        // 待机
+    CAR_STATE_MANUAL,      // 手动遥控模式
+    CAR_STATE_AUTO,        // 自动避障模式
+    CAR_STATE_BT_CTRL,     // 蓝牙控制模式
+    CAR_STATE_EMERGENCY    // 紧急停止
+} CarState_t;
+</code></pre>
+
+<h3>模块划分</h3>
+<table>
+<tr><th>模块</th><th>功能</th><th>关键函数</th></tr>
+<tr><td>motor.c</td><td>电机驱动与PWM控制</td><td>Motor_SetSpeed(), Motor_Direction()</td></tr>
+<tr><td>ultrasonic.c</td><td>超声波测距</td><td>HC_SR04_GetDistance()</td></tr>
+<tr><td>ir_remote.c</td><td>红外遥控解码</td><td>IR_Decode()</td></tr>
+<tr><td>bluetooth.c</td><td>蓝牙串口通信</td><td>BT_ParseCommand()</td></tr>
+<tr><td>pid.c</td><td>PID控制器</td><td>PID_Calculate()</td></tr>
+<tr><td>oled.c</td><td>OLED显示</td><td>OLED_ShowStatus()</td></tr>
+<tr><td>main.c</td><td>状态机主循环</td><td>StateMachine_Run()</td></tr>
+</table>
+
+<h2>🛠️ 分步骤操作指引</h2>
+
+<div class="step">
+<strong>步骤1：组装底盘与电机</strong><br>
+1. 将4个TT减速电机安装到底盘四角<br>
+2. 安装轮子，确保转动顺畅无卡顿<br>
+3. 固定电池盒和电源开关<br>
+4. 理线，避免转动部件缠绕线缆
+</div>
+
+<div class="step">
+<strong>步骤2：CubeMX配置</strong><br>
+1. SYS → Debug: Serial Wire<br>
+2. RCC → HSE: Crystal<br>
+3. Clock: 72MHz<br>
+4. TIM3 → CH3/CH4: PWM Generation, Prescaler=71, Period=999 → 1KHz PWM<br>
+5. TIM2 → 用于超声波Echo测量(输入捕获)<br>
+6. USART1 → 9600 baud (匹配HC-05默认)<br>
+7. I2C1 → Standard 100KHz<br>
+8. PA0-PA3, PB8/PB9/PB12/PB13: GPIO_Output (电机方向)<br>
+9. PA4: GPIO_Output (Trig), PA5: GPIO_Input (Echo)<br>
+10. PA6: GPIO_Input_EXTI (红外接收)
+</div>
+
+<div class="step">
+<strong>步骤3：电机驱动调试</strong><br>
+1. 先只连一个电机测试<br>
+2. 设置IN1=1, IN2=0 → 正转；IN1=0, IN2=1 → 反转<br>
+3. 调节PWM占空比观察速度变化<br>
+4. 确认4个电机方向一致（安装可能镜像）
+</div>
+
+<div class="step">
+<strong>步骤4：超声波避障测试</strong><br>
+1. 单独测试测距精度<br>
+2. 在20cm处放障碍物，验证读数<br>
+3. 设置安全距离阈值（如15cm）
+</div>
+
+<div class="step">
+<strong>步骤5：红外/蓝牙遥控调试</strong><br>
+1. 用串口助手发命令测试蓝牙<br>
+2. 用遥控器测试红外解码<br>
+3. 确认各按键对应的键码
+</div>
+
+<div class="step">
+<strong>步骤6：PID速度闭环</strong><br>
+1. 加装编码器测量电机转速<br>
+2. 先调P，再调I，最后调D<br>
+3. 目标：不同占空比下速度稳定
+</div>
+
+<div class="step">
+<strong>步骤7：状态机集成与联调</strong><br>
+1. 整合所有模块到状态机<br>
+2. 测试模式切换<br>
+3. 测试紧急停止功能
+</div>
+
+<h2>💻 完整代码</h2>
+
+<h3>motor.h — 电机驱动头文件</h3>
+<pre><code>#ifndef __MOTOR_H
+#define __MOTOR_H
+
+#include "main.h"
+
+/* 电机方向枚举 */
+typedef enum {
+    DIR_FORWARD,
+    DIR_BACKWARD,
+    DIR_STOP
+} MotorDir_t;
+
+/* 电机ID */
+typedef enum {
+    MOTOR_FL,  // 左前
+    MOTOR_FR,  // 右前
+    MOTOR_BL,  // 左后
+    MOTOR_BR   // 右后
+} MotorID_t;
+
+void Motor_Init(void);
+void Motor_SetSpeed(MotorID_t id, uint16_t speed);  // speed: 0~1000
+void Motor_SetDirection(MotorID_t id, MotorDir_t dir);
+void Car_Forward(uint16_t speed);
+void Car_Backward(uint16_t speed);
+void Car_TurnLeft(uint16_t speed);
+void Car_TurnRight(uint16_t speed);
+void Car_Stop(void);
+void Car_Brake(void);
+
+#endif
+</code></pre>
+
+<h3>motor.c — 电机驱动实现</h3>
+<pre><code>#include "motor.h"
+#include "tim.h"
+
+/* 方向引脚映射 */
+typedef struct {
+    GPIO_TypeDef *in1_port; uint16_t in1_pin;
+    GPIO_TypeDef *in2_port; uint16_t in2_pin;
+    TIM_HandleTypeDef *pwm_tim; uint32_t pwm_channel;
+} MotorConfig_t;
+
+static const MotorConfig_t motors[4] = {
+    {GPIOA, GPIO_PIN_0, GPIOA, GPIO_PIN_1, &amp;htim3, TIM_CHANNEL_3},  // FL
+    {GPIOA, GPIO_PIN_2, GPIOA, GPIO_PIN_3, &amp;htim3, TIM_CHANNEL_4},  // FR
+    {GPIOB, GPIO_PIN_8, GPIOB, GPIO_PIN_9, &amp;htim12, TIM_CHANNEL_1}, // BL
+    {GPIOB, GPIO_PIN_12,GPIOB, GPIO_PIN_13,&amp;htim12, TIM_CHANNEL_2}, // BR
+};
+
+void Motor_Init(void)
+{
+    HAL_TIM_PWM_Start(&amp;htim3, TIM_CHANNEL_3);
+    HAL_TIM_PWM_Start(&amp;htim3, TIM_CHANNEL_4);
+    HAL_TIM_PWM_Start(&amp;htim12, TIM_CHANNEL_1);
+    HAL_TIM_PWM_Start(&amp;htim12, TIM_CHANNEL_2);
+    Car_Stop();
+}
+
+void Motor_SetSpeed(MotorID_t id, uint16_t speed)
+{
+    if (speed &gt; 1000) speed = 1000;
+    __HAL_TIM_SET_COMPARE(motors[id].pwm_tim, motors[id].pwm_channel, speed);
+}
+
+void Motor_SetDirection(MotorID_t id, MotorDir_t dir)
+{
+    switch (dir) {
+    case DIR_FORWARD:
+        HAL_GPIO_WritePin(motors[id].in1_port, motors[id].in1_pin, GPIO_PIN_SET);
+        HAL_GPIO_WritePin(motors[id].in2_port, motors[id].in2_pin, GPIO_PIN_RESET);
+        break;
+    case DIR_BACKWARD:
+        HAL_GPIO_WritePin(motors[id].in1_port, motors[id].in1_pin, GPIO_PIN_RESET);
+        HAL_GPIO_WritePin(motors[id].in2_port, motors[id].in2_pin, GPIO_PIN_SET);
+        break;
+    case DIR_STOP:
+        HAL_GPIO_WritePin(motors[id].in1_port, motors[id].in1_pin, GPIO_PIN_RESET);
+        HAL_GPIO_WritePin(motors[id].in2_port, motors[id].in2_pin, GPIO_PIN_RESET);
+        break;
+    }
+}
+
+/* 全车运动控制 */
+void Car_Forward(uint16_t speed)
+{
+    for (int i = 0; i &lt; 4; i++) {
+        Motor_SetDirection(i, DIR_FORWARD);
+        Motor_SetSpeed(i, speed);
+    }
+}
+
+void Car_Backward(uint16_t speed)
+{
+    for (int i = 0; i &lt; 4; i++) {
+        Motor_SetDirection(i, DIR_BACKWARD);
+        Motor_SetSpeed(i, speed);
+    }
+}
+
+void Car_TurnLeft(uint16_t speed)
+{
+    // 左侧后退，右侧前进
+    Motor_SetDirection(MOTOR_FL, DIR_BACKWARD);
+    Motor_SetDirection(MOTOR_BL, DIR_BACKWARD);
+    Motor_SetDirection(MOTOR_FR, DIR_FORWARD);
+    Motor_SetDirection(MOTOR_BR, DIR_FORWARD);
+    for (int i = 0; i &lt; 4; i++) Motor_SetSpeed(i, speed);
+}
+
+void Car_TurnRight(uint16_t speed)
+{
+    Motor_SetDirection(MOTOR_FL, DIR_FORWARD);
+    Motor_SetDirection(MOTOR_BL, DIR_FORWARD);
+    Motor_SetDirection(MOTOR_FR, DIR_BACKWARD);
+    Motor_SetDirection(MOTOR_BR, DIR_BACKWARD);
+    for (int i = 0; i &lt; 4; i++) Motor_SetSpeed(i, speed);
+}
+
+void Car_Stop(void)
+{
+    for (int i = 0; i &lt; 4; i++) {
+        Motor_SetDirection(i, DIR_STOP);
+        Motor_SetSpeed(i, 0);
+    }
+}
+
+void Car_Brake(void)
+{
+    // 刹车：IN1=1, IN2=1 短接电机
+    for (int i = 0; i &lt; 4; i++) {
+        HAL_GPIO_WritePin(motors[i].in1_port, motors[i].in1_pin, GPIO_PIN_SET);
+        HAL_GPIO_WritePin(motors[i].in2_port, motors[i].in2_pin, GPIO_PIN_SET);
+        Motor_SetSpeed(i, 0);
+    }
+}
+</code></pre>
+
+<h3>ultrasonic.c — 超声波测距</h3>
+<pre><code>#include "ultrasonic.h"
+#include "gpio.h"
+#include "tim.h"
+
+#define TRIG_PORT GPIOA
+#define TRIG_PIN  GPIO_PIN_4
+#define ECHO_PORT GPIOA
+#define ECHO_PIN  GPIO_PIN_5
+
+static uint32_t echo_start = 0;
+static uint32_t echo_end = 0;
+static uint8_t  echo_captured = 0;
+
+float HC_SR04_GetDistance(void)
+{
+    // 发送10us触发信号
+    HAL_GPIO_WritePin(TRIG_PORT, TRIG_PIN, GPIO_PIN_SET);
+    Delay_us(10);
+    HAL_GPIO_WritePin(TRIG_PORT, TRIG_PIN, GPIO_PIN_RESET);
+
+    // 等待Echo上升沿（超时30ms）
+    uint32_t timeout = HAL_GetTick();
+    while (HAL_GPIO_ReadPin(ECHO_PORT, ECHO_PIN) == GPIO_PIN_RESET) {
+        if (HAL_GetTick() - timeout &gt; 30) return -1.0f;
+    }
+    echo_start = TIM2-&gt;CNT;
+
+    // 等待Echo下降沿
+    timeout = HAL_GetTick();
+    while (HAL_GPIO_ReadPin(ECHO_PORT, ECHO_PIN) == GPIO_PIN_SET) {
+        if (HAL_GetTick() - timeout &gt; 30) return -1.0f;
+    }
+    echo_end = TIM2-&gt;CNT;
+
+    // 计算距离: 声速340m/s, 时间(us)*0.034/2
+    uint32_t elapsed = echo_end - echo_start; // us
+    float distance = elapsed * 0.034f / 2.0f;
+    return distance;
+}
+
+void Delay_us(uint32_t us)
+{
+    uint32_t ticks = us * (SystemCoreClock / 1000000) / 5;
+    while (ticks--);
+}
+</code></pre>
+
+<h3>ir_remote.c — 红外遥控解码</h3>
+<pre><code>#include "ir_remote.h"
+#include "gpio.h"
+
+#define IR_PORT GPIOA
+#define IR_PIN  GPIO_PIN_6
+
+static uint32_t ir_data = 0;
+static uint8_t  ir_bit_idx = 0;
+static uint8_t  ir_ready = 0;
+static uint32_t ir_last_fall = 0;
+
+/* NEC协议解码(简化版) */
+/* 在外部中断回调中调用 */
+void IR_FallingEdgeHandler(void)
+{
+    uint32_t now = HAL_GetTick() * 1000 + SysTick-&gt;LOAD - SysTick-&gt;VAL;
+    uint32_t pulse_width = now - ir_last_fall;
+    ir_last_fall = now;
+
+    if (pulse_width &gt; 13000 &amp;&amp; pulse_width &lt; 14000) {
+        // 引导码: 9ms低 + 4.5ms高
+        ir_data = 0;
+        ir_bit_idx = 0;
+    } else if (pulse_width &gt; 1000 &amp;&amp; pulse_width &lt; 1300) {
+        // 逻辑0: 560us低 + 560us高
+        ir_data &gt;&gt;= 1;
+        ir_bit_idx++;
+    } else if (pulse_width &gt; 2000 &amp;&amp; pulse_width &lt; 2500) {
+        // 逻辑1: 560us低 + 1.69ms高
+        ir_data = (ir_data &gt;&gt; 1) | 0x80000000;
+        ir_bit_idx++;
+    }
+
+    if (ir_bit_idx == 32) {
+        ir_ready = 1;
+    }
+}
+
+uint8_t IR_IsReady(void)
+{
+    return ir_ready;
+}
+
+uint32_t IR_GetData(void)
+{
+    ir_ready = 0;
+    return ir_data;
+}
+
+uint8_t IR_GetKeyCode(void)
+{
+    if (!ir_ready) return 0xFF;
+    uint32_t data = ir_data;
+    ir_ready = 0;
+    // NEC: 8位地址 + 8位地址反码 + 8位命令 + 8位命令反码
+    uint8_t cmd = (data &gt;&gt; 8) &amp; 0xFF;
+    uint8_t cmd_inv = data &amp; 0xFF;
+    if ((cmd ^ cmd_inv) == 0xFF) {
+        return cmd;
+    }
+    return 0xFF; // 解码失败
+}
+
+/* HAL GPIO外部中断回调 */
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
+{
+    if (GPIO_Pin == IR_PIN) {
+        IR_FallingEdgeHandler();
+    }
+}
+</code></pre>
+
+<h3>bluetooth.c — 蓝牙命令解析</h3>
+<pre><code>#include "bluetooth.h"
+#include "usart.h"
+#include &lt;string.h&gt;
+#include &lt;stdlib.h&gt;
+
+#define BT_BUF_SIZE 64
+
+static uint8_t bt_buf[BT_BUF_SIZE];
+static uint8_t bt_idx = 0;
+
+/* 蓝牙命令定义 */
+/* 前进: F  后退: B  左转: L  右转: R  停止: S */
+/* 速度: V&lt;0-9&gt;  模式: M&lt;0-2&gt;(0待机/1手动/2自动) */
+
+typedef struct {
+    char cmd;
+    int16_t param;
+} BT_Command_t;
+
+static BT_Command_t last_cmd = {0, 0};
+
+void BT_ProcessByte(uint8_t byte)
+{
+    if (byte == '\r' || byte == '\n') {
+        if (bt_idx &gt; 0) {
+            bt_buf[bt_idx] = '\0';
+            BT_ParseBuffer((char *)bt_buf);
+            bt_idx = 0;
+        }
+    } else {
+        if (bt_idx &lt; BT_BUF_SIZE - 1) {
+            bt_buf[bt_idx++] = byte;
+        }
+    }
+}
+
+BT_Command_t BT_GetLastCommand(void)
+{
+    BT_Command_t cmd = last_cmd;
+    last_cmd.cmd = 0;  // 清除已读命令
+    return cmd;
+}
+
+void BT_ParseBuffer(char *buf)
+{
+    if (strlen(buf) == 0) return;
+
+    switch (buf[0]) {
+    case 'F': last_cmd.cmd = 'F'; last_cmd.param = 0; break;
+    case 'B': last_cmd.cmd = 'B'; last_cmd.param = 0; break;
+    case 'L': last_cmd.cmd = 'L'; last_cmd.param = 0; break;
+    case 'R': last_cmd.cmd = 'R'; last_cmd.param = 0; break;
+    case 'S': last_cmd.cmd = 'S'; last_cmd.param = 0; break;
+    case 'V':
+        last_cmd.cmd = 'V';
+        last_cmd.param = (strlen(buf) &gt; 1) ? atoi(&amp;buf[1]) : 5;
+        if (last_cmd.param &lt; 0) last_cmd.param = 0;
+        if (last_cmd.param &gt; 9) last_cmd.param = 9;
+        break;
+    case 'M':
+        last_cmd.cmd = 'M';
+        last_cmd.param = (strlen(buf) &gt; 1) ? atoi(&amp;buf[1]) : 0;
+        break;
+    default:
+        break;
+    }
+}
+
+/* USART接收中断回调 */
+void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
+{
+    if (huart == &amp;huart1) {
+        static uint8_t rx_byte;
+        BT_ProcessByte(rx_byte);
+        HAL_UART_Receive_IT(&amp;huart1, &amp;rx_byte, 1);
+    }
+}
+</code></pre>
+
+<h3>pid.c — PID速度控制器</h3>
+<pre><code>#include "pid.h"
+
+void PID_Init(PID_t *pid, float kp, float ki, float kd, float out_min, float out_max)
+{
+    pid-&gt;kp = kp;
+    pid-&gt;ki = ki;
+    pid-&gt;kd = kd;
+    pid-&gt;setpoint = 0;
+    pid-&gt;integral = 0;
+    pid-&gt;last_error = 0;
+    pid-&gt;out_min = out_min;
+    pid-&gt;out_max = out_max;
+}
+
+float PID_Calculate(PID_t *pid, float feedback)
+{
+    float error = pid-&gt;setpoint - feedback;
+
+    /* 积分限幅(抗积分饱和) */
+    pid-&gt;integral += error;
+    if (pid-&gt;integral &gt; pid-&gt;out_max) pid-&gt;integral = pid-&gt;out_max;
+    if (pid-&gt;integral &lt; pid-&gt;out_min) pid-&gt;integral = pid-&gt;out_min;
+
+    float derivative = error - pid-&gt;last_error;
+    pid-&gt;last_error = error;
+
+    float output = pid-&gt;kp * error + pid-&gt;ki * pid-&gt;integral + pid-&gt;kd * derivative;
+
+    /* 输出限幅 */
+    if (output &gt; pid-&gt;out_max) output = pid-&gt;out_max;
+    if (output &lt; pid-&gt;out_min) output = pid-&gt;out_min;
+
+    return output;
+}
+
+void PID_SetSetpoint(PID_t *pid, float setpoint)
+{
+    pid-&gt;setpoint = setpoint;
+    pid-&gt;integral = 0;  // 切换目标时清积分
+    pid-&gt;last_error = 0;
+}
+</code></pre>
+
+<h3>pid.h — PID头文件</h3>
+<pre><code>#ifndef __PID_H
+#define __PID_H
+
+typedef struct {
+    float kp, ki, kd;
+    float setpoint;
+    float integral;
+    float last_error;
+    float out_min, out_max;
+} PID_t;
+
+void PID_Init(PID_t *pid, float kp, float ki, float kd, float out_min, float out_max);
+float PID_Calculate(PID_t *pid, float feedback);
+void PID_SetSetpoint(PID_t *pid, float setpoint);
+
+#endif
+</code></pre>
+
+<h3>main.c — 状态机主程序</h3>
+<pre><code>#include "main.h"
+#include "motor.h"
+#include "ultrasonic.h"
+#include "ir_remote.h"
+#include "bluetooth.h"
+#include "pid.h"
+#include "usart.h"
+#include "i2c.h"
+#include "tim.h"
+#include &lt;stdio.h&gt;
+
+/* 小车状态 */
+typedef enum {
+    CAR_IDLE,
+    CAR_MANUAL,
+    CAR_AUTO,
+    CAR_BT_CTRL,
+    CAR_EMERGENCY
+} CarState_t;
+
+static CarState_t car_state = CAR_IDLE;
+static uint16_t base_speed = 500;  // 基础速度(0~1000)
+static float safe_distance = 20.0f; // 安全距离cm
+
+/* PID实例(如有编码器) */
+static PID_t pid_left;
+static PID_t pid_right;
+
+/* printf重定向 */
+int fputc(int ch, FILE *f)
+{
+    HAL_UART_Transmit(&amp;huart1, (uint8_t *)&amp;ch, 1, HAL_MAX_DELAY);
+    return ch;
+}
+
+int main(void)
+{
+    HAL_Init();
+    SystemClock_Config();
+    MX_GPIO_Init();
+    MX_USART1_UART_Init();
+    MX_I2C1_Init();
+    MX_TIM2_Init();
+    MX_TIM3_Init();
+    MX_TIM12_Init();
+
+    Motor_Init();
+    PID_Init(&amp;pid_left,  2.0f, 0.5f, 0.1f, 0, 1000);
+    PID_Init(&amp;pid_right, 2.0f, 0.5f, 0.1f, 0, 1000);
+
+    /* 启动串口接收中断 */
+    uint8_t rx_byte;
+    HAL_UART_Receive_IT(&amp;huart1, &amp;rx_byte, 1);
+
+    printf("Smart Car Ready!\r\n");
+
+    while (1) {
+        StateMachine_Run();
+        HAL_Delay(50); // 20Hz主循环
+    }
+}
+
+void StateMachine_Run(void)
+{
+    /* 1. 检测紧急条件(最高优先) */
+    float dist = HC_SR04_GetDistance();
+    if (dist &gt; 0 &amp;&amp; dist &lt; safe_distance &amp;&amp; car_state != CAR_IDLE) {
+        Car_Brake();
+        car_state = CAR_EMERGENCY;
+        printf("EMERGENCY! Dist=%.1fcm\r\n", dist);
+        return;
+    }
+
+    /* 2. 检查红外遥控 */
+    if (IR_IsReady()) {
+        uint8_t key = IR_GetKeyCode();
+        switch (key) {
+        case 0x45: car_state = CAR_MANUAL; printf("IR: Manual mode\r\n"); break;
+        case 0x46: car_state = CAR_AUTO;   printf("IR: Auto mode\r\n");   break;
+        case 0x47: car_state = CAR_IDLE; Car_Stop(); printf("IR: Idle\r\n"); break;
+        case 0x40: Car_Forward(base_speed);  break; // OK
+        case 0x19: Car_Backward(base_speed); break; // 1
+        case 0x07: Car_TurnLeft(base_speed); break; // 2
+        case 0x09: Car_TurnRight(base_speed);break; // 3
+        case 0x15: Car_Stop();               break; // 5
+        }
+    }
+
+    /* 3. 检查蓝牙命令 */
+    BT_Command_t bt = BT_GetLastCommand();
+    if (bt.cmd) {
+        switch (bt.cmd) {
+        case 'F': car_state = CAR_BT_CTRL; Car_Forward(base_speed); break;
+        case 'B': car_state = CAR_BT_CTRL; Car_Backward(base_speed); break;
+        case 'L': car_state = CAR_BT_CTRL; Car_TurnLeft(base_speed); break;
+        case 'R': car_state = CAR_BT_CTRL; Car_TurnRight(base_speed); break;
+        case 'S': Car_Stop();
+                  car_state = CAR_BT_CTRL; break;
+        case 'V': base_speed = bt.param * 100 + 100; break; // V0=100~V9=1000
+        case 'M':
+            if (bt.param == 0) { car_state = CAR_IDLE; Car_Stop(); }
+            else if (bt.param == 1) car_state = CAR_MANUAL;
+            else if (bt.param == 2) car_state = CAR_AUTO;
+            break;
+        }
+    }
+
+    /* 4. 状态机执行 */
+    switch (car_state) {
+    case CAR_IDLE:
+        Car_Stop();
+        break;
+
+    case CAR_MANUAL:
+        // 手动模式下由IR遥控器控制，此处无需额外逻辑
+        break;
+
+    case CAR_AUTO:
+        AutoAvoid(dist);
+        break;
+
+    case CAR_BT_CTRL:
+        // 蓝牙模式下由命令驱动，无需额外逻辑
+        break;
+
+    case CAR_EMERGENCY:
+        // 等待距离恢复安全或切换模式
+        if (dist &gt; safe_distance + 10.0f) {
+            car_state = CAR_AUTO;
+            printf("Emergency cleared\r\n");
+        }
+        break;
+    }
+
+    /* 5. OLED状态显示 */
+    OLED_ShowStatus(car_state, dist, base_speed);
+}
+
+void AutoAvoid(float distance)
+{
+    if (distance &lt; 0) {
+        // 超声波读取失败，慢速前进
+        Car_Forward(base_speed / 3);
+        return;
+    }
+
+    if (distance &lt; safe_distance) {
+        // 障碍物太近：先后退，再右转
+        Car_Backward(base_speed / 2);
+        HAL_Delay(500);
+        Car_TurnRight(base_speed / 2);
+        HAL_Delay(400);
+    } else if (distance &lt; safe_distance + 15.0f) {
+        // 接近障碍物：右转避让
+        Car_TurnRight(base_speed / 2);
+    } else {
+        // 安全距离：前进
+        Car_Forward(base_speed);
+    }
+}
+</code></pre>
+
+<h2>🧩 PID参数整定指南</h2>
+
+<h3>手动整定步骤</h3>
+<pre><code>/* 1. 先只调P：I=0, D=0 */
+PID_Init(&amp;pid, 2.0f, 0.0f, 0.0f, 0, 1000);
+/* 观察：如果振荡→减小Kp，响应慢→增大Kp */
+
+/* 2. 加入I：消除稳态误差 */
+PID_Init(&amp;pid, 2.0f, 0.5f, 0.0f, 0, 1000);
+/* 观察：如果超调大→减小Ki */
+
+/* 3. 加入D：抑制超调 */
+PID_Init(&amp;pid, 2.0f, 0.5f, 0.1f, 0, 1000);
+/* 观察：如果抖动→减小Kd */
+
+/* 经验初值(直流电机)：Kp=1~5, Ki=0.1~1, Kd=0.01~0.5 */
+</code></pre>
+
+<h3>推荐手机APP</h3>
+<p>蓝牙串口助手（如"蓝牙串口助手"APP），发送单个字符命令即可控制小车。</p>
+
+<h2>❓ 常见问题排查</h2>
+
+<div class="warn">
+<strong>⚠️ 问题1：电源功率不足</strong><br>
+<strong>现象：</strong>电机启动时MCU复位、OLED闪烁、测距不稳定<br>
+<strong>原因：</strong>电机启动电流大(每路可达1A)，拉低供电电压<br>
+<strong>解决：</strong><br>
+1. 电机供电与MCU供电分开：电池直供L298N，降压模块供MCU<br>
+2. 在MCU供电端加大电容(470μF电解+0.1μF陶瓷)<br>
+3. 电池容量不足时更换大容量电池组<br>
+4. 电机加速采用斜坡函数，避免全速启动
+</div>
+
+<div class="warn">
+<strong>⚠️ 问题2：HC-05蓝牙默认波特率9600</strong><br>
+<strong>现象：</strong>串口收发乱码<br>
+<strong>原因：</strong>CubeMX中USART1配置了115200，但HC-05默认9600<br>
+<strong>解决：</strong><br>
+1. 将USART1波特率改为9600<br>
+2. 或通过AT命令修改HC-05波特率：<code>AT+BAUD8</code>→115200<br>
+3. 进入AT模式：按住HC-05按键上电，LED慢闪(2s间隔)表示进入
+</div>
+
+<div class="warn">
+<strong>⚠️ 问题3：PID参数整定困难</strong><br>
+<strong>现象：</strong>速度忽快忽慢、持续振荡、响应迟缓<br>
+<strong>原因：</strong>PID参数不匹配系统特性<br>
+<strong>解决：</strong><br>
+1. 先开环控制(固定PWM)确认电机方向和编码器正常<br>
+2. 从小Kp开始逐步增大，找到产生持续振荡的临界Kp<br>
+3. 实际Kp取临界值的60%，Ki取Kp/(振荡周期×0.5)，Kd取Kp×振荡周期×0.125<br>
+4. 小车场景建议Kp偏小，防止轮子打滑
+</div>
+
+<div class="warn">
+<strong>⚠️ 问题4：代码模块化不足</strong><br>
+<strong>现象：</strong>改一个功能导致其他功能异常<br>
+<strong>原因：</strong>所有代码写在main.c，耦合严重<br>
+<strong>解决：</strong><br>
+1. 严格模块化：每个外设独立.c/.h文件<br>
+2. 模块间通过函数接口通信，不直接操作其他模块的变量<br>
+3. 使用状态机统一调度，避免各模块互相调用<br>
+4. 全局变量用static限制作用域
+</div>
+
+<div class="warn">
+<strong>⚠️ 问题5：HC-SR04 Echo引脚5V问题</strong><br>
+<strong>现象：</strong>STM32 GPIO损坏或读数不准<br>
+<strong>原因：</strong>HC-SR04的Echo输出5V，STM32 GPIO耐受3.3V<br>
+<strong>解决：</strong><br>
+1. Echo引脚串联10K+20K电阻分压，中间点接PA5<br>
+2. 或使用3.3V电平转换模块<br>
+3. 切勿直接连接5V信号到STM32 GPIO
+</div>
+
+<div class="tip">
+<strong>✅ 进阶优化方向：</strong><br>
+1. 加装编码器实现PID速度闭环<br>
+2. 增加MPU6050实现姿态平衡<br>
+3. 加入红外循迹模块实现巡线功能<br>
+4. 使用FreeRTOS重构为多任务架构<br>
+5. 增加WiFi摄像头模块实现图传遥控
+</div>
+
+
+<hr><h2>❓ 常见问题 FAQ</h2>
+
+<div style="margin:12px 0;padding:12px 16px;background:var(--bg2);border-left:3px solid var(--a);border-radius:0 8px 8px 0">
+  <p style="font-weight:600;color:var(--c1);margin-bottom:4px">Q: 小车跑偏？</p>
+  <p style="color:var(--t)">A: 1)左右电机速度差（需单独校准PWM） 2)轮径不一致 3)电池电压下降导致速度变化 → 需要编码器+PID闭环</p>
+</div>
+
+<div style="margin:12px 0;padding:12px 16px;background:var(--bg2);border-left:3px solid var(--a);border-radius:0 8px 8px 0">
+  <p style="font-weight:600;color:var(--c1);margin-bottom:4px">Q: 避障反应慢？</p>
+  <p style="color:var(--t)">A: 1)超声波测距周期太长（降到50ms） 2)决策逻辑太复杂 3)电机响应延迟 → 提高控制频率到100Hz</p>
+</div>
+
+<hr><h2>🔗 相关教程</h2>
+<div style="display:flex;flex-wrap:wrap;gap:8px;margin:12px 0">
+<a href="#" onclick="parent.loadPage && parent.loadPage('proj-pwm-motor')" style="display:inline-block;padding:6px 14px;background:var(--bg3);border:1px solid var(--br);border-radius:6px;color:var(--a);text-decoration:none;font-size:.85em">PWM电机 →</a>
+<a href="#" onclick="parent.loadPage && parent.loadPage('proj-ultrasonic')" style="display:inline-block;padding:6px 14px;background:var(--bg3);border:1px solid var(--br);border-radius:6px;color:var(--a);text-decoration:none;font-size:.85em">超声波 →</a>
+<a href="#" onclick="parent.loadPage && parent.loadPage('proj-ir-remote')" style="display:inline-block;padding:6px 14px;background:var(--bg3);border:1px solid var(--br);border-radius:6px;color:var(--a);text-decoration:none;font-size:.85em">红外遥控 →</a>
+<a href="#" onclick="parent.loadPage && parent.loadPage('proj-freertos-station')" style="display:inline-block;padding:6px 14px;background:var(--bg3);border:1px solid var(--br);border-radius:6px;color:var(--a);text-decoration:none;font-size:.85em">FreeRTOS站 →</a>
+</div>
+
+</body></html>

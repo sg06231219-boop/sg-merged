@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>⚽ 世界杯 2026 - 赛事中心</title>
+<meta name="description" content="2026 FIFA世界杯赛事信息聚合 - 赛程比分、积分榜、射手榜、赛事资讯">
+<meta name="keywords" content="2026世界杯,FIFA World Cup,赛程,比分,积分榜,射手榜,足球">
+<meta property="og:title" content="世界杯 2026 赛事中心">
+<meta property="og:description" content="2026 FIFA世界杯赛程比分、积分榜、射手榜、赛事资讯">
+<meta property="og:image" content="https://world-cup-2026-1zet.onrender.com/og-image.png">
+<meta name="theme-color" content="#060e1a">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚽</text></svg>">
+<link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚽</text></svg>">
+<link rel="manifest" href="manifest.json">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="app">
+  <header class="hero">
+    <div class="hero-row">
+      <div class="hero-left"><h1>⚽ 世界杯 2026</h1><div class="hero-sub">FIFA WORLD CUP™ · USA·MEX·CAN</div></div>
+      <div class="cd-wrap"><div class="cd-label">距离开幕</div><div class="cd-row" id="countdown"></div></div>
+    </div>
+    <div class="live-strip" data-action="scrollToLive">
+      <div class="live-pulse"></div>
+      <div class="ls-text" id="ls-text">🇲🇽 墨西哥 1-0 阿根廷 🇦🇷 · 67'</div>
+      <div class="ls-act">观看 →</div>
+    </div>
+    <div class="quick-bar">
+      <div class="qb-item" data-action="switchTab" data-args="'matches'"><div class="qb-icon">🏆</div><div class="qb-label">赛程</div></div>
+      <div class="qb-item" data-action="switchTab" data-args="'standings'"><div class="qb-icon">📊</div><div class="qb-label">积分</div></div>
+      <div class="qb-item" data-action="switchTab" data-args="'scorers'"><div class="qb-icon">👟</div><div class="qb-label">射手</div></div>
+      <div class="qb-item" data-action="switchTab" data-args="'news'"><div class="qb-icon">📰</div><div class="qb-label">资讯</div></div>
+    </div>
+  </header>
+  <nav class="tabs" id="tabs">
+    <button class="tab active" data-tab="matches">比赛<span class="tb" id="lc">1</span></button>
+    <button class="tab" data-tab="standings">积分榜</button>
+    <button class="tab" data-tab="scorers">射手榜</button>
+    <button class="tab" data-tab="news">资讯</button>
+  </nav>
+  <main class="content">
+    <section id="matches" class="tab-pane active">
+      <div class="cal" id="calendar"></div>
+      <div class="fav-bar" id="favBar"></div>
+      <div class="filters">
+        <button class="fbtn active" data-g="all">全部</button>
+        <button class="fbtn" data-g="fav">⭐ 关注</button>
+        <button class="fbtn" data-g="live"><span class="fp"></span>进行中</button>
+        <button class="fbtn" data-g="today">📅 今日</button>
+        <button class="fbtn" data-g="upcoming">未开赛</button>
+        <button class="fbtn" data-g="finished">已结束</button>
+      </div>
+      <div id="ml"></div>
+    </section>
+    <section id="standings" class="tab-pane">
+      <div class="gs"><select id="gsel"></select></div>
+      <div id="sl"></div>
+    </section>
+    <section id="scorers" class="tab-pane"><div id="scl"></div></section>
+    <section id="news" class="tab-pane"><div id="nl"></div></section>
+  </main>
+  <div class="bottom-bar"><span class="bi">📺</span> 点击「看直播」跳转央视频/咪咕/抖音正版平台</div>
+</div>
+<div class="modal-bg" id="modalBg" data-action="closeModal" data-args="event">
+  <div class="modal" id="modal"></div>
+</div>
+<script src="app.js"></script>
+</body>
+</html>

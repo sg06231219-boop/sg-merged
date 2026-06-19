@@ -1,0 +1,95 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI竞品分析器 - SG智能建站</title>
+<link rel="stylesheet" href="/static/tool-shared/style.css">
+<style>:root{--accent1:#a29bfe;--accent2:#6c5ce7}</style>
+</head>
+<body>
+<div class="container">
+<a href="/" class="back">← 返回首页</a>
+<div class="header"><h1>📊 AI竞品分析器</h1><p>知己知彼，AI帮你看透竞争格局</p></div>
+
+<div class="quota"><span>今日免费额度</span><span class="rem" id="quotaText">加载中...</span></div>
+
+<div class="glass">
+<h2>📝 输入信息</h2>
+<div class="field"><label class="fl">我的产品/服务</label><textarea id="myProduct" placeholder="如：一款面向中小企业的AI客服系统..."></textarea></div>
+<div class="field"><label class="fl">竞品（多个用逗号分隔）</label><input id="competitors" placeholder="如：Zendesk, Intercom, Freshdesk"></div>
+<div class="row">
+<div class="field"><label class="fl">分析维度</label><select id="dimension"><option value="full">🔍 全面分析</option><option value="pricing">💰 定价策略</option><option value="features">⚡ 功能对比</option><option value="marketing">📊 营销策略</option><option value="ux">🎨 用户体验</option></select></div>
+<div class="field"><label class="fl">输出语言</label><select id="lang"><option value="zh">中文</option><option value="en">English</option></select></div>
+</div>
+<button class="btn btn-primary" id="genBtn" data-action="generate">📊 开始分析</button>
+</div>
+
+<div id="progressArea" class="glass hidden"><h2>⏳ 分析进度</h2><div id="steps" class="steps"></div></div>
+<div id="resultArea" class="glass hidden"><h2>🎉 分析结果</h2><div id="resultContent"></div><div class="export-bar"><button class="btn-sm" data-action="copyAll">📋 复制文本</button><button class="btn-sm" data-action="exportJSON">💾 导出JSON</button></div></div>
+<div id="errorArea" class="glass hidden"><div class="error" id="errorMsg"></div></div>
+
+<div class="glass"><h2>📖 分析维度说明</h2><div class="steps"><div class="step"><div class="dot">💰</div><div class="txt">定价策略 — 价格区间、折扣模式、免费策略</div></div><div class="step"><div class="dot">⚡</div><div class="txt">功能对比 — 核心功能差异、独有功能</div></div><div class="step"><div class="dot">📊</div><div class="txt">营销策略 — 渠道、内容、增长策略</div></div><div class="step"><div class="dot">🎨</div><div class="txt">用户体验 — 设计、流程、客户评价</div></div><div class="step"><div class="dot">🔍</div><div class="txt">全面分析 — 以上所有维度综合</div></div></div></div>
+
+<script src="/static/tool-shared/base.js"></script>
+<script>
+var tool = new SG.ToolBase({apiBase:'/api/v1/competitor', stepTexts:['提交任务...','AI分析中...','整理分析报告...']});
+tool.getButtonLabel = function(){ return '📊 开始分析'; };
+tool.onResult = function(r) {
+  tool._lastResult = r;
+  SG.$('errorArea').classList.add('hidden');
+  SG.$('progressArea').classList.add('hidden');
+  SG.$('resultArea').classList.remove('hidden');
+  if(!r) return;
+  var h = '';
+  if(r.executive_summary) h += '<div class="result-card" style="border-color:var(--accent1);background:rgba(162,155,254,.06)"><h3>📋 核心发现</h3><p style="font-size:.95rem;line-height:1.8">'+SG.escHtml(r.executive_summary)+'</p></div>';
+  if(r.market_position) {
+    var mp = r.market_position;
+    h += '<div class="result-card"><h3>🗺️ 市场定位</h3>';
+    if(mp.my_position) h += '<p><strong>我的定位：</strong>'+SG.escHtml(mp.my_position)+'</p>';
+    if(mp.competitor_positions) h += '<p style="margin-top:6px"><strong>竞品定位：</strong></p><ul>'+mp.competitor_positions.map(function(p){return '<li>'+SG.escHtml(p)+'</li>';}).join('')+'</ul>';
+    if(mp.gaps) h += '<p style="margin-top:6px"><strong>市场空白：</strong></p><ul>'+mp.gaps.map(function(g){return '<li>💡 '+SG.escHtml(g)+'</li>';}).join('')+'</ul>';
+    if(mp.opportunities) h += '<p style="margin-top:6px"><strong>机会：</strong></p><ul>'+mp.opportunities.map(function(o){return '<li>🚀 '+SG.escHtml(o)+'</li>';}).join('')+'</ul>';
+    h += '</div>';
+  }
+  if(r.comparison && r.comparison.length) {
+    h += '<div class="result-card"><h3>⚖️ 多维对比</h3>';
+    r.comparison.forEach(function(c){
+      h += '<div style="padding:8px 0;border-bottom:1px solid var(--border)"><strong>'+SG.escHtml(c.dimension)+'</strong> — 我: <span class="tag tag-info">'+ (c.my_score||'-')+'/10</span>';
+      if(c.comp_scores) c.comp_scores.forEach(function(cs){ h += ' | '+SG.escHtml(cs.name)+': <span class="tag tag-warn">'+(cs.score||'-')+'/10</span>'; });
+      h += '<br><span style="font-size:.8rem;color:var(--text2)">'+SG.escHtml(c.analysis||'')+'</span>';
+      if(c.action) h += '<br><span style="font-size:.8rem;color:var(--accent1)">→ '+SG.escHtml(c.action)+'</span>';
+      h += '</div>';
+    });
+    h += '</div>';
+  }
+  if(r.swot) {
+    h += '<div class="result-card"><h3>🧭 SWOT分析</h3><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">';
+    var swotLabels = {strengths:'💪 优势',weaknesses:'⚠️ 劣势',opportunities:'🚀 机会',threats:'🔥 威胁'};
+    ['strengths','weaknesses','opportunities','threats'].forEach(function(k){
+      if(r.swot[k]) h += '<div style="padding:8px;background:rgba(255,255,255,.02);border-radius:6px"><strong style="font-size:.8rem">'+swotLabels[k]+'</strong><ul style="font-size:.8rem;padding-left:14px;margin-top:4px">'+r.swot[k].map(function(s){return '<li>'+SG.escHtml(s)+'</li>';}).join('')+'</ul></div>';
+    });
+    h += '</div></div>';
+  }
+  if(r.action_plan && r.action_plan.length) {
+    h += '<div class="result-card"><h3>🎯 行动计划</h3><ul>';
+    r.action_plan.forEach(function(a){ h += '<li><span class="tag tag-success">P'+(a.priority||3)+'</span> '+SG.escHtml(a.action)+' <span style="color:var(--text2);font-size:.8rem">('+SG.escHtml(a.timeline||'')+' — '+SG.escHtml(a.impact||'')+')</span></li>'; });
+    h += '</ul></div>';
+  }
+  SG.$('resultContent').innerHTML = h;
+};
+
+document.addEventListener('click', function(e) {
+  if(e.target.closest('[data-action="generate"]') && !tool.generating) {
+    var myProduct = SG.$('myProduct').value.trim();
+    var competitors = SG.$('competitors').value.trim();
+    if(!myProduct || !competitors) { SG.showToast('请填写产品和竞品信息','error'); return; }
+    tool.submit('/analyze', {my_product:myProduct, competitors:competitors, dimension:SG.$('dimension').value, lang:SG.$('lang').value}, '分析中...');
+  }
+  if(e.target.closest('[data-action="copyAll"]')) tool.copyResult();
+  if(e.target.closest('[data-action="exportJSON"]')) tool.exportJSON();
+});
+tool.syncQuota();
+</script>
+</body>
+</html>

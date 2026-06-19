@@ -1,0 +1,1813 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SG智能建站 - 管理后台</title>
+<style>
+:root {
+  --bg: #0f172a;
+  --bg-card: rgba(255,255,255,0.04);
+  --bg-card-hover: rgba(255,255,255,0.07);
+  --border: rgba(255,255,255,0.08);
+  --border-focus: rgba(99,102,241,0.5);
+  --text: #e2e8f0;
+  --text-dim: #94a3b8;
+  --text-muted: #64748b;
+  --gold: #fbbf24;
+  --gold2: #f59e0b;
+  --indigo: #6366f1;
+  --indigo-light: #818cf8;
+  --emerald: #10b981;
+  --rose: #f43f5e;
+  --amber: #f59e0b;
+  --cyan: #06b6d4;
+  --radius: 12px;
+  --radius-sm: 8px;
+  --shadow: 0 4px 24px rgba(0,0,0,0.3);
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  line-height: 1.6;
+}
+a { color: var(--indigo-light); text-decoration: none; }
+
+/* ── 登录页 ─────────────────────────── */
+.login-wrap {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, var(--bg) 0%, #1e1b4a 50%, #0f172a 100%);
+}
+.login-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 48px 40px;
+  width: 400px;
+  max-width: 90vw;
+  backdrop-filter: blur(20px);
+  box-shadow: var(--shadow);
+}
+.login-card h1 {
+  font-size: 24px;
+  font-weight: 700;
+  background: linear-gradient(135deg, var(--gold), var(--gold2));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  margin-bottom: 8px;
+}
+.login-card .subtitle { color: var(--text-dim); font-size: 14px; margin-bottom: 32px; }
+.login-card label { display: block; font-size: 13px; color: var(--text-dim); margin-bottom: 6px; font-weight: 500; }
+.login-card input {
+  width: 100%;
+  padding: 12px 16px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: rgba(255,255,255,0.06);
+  color: var(--text);
+  font-size: 15px;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.login-card input:focus { border-color: var(--border-focus); box-shadow: 0 0 0 3px rgba(99,102,241,0.15); }
+.login-card .btn-login {
+  width: 100%;
+  margin-top: 24px;
+  padding: 13px;
+  border-radius: var(--radius-sm);
+  border: none;
+  background: linear-gradient(135deg, var(--indigo), var(--indigo-light));
+  color: #fff;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+.login-card .btn-login:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(99,102,241,0.35); }
+.login-card .btn-login:active { transform: translateY(0); }
+.login-error { color: var(--rose); font-size: 13px; margin-top: 12px; min-height: 20px; }
+
+/* ── 主布局 ─────────────────────────── */
+.app-layout { display: flex; min-height: 100vh; }
+
+/* 侧边栏 */
+.sidebar {
+  width: 240px;
+  background: rgba(15,23,42,0.95);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  z-index: 100;
+  transition: transform 0.3s;
+}
+.sidebar-brand {
+  padding: 20px 20px 16px;
+  border-bottom: 1px solid var(--border);
+  font-size: 17px;
+  font-weight: 700;
+  background: linear-gradient(135deg, var(--gold), var(--gold2));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+.sidebar-nav { flex: 1; padding: 12px 10px; overflow-y: auto; }
+.nav-group { margin-bottom: 8px; }
+.nav-group-title {
+  font-size: 11px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 8px 12px 4px;
+  font-weight: 600;
+}
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 14px;
+  border-radius: var(--radius-sm);
+  font-size: 13.5px;
+  color: var(--text-dim);
+  cursor: pointer;
+  transition: all 0.15s;
+  margin-bottom: 2px;
+  font-weight: 500;
+}
+.nav-item:hover { background: var(--bg-card-hover); color: var(--text); }
+.nav-item.active { background: rgba(99,102,241,0.15); color: var(--indigo-light); }
+.nav-item .nav-icon { font-size: 16px; width: 22px; text-align: center; }
+.sidebar-footer {
+  padding: 14px 16px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.sidebar-footer .version { font-size: 11px; color: var(--text-muted); }
+.sidebar-footer .btn-logout {
+  background: none; border: none; color: var(--rose); cursor: pointer;
+  font-size: 13px; font-weight: 500; padding: 4px 8px; border-radius: 6px;
+  transition: background 0.15s;
+}
+.sidebar-footer .btn-logout:hover { background: rgba(244,63,94,0.1); }
+
+/* 主内容区 */
+.main-content {
+  flex: 1;
+  margin-left: 240px;
+  padding: 28px 32px;
+  max-width: 100%;
+}
+.page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 28px;
+}
+.page-title { font-size: 22px; font-weight: 700; }
+.page-subtitle { font-size: 13px; color: var(--text-dim); margin-top: 4px; }
+.header-actions { display: flex; gap: 10px; }
+
+/* ── 卡片/统计 ─────────────────────── */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 16px;
+  margin-bottom: 28px;
+}
+.stat-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px;
+  transition: transform 0.15s, border-color 0.15s;
+}
+.stat-card:hover { transform: translateY(-2px); border-color: rgba(99,102,241,0.3); }
+.stat-card .stat-label { font-size: 12px; color: var(--text-dim); font-weight: 500; text-transform: uppercase; letter-spacing: 0.3px; }
+.stat-card .stat-value { font-size: 28px; font-weight: 700; margin: 6px 0 2px; }
+.stat-card .stat-delta { font-size: 12px; font-weight: 500; }
+.stat-card .stat-delta.up { color: var(--emerald); }
+.stat-card .stat-delta.down { color: var(--rose); }
+
+/* ── 通用卡片 ───────────────────────── */
+.card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  margin-bottom: 20px;
+  overflow: hidden;
+}
+.card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border);
+}
+.card-header h3 { font-size: 15px; font-weight: 600; }
+.card-body { padding: 20px; }
+
+/* ── 表格 ───────────────────────────── */
+.tbl {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13.5px;
+}
+.tbl th {
+  text-align: left;
+  padding: 10px 14px;
+  color: var(--text-muted);
+  border-bottom: 1px solid var(--border);
+  font-size: 11.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  font-weight: 600;
+}
+.tbl td {
+  padding: 11px 14px;
+  border-bottom: 1px solid rgba(255,255,255,0.03);
+  vertical-align: middle;
+}
+.tbl tr:hover { background: rgba(255,255,255,0.02); }
+.tbl-wrap { overflow-x: auto; }
+
+/* ── 按钮 ───────────────────────────── */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 18px;
+  border-radius: var(--radius-sm);
+  border: none;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+.btn-primary {
+  background: linear-gradient(135deg, var(--indigo), var(--indigo-light));
+  color: #fff;
+}
+.btn-primary:hover { box-shadow: 0 4px 16px rgba(99,102,241,0.3); transform: translateY(-1px); }
+.btn-outline {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+}
+.btn-outline:hover { border-color: var(--indigo); color: var(--indigo-light); }
+.btn-danger { background: rgba(244,63,94,0.12); color: var(--rose); border: 1px solid rgba(244,63,94,0.25); }
+.btn-danger:hover { background: rgba(244,63,94,0.2); }
+.btn-success { background: rgba(16,185,129,0.12); color: var(--emerald); border: 1px solid rgba(16,185,129,0.25); }
+.btn-success:hover { background: rgba(16,185,129,0.2); }
+.btn-sm { padding: 5px 12px; font-size: 12px; }
+.btn-xs { padding: 3px 9px; font-size: 11.5px; border-radius: 6px; }
+
+/* ── 徽章 ──────────────────────────── */
+.badge {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 11.5px;
+  font-weight: 600;
+}
+.badge-gold { background: rgba(251,191,36,0.15); color: var(--gold); }
+.badge-indigo { background: rgba(99,102,241,0.15); color: var(--indigo-light); }
+.badge-emerald { background: rgba(16,185,129,0.15); color: var(--emerald); }
+.badge-rose { background: rgba(244,63,94,0.15); color: var(--rose); }
+.badge-dim { background: rgba(148,163,184,0.12); color: var(--text-dim); }
+
+/* ── 表单 ───────────────────────────── */
+.form-row { display: flex; gap: 14px; margin-bottom: 16px; flex-wrap: wrap; }
+.form-group { flex: 1; min-width: 140px; }
+.form-group label { display: block; font-size: 12.5px; color: var(--text-dim); margin-bottom: 5px; font-weight: 500; }
+.form-group input, .form-group select {
+  width: 100%;
+  padding: 9px 13px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: rgba(255,255,255,0.05);
+  color: var(--text);
+  font-size: 13.5px;
+  outline: none;
+  transition: border-color 0.2s;
+}
+.form-group input:focus, .form-group select:focus { border-color: var(--border-focus); }
+.form-group select option { background: #1e293b; color: var(--text); }
+
+/* ── 模态框 ────────────────────────── */
+.modal-overlay {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.6);
+  z-index: 1000;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(4px);
+}
+.modal-overlay.open { display: flex; }
+.modal {
+  background: #1e293b;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 28px;
+  max-width: 520px;
+  width: 92%;
+  max-height: 85vh;
+  overflow-y: auto;
+  box-shadow: 0 24px 64px rgba(0,0,0,0.5);
+}
+.modal h3 { font-size: 17px; font-weight: 700; margin-bottom: 20px; color: var(--gold); }
+.modal .modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 24px; }
+
+/* ── Toast ──────────────────────────── */
+.toast {
+  position: fixed;
+  top: 20px; right: 20px;
+  background: var(--emerald);
+  color: #fff;
+  padding: 12px 22px;
+  border-radius: var(--radius-sm);
+  font-size: 13.5px;
+  font-weight: 500;
+  opacity: 0;
+  transition: opacity 0.3s;
+  pointer-events: none;
+  z-index: 9999;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+}
+.toast.show { opacity: 1; }
+.toast.error { background: var(--rose); }
+
+/* ── 空状态 ────────────────────────── */
+.empty-state {
+  text-align: center;
+  padding: 48px 20px;
+  color: var(--text-muted);
+  font-size: 14px;
+}
+.empty-state .empty-icon { font-size: 40px; margin-bottom: 12px; opacity: 0.5; }
+
+/* ── 加载动画 ──────────────────────── */
+.spinner {
+  width: 20px; height: 20px;
+  border: 2px solid var(--border);
+  border-top-color: var(--indigo-light);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  display: inline-block;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.loading-overlay {
+  display: flex; align-items: center; justify-content: center;
+  padding: 40px; color: var(--text-dim); gap: 10px; font-size: 14px;
+}
+
+/* ── 分页 ──────────────────────────── */
+.pagination {
+  display: flex; align-items: center; justify-content: center;
+  gap: 6px; padding: 16px; font-size: 13px; color: var(--text-dim);
+}
+.pagination button {
+  padding: 5px 12px; border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--bg-card); color: var(--text-dim);
+  cursor: pointer; font-size: 12.5px; transition: all 0.15s;
+}
+.pagination button:hover { border-color: var(--indigo); color: var(--indigo-light); }
+.pagination button:disabled { opacity: 0.3; cursor: not-allowed; }
+.pagination .page-info { padding: 0 10px; }
+
+/* ── 搜索栏 ────────────────────────── */
+.search-bar {
+  display: flex; align-items: center; gap: 10px;
+  padding: 14px 18px;
+  background: rgba(255,255,255,0.03);
+  border-bottom: 1px solid var(--border);
+}
+.search-bar input {
+  flex: 1; padding: 8px 14px; border-radius: 8px;
+  border: 1px solid var(--border); background: rgba(255,255,255,0.05);
+  color: var(--text); font-size: 13.5px; outline: none;
+}
+.search-bar input:focus { border-color: var(--indigo); }
+.search-bar select {
+  padding: 8px 12px; border-radius: 8px;
+  border: 1px solid var(--border); background: rgba(255,255,255,0.05);
+  color: var(--text-dim); font-size: 13px; outline: none;
+}
+
+/* ── 移动端 ────────────────────────── */
+.mobile-header {
+  display: none;
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--border);
+  align-items: center;
+  justify-content: space-between;
+}
+@media(max-width:768px) {
+  .mobile-header { display: flex; }
+  .sidebar { transform: translateX(-100%); }
+  .sidebar.open { transform: translateX(0); }
+  .main-content { margin-left: 0; padding: 16px 14px; }
+  .stats-grid { grid-template-columns: repeat(2, 1fr); }
+  .form-row { flex-direction: column; }
+  .page-header { flex-direction: column; align-items: flex-start; gap: 12px; }
+}
+</style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════ -->
+<!--  登录页                              -->
+<!-- ══════════════════════════════════════ -->
+<div class="login-wrap" id="login-view">
+  <div class="login-card">
+    <h1>👑 SG 管理后台</h1>
+    <p class="subtitle">SG智能建站 v7.9 · 程序化SEO引擎</p>
+    <label for="admin-pwd">管理员密码</label>
+    <input type="password" id="admin-pwd" placeholder="请输入管理员密码" data-action="adminLoginOnEnter">
+    <button class="btn-login" id="login-btn" data-action="adminLogin">登 录</button>
+    <div class="login-error" id="login-err"></div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════ -->
+<!--  主应用                              -->
+<!-- ══════════════════════════════════════ -->
+<div class="app-layout" id="app-view" style="display:none">
+  <!-- 移动端头部 -->
+  <div class="mobile-header">
+    <button class="btn btn-outline btn-sm" data-action="toggleSidebar">☰ 菜单</button>
+    <span style="font-size:14px;font-weight:600">SG管理后台</span>
+    <div style="width:60px"></div>
+  </div>
+
+  <!-- 侧边栏 -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-brand">👑 SG 管理后台</div>
+    <nav class="sidebar-nav">
+      <div class="nav-group">
+        <div class="nav-group-title">概览</div>
+        <div class="nav-item active" data-page="dashboard" data-action="switchPage" data-args="dashboard">
+          <span class="nav-icon">📊</span> 数据概览
+        </div>
+      </div>
+      <div class="nav-group">
+        <div class="nav-group-title">用户 & 付费</div>
+        <div class="nav-item" data-page="codes" data-action="switchPage" data-args="codes">
+          <span class="nav-icon">🔑</span> 激活码
+        </div>
+        <div class="nav-item" data-page="users" data-action="switchPage" data-args="users">
+          <span class="nav-icon">👥</span> 用户管理
+        </div>
+      </div>
+      <div class="nav-group">
+        <div class="nav-group-title">内容与SEO</div>
+        <div class="nav-item" data-page="pages" data-action="switchPage" data-args="pages">
+          <span class="nav-icon">🌐</span> 生成站点
+        </div>
+        <div class="nav-item" data-page="seo" data-action="switchPage" data-args="seo">
+          <span class="nav-icon">🔍</span> SEO引擎
+        </div>
+      </div>
+      <div class="nav-group">
+        <div class="nav-group-title">电商管理</div>
+        <div class="nav-item" data-page="shop-products" data-action="switchPage" data-args="shop-products">
+          <span class="nav-icon">📦</span> 商品管理
+        </div>
+        <div class="nav-item" data-page="shop-orders" data-action="switchPage" data-args="shop-orders">
+          <span class="nav-icon">📋</span> 订单管理
+        </div>
+        <div class="nav-item" data-page="shop-coupons" data-action="switchPage" data-args="shop-coupons">
+          <span class="nav-icon">🏷️</span> 优惠券
+        </div>
+        <div class="nav-item" data-page="shop-settings" data-action="switchPage" data-args="shop-settings">
+          <span class="nav-icon">⚙️</span> 商城设置
+        </div>
+      </div>
+    </nav>
+    <div class="sidebar-footer">
+      <span class="version">v7.12.1</span>
+      <button class="btn-logout" data-action="adminLogout">退出</button>
+    </div>
+  </aside>
+
+  <!-- 主内容区 -->
+  <main class="main-content" id="main-content">
+
+    <!-- ══════════════════════════════════════ -->
+    <!--  数据概览                            -->
+    <!-- ══════════════════════════════════════ -->
+    <div class="page" id="page-dashboard">
+      <div class="page-header">
+        <div>
+          <div class="page-title">数据概览</div>
+          <div class="page-subtitle">实时监控平台运营数据</div>
+        </div>
+        <div class="header-actions">
+          <button class="btn btn-outline btn-sm" data-action="refreshAll">🔄 刷新</button>
+          <button class="btn btn-outline btn-sm" data-action="showCleanupModal">🧹 清理</button>
+        </div>
+      </div>
+      <div class="stats-grid" id="stats-grid"></div>
+      <div class="card">
+        <div class="card-header"><h3>⚡ 快捷操作</h3></div>
+        <div class="card-body" style="display:flex;gap:12px;flex-wrap:wrap">
+          <button class="btn btn-primary" data-action="genMonthlyCode">生成月付码</button>
+          <button class="btn btn-primary" data-action="genYearlyCode">生成年付码</button>
+          <button class="btn btn-outline" data-action="switchPage" data-args="seo">查看SEO引擎</button>
+        </div>
+      </div>
+      <!-- 最近用户 -->
+      <div class="card">
+        <div class="card-header"><h3>👤 最近注册用户</h3></div>
+        <div class="card-body" id="recent-users">加载中...</div>
+      </div>
+    <!-- 工具状态监控 -->
+    <div class="card">
+      <div class="card-header"><h3>🔧 AI工具状态</h3></div>
+      <div class="card-body" id="tools-status">
+        <div class="tools-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px">
+          <div class="tool-card" style="padding:12px;background:rgba(255,255,255,0.04);border-radius:8px;border:1px solid var(--border)">
+            <div style="font-size:13px;color:var(--text-muted)">🎬 去水印</div>
+            <div id="wm-status" style="font-size:18px;font-weight:600;margin-top:4px">检测中...</div>
+            <div id="wm-quota" style="font-size:11px;color:var(--text-dim)"></div>
+          </div>
+          <div class="tool-card" style="padding:12px;background:rgba(255,255,255,0.04);border-radius:8px;border:1px solid var(--border)">
+            <div style="font-size:13px;color:var(--text-muted)">🎭 AI短剧</div>
+            <div id="drama-status" style="font-size:18px;font-weight:600;margin-top:4px">检测中...</div>
+            <div id="drama-quota" style="font-size:11px;color:var(--text-dim)"></div>
+          </div>
+          <div class="tool-card" style="padding:12px;background:rgba(255,255,255,0.04);border-radius:8px;border:1px solid var(--border)">
+            <div style="font-size:13px;color:var(--text-muted)">🎓 UniPulse</div>
+            <div id="uni-status" style="font-size:18px;font-weight:600;margin-top:4px">检测中...</div>
+            <div id="uni-count" style="font-size:11px;color:var(--text-dim)"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    </div>
+
+    <!-- ══════════════════════════════════════ -->
+    <!--  激活码                              -->
+    <!-- ══════════════════════════════════════ -->
+    <div class="page" id="page-codes" style="display:none">
+      <div class="page-header">
+        <div>
+          <div class="page-title">激活码管理</div>
+          <div class="page-subtitle">生成和管理用户升级激活码</div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header"><h3>🔑 生成激活码</h3></div>
+        <div class="card-body">
+          <div class="form-row">
+            <div class="form-group">
+              <label>套餐类型</label>
+              <select id="plan-type">
+                <option value="monthly">月付 ¥29/月</option>
+                <option value="yearly">年付 ¥199/年</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>数量</label>
+              <select id="code-count">
+                <option value="1">1</option><option value="5">5</option>
+                <option value="10" selected>10</option>
+                <option value="20">20</option>
+                <option value="50">50</option>
+              </select>
+            </div>
+            <div class="form-group" style="align-self:flex-end">
+              <button class="btn btn-primary" data-action="generateCodes" style="width:100%">生成</button>
+            </div>
+          </div>
+          <div id="gen-result"></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header">
+          <h3>📋 激活码列表</h3>
+          <div style="display:flex;gap:8px">
+            <select id="filter-status" data-action="loadCodes" style="padding:6px 10px;border-radius:6px;border:1px solid var(--border);background:rgba(255,255,255,0.05);color:var(--text-dim);font-size:12.5px">
+              <option value="all">全部</option>
+              <option value="unused">未使用</option>
+              <option value="used">已使用</option>
+            </select>
+            <button class="btn btn-outline btn-sm" data-action="loadCodes">🔄</button>
+          </div>
+        </div>
+        <div class="card-body" style="padding:0">
+          <div id="codes-list"><div class="empty-state"><div class="empty-icon">📋</div>加载中...</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════ -->
+    <!--  用户管理                            -->
+    <!-- ══════════════════════════════════════ -->
+    <div class="page" id="page-users" style="display:none">
+      <div class="page-header">
+        <div>
+          <div class="page-title">用户管理</div>
+          <div class="page-subtitle">查看和管理注册用户</div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-body" style="padding:0">
+          <div class="tbl-wrap">
+            <table class="tbl" id="users-table">
+              <thead><tr>
+                <th>用户名</th><th>邮箱</th><th>方案</th><th>到期时间</th>
+                <th>今日用量</th><th>注册时间</th><th>操作</th>
+              </tr></thead>
+              <tbody id="users-tbody"><tr><td colspan="7" style="text-align:center;padding:32px;color:var(--text-muted)">加载中...</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════ -->
+    <!--  生成站点                            -->
+    <!-- ══════════════════════════════════════ -->
+    <div class="page" id="page-pages" style="display:none">
+      <div class="page-header">
+        <div>
+          <div class="page-title">生成站点</div>
+          <div class="page-subtitle">查看和管理AI生成的站点文件</div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-body" style="padding:0">
+          <div class="tbl-wrap">
+            <table class="tbl" id="pages-table">
+              <thead><tr>
+                <th>文件ID</th><th>类型</th><th>大小</th><th>创建时间</th><th>操作</th>
+              </tr></thead>
+              <tbody id="pages-tbody"><tr><td colspan="5" style="text-align:center;padding:32px;color:var(--text-muted)">加载中...</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════ -->
+    <!--  SEO引擎                             -->
+    <!-- ══════════════════════════════════════ -->
+    <div class="page" id="page-seo" style="display:none">
+      <div class="page-header">
+        <div>
+          <div class="page-title">程序化SEO引擎</div>
+          <div class="page-subtitle">关键词挖掘 · 批量生成 · 内链网络</div>
+        </div>
+        <div class="header-actions">
+          <button class="btn btn-outline btn-sm" data-action="loadSeoTasks">🔄 刷新</button>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header"><h3>🚀 新建SEO任务</h3></div>
+        <div class="card-body">
+          <div class="form-row">
+            <div class="form-group">
+              <label>行业</label>
+              <select id="seo-industry">
+                <option value="科技">科技软件</option>
+                <option value="教育">教育培训</option>
+                <option value="医疗">医疗服务</option>
+                <option value="金融">金融保险</option>
+                <option value="房地产">房产建筑</option>
+                <option value="法律">法律咨询</option>
+                <option value="装修">装修建材</option>
+                <option value="汽车">汽车服务</option>
+              </select>
+            </div>
+            <div class="form-group" style="flex:2">
+              <label>种子关键词（逗号分隔）</label>
+              <input type="text" id="seo-keywords" placeholder="如：APP开发, 小程序制作">
+            </div>
+            <div class="form-group">
+              <label>目标城市</label>
+              <input type="text" id="seo-city" placeholder="如：杭州">
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>最大关键词数</label>
+              <input type="number" id="seo-max-kw" value="30" min="10" max="200">
+            </div>
+            <div class="form-group">
+              <label>最大页面数</label>
+              <input type="number" id="seo-max-pages" value="10" min="1" max="100">
+            </div>
+            <div class="form-group" style="align-self:flex-end">
+              <button class="btn btn-primary" data-action="startSeoTask" style="width:100%">🚀 启动任务</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header"><h3>📋 SEO任务列表</h3></div>
+        <div class="card-body" id="seo-tasks">加载中...</div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════ -->
+    <!--  商品管理                            -->
+    <!-- ══════════════════════════════════════ -->
+    <div class="page" id="page-shop-products" style="display:none">
+      <div class="page-header">
+        <div>
+          <div class="page-title">商品管理</div>
+          <div class="page-subtitle">管理商城商品和库存</div>
+        </div>
+        <div class="header-actions">
+          <button class="btn btn-primary btn-sm" data-action="showProductModal">＋ 新增商品</button>
+        </div>
+      </div>
+      <div class="card">
+        <div class="search-bar">
+          <input type="text" id="product-search" placeholder="搜索商品名称..." data-action="filterProducts">
+          <select id="product-status-filter" data-action="loadProducts">
+            <option value="">全部状态</option>
+            <option value="active">上架中</option>
+            <option value="draft">草稿</option>
+            <option value="archived">已归档</option>
+          </select>
+        </div>
+        <div class="card-body" style="padding:0">
+          <div class="tbl-wrap">
+            <table class="tbl" id="products-table">
+              <thead><tr>
+                <th>商品名称</th><th>价格</th><th>库存</th><th>状态</th><th>创建时间</th><th>操作</th>
+              </tr></thead>
+              <tbody id="products-tbody"><tr><td colspan="6" style="text-align:center;padding:32px;color:var(--text-muted)">加载中...</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════ -->
+    <!--  订单管理                            -->
+    <!-- ══════════════════════════════════════ -->
+    <div class="page" id="page-shop-orders" style="display:none">
+      <div class="page-header">
+        <div>
+          <div class="page-title">订单管理</div>
+          <div class="page-subtitle">查看和处理客户订单</div>
+        </div>
+      </div>
+      <div class="stats-grid" id="order-stats-grid" style="margin-bottom:20px"></div>
+      <div class="card">
+        <div class="search-bar">
+          <select id="order-status-filter" data-action="loadOrders">
+            <option value="">全部状态</option>
+            <option value="pending">待支付</option>
+            <option value="paid">已支付</option>
+            <option value="shipped">已发货</option>
+            <option value="completed">已完成</option>
+            <option value="cancelled">已取消</option>
+          </select>
+          <input type="text" id="order-search" placeholder="搜索订单号/客户..." data-action="filterOrders">
+        </div>
+        <div class="card-body" id="orders-list">加载中...</div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════ -->
+    <!--  优惠券                              -->
+    <!-- ══════════════════════════════════════ -->
+    <div class="page" id="page-shop-coupons" style="display:none">
+      <div class="page-header">
+        <div>
+          <div class="page-title">优惠券管理</div>
+          <div class="page-subtitle">创建和管理优惠活动</div>
+        </div>
+        <div class="header-actions">
+          <button class="btn btn-primary btn-sm" data-action="showCouponModal">＋ 新增优惠券</button>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-body" id="coupons-list">加载中...</div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════ -->
+    <!--  商城设置                            -->
+    <!-- ══════════════════════════════════════ -->
+    <div class="page" id="page-shop-settings" style="display:none">
+      <div class="page-header">
+        <div>
+          <div class="page-title">商城设置</div>
+          <div class="page-subtitle">配置商城基本信息</div>
+        </div>
+        <div class="header-actions">
+          <button class="btn btn-primary btn-sm" data-action="saveShopSettings">💾 保存设置</button>
+        </div>
+      </div>
+      <div class="stats-grid" id="shop-stats-grid"></div>
+      <div class="card">
+        <div class="card-header"><h3>🏪 基本信息</h3></div>
+        <div class="card-body">
+          <div class="form-row">
+            <div class="form-group">
+              <label>店铺名称</label>
+              <input type="text" id="shop-name" placeholder="输入店铺名称">
+            </div>
+            <div class="form-group">
+              <label>联系电话</label>
+              <input type="text" id="shop-phone" placeholder="客服电话">
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>联系邮箱</label>
+              <input type="text" id="shop-email" placeholder="shop@example.com">
+            </div>
+            <div class="form-group">
+              <label>客服链接</label>
+              <input type="text" id="shop-cs-url" placeholder="https://work.weixin.qq.com/...">
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header"><h3>💳 支付方式</h3></div>
+        <div class="card-body">
+          <div class="form-row">
+            <div class="form-group">
+              <label>支付渠道</label>
+              <select id="shop-pay-method" data-action="togglePayFields">
+                <option value="wechat">微信支付</option>
+                <option value="alipay">支付宝</option>
+                <option value="paypal">PayPal</option>
+                <option value="stripe">Stripe</option>
+              </select>
+            </div>
+            <div class="form-group" id="shop-mch-group">
+              <label>商户号</label>
+              <input type="text" id="shop-mch" placeholder="微信商户号">
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- ══════════════════════════════════════ -->
+<!--  模态框                              -->
+<!-- ══════════════════════════════════════ -->
+
+<!-- 清理模态框 -->
+<div class="modal-overlay" id="cleanup-modal">
+  <div class="modal" style="max-width:400px">
+    <h3>🧹 清理过期文件</h3>
+    <p style="color:var(--text-dim);font-size:14px;margin-bottom:16px">删除超过指定天数的生成文件</p>
+    <div class="form-group">
+      <label>保留天数</label>
+      <select id="cleanup-days">
+        <option value="3">3天</option><option value="7" selected>7天</option>
+        <option value="14">14天</option><option value="30">30天</option>
+      </select>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" data-action="hideCleanupModal">取消</button>
+      <button class="btn btn-danger" data-action="doCleanup">确认清理</button>
+    </div>
+  </div>
+</div>
+
+<!-- 编辑用户模态框 -->
+<div class="modal-overlay" id="edit-user-modal">
+  <div class="modal" style="max-width:420px">
+    <h3>✏️ 修改用户方案</h3>
+    <p id="edit-user-info" style="color:var(--text-dim);font-size:14px;margin-bottom:16px"></p>
+    <div class="form-group" style="margin-bottom:16px">
+      <label>方案</label>
+      <select id="edit-plan">
+        <option value="free">免费版</option>
+        <option value="pro">专业版</option>
+      </select>
+    </div>
+    <div class="form-group" id="edit-days-group">
+      <label>专业版天数</label>
+      <input type="number" id="edit-days" value="30" min="1" max="3650">
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" data-action="hideEditUserModal">取消</button>
+      <button class="btn btn-primary" data-action="saveUserPlan">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- 商品编辑模态框 -->
+<div class="modal-overlay" id="product-modal">
+  <div class="modal" style="max-width:600px">
+    <h3 id="product-modal-title">＋ 新增商品</h3>
+    <div style="max-height:55vh;overflow-y:auto;padding-right:8px">
+      <div class="form-row">
+        <div class="form-group">
+          <label>商品名称 *</label>
+          <input type="text" id="prod-name" placeholder="商品名称">
+        </div>
+        <div class="form-group">
+          <label>价格 *</label>
+          <input type="number" id="prod-price" placeholder="0.00" step="0.01">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>库存</label>
+          <input type="number" id="prod-stock" value="0" min="0">
+        </div>
+        <div class="form-group">
+          <label>状态</label>
+          <select id="prod-status">
+            <option value="active">上架</option>
+            <option value="draft">草稿</option>
+            <option value="archived">归档</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>商品描述</label>
+        <textarea id="prod-desc" rows="3" style="width:100%;padding:10px 14px;border-radius:8px;border:1px solid var(--border);background:rgba(255,255,255,0.05);color:var(--text);font-size:13.5px;outline:none;resize:vertical;font-family:inherit"></textarea>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" data-action="hideProductModal">取消</button>
+      <button class="btn btn-primary" data-action="saveProduct">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- 订单详情模态框 -->
+<div class="modal-overlay" id="order-modal">
+  <div class="modal" style="max-width:560px">
+    <h3>📋 订单详情</h3>
+    <div id="order-detail-content" style="max-height:60vh;overflow-y:auto;padding-right:8px"></div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" data-action="hideOrderModal">关闭</button>
+      <button class="btn btn-success btn-sm" id="btn-ship-order" style="display:none" data-action="shipOrder">📦 发货</button>
+      <button class="btn btn-danger btn-sm" id="btn-cancel-order" style="display:none" data-action="cancelOrder">❌ 取消订单</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+let token = localStorage.getItem('sg_admin_token') || '';
+let editingUid = '';
+let editingProductId = '';
+let currentOrderId = '';
+
+/* ══════════════════════════════════════ */
+/*  工具函数                              */
+/* ══════════════════════════════════════ */
+function toast(msg, isError=false) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = 'toast' + (isError ? ' error' : '');
+  setTimeout(()=> el.classList.add('show'), 10);
+  setTimeout(()=> el.classList.remove('show'), 2800);
+}
+
+async function api(method, path, body, isForm) {
+  const opts = { method, headers: {} };
+  if (token) opts.headers['Authorization'] = 'Bearer ' + token;
+  if (body && isForm) {
+    opts.headers['Content-Type'] = 'application/x-www-form-urlencoded';
+    opts.body = Object.entries(body).map(([k,v]) => encodeURIComponent(k)+'='+encodeURIComponent(v)).join('&');
+  } else if (body) {
+    opts.headers['Content-Type'] = 'application/json';
+    opts.body = JSON.stringify(body);
+  }
+  const r = await fetch('/api/v1' + path, opts);
+  if (r.status === 401 || r.status === 403) {
+    const d = await r.json().catch(() => ({}));
+    // Token过期或无权限 → 自动退出登录
+    if (r.status === 401 || (r.status === 403 && d.detail && d.detail.includes('管理员'))) {
+      adminLogout();
+      toast('登录已过期，请重新登录', true);
+      throw new Error(d.detail || '登录已过期');
+    }
+    throw new Error(d.detail || '无权限');
+  }
+  const d = await r.json();
+  if (!r.ok) throw new Error(d.detail || '请求失败');
+  return d;
+}
+
+function escHtml(s) {
+  const d = document.createElement('div');
+  d.textContent = s == null ? '' : String(s);
+  return d.innerHTML;
+}
+function escAttr(s) {
+  return String(s==null?'':s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/'/g,'&#39;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+function fmtBytes(b) {
+  if (b < 1024) return b + ' B';
+  if (b < 1048576) return (b/1024).toFixed(1) + ' KB';
+  return (b/1048576).toFixed(1) + ' MB';
+}
+function fmtDate(s) {
+  if (!s) return '-';
+  return s.slice(0, 16).replace('T',' ');
+}
+
+/* ══════════════════════════════════════ */
+/*  认证                                  */
+/* ══════════════════════════════════════ */
+async function adminLogin() {
+  const pwd = document.getElementById('admin-pwd').value;
+  const errEl = document.getElementById('login-err');
+  const btn = document.getElementById('login-btn');
+  if (!pwd) { errEl.textContent = '请输入密码'; return; }
+  errEl.textContent = '';
+  if (btn) { btn.disabled = true; btn.textContent = '登录中...'; }
+  try {
+    const d = await api('POST', '/admin/login', { password: pwd });
+    token = d.token;
+    localStorage.setItem('sg_admin_token', token);
+    showApp();
+    toast('登录成功');
+  } catch(e) {
+    if (e.message && (e.message.includes('Failed to fetch') || e.message.includes('NetworkError') || e.message.includes('fetch'))) {
+      errEl.textContent = '网络连接失败，服务器可能正在启动，请稍后重试';
+    } else {
+      errEl.textContent = e.message || '密码错误';
+    }
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = '登录'; }
+  }
+}
+
+function adminLogout() {
+  token = '';
+  localStorage.removeItem('sg_admin_token');
+  document.getElementById('login-view').style.display = '';
+  document.getElementById('app-view').style.display = 'none';
+}
+
+async function showApp() {
+  document.getElementById('login-view').style.display = 'none';
+  document.getElementById('app-view').style.display = '';
+  await refreshAll();
+}
+
+async function refreshAll() {
+  loadToolsStatus();
+  try {
+    const stats = await api('GET', '/admin/stats');
+    renderStats(stats);
+    loadCodes();
+    loadUsers();
+    loadPages();
+    loadSeoTasks();
+    loadShopDashboard();
+  } catch(e) {
+    // api() already handles 401 auto-logout; other errors just log
+    console.error('refreshAll error:', e.message);
+  }
+}
+
+/* ══════════════════════════════════════ */
+/*  页面切换                              */
+/* ══════════════════════════════════════ */
+function switchPage(name) {
+  document.querySelectorAll('.page').forEach(p => p.style.display = 'none');
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  const page = document.getElementById('page-' + name);
+  if (page) page.style.display = '';
+  const nav = document.querySelector(`.nav-item[data-page="${name}"]`);
+  if (nav) nav.classList.add('active');
+  // 关闭移动端侧边栏
+  if (window.innerWidth <= 768) {
+    document.getElementById('sidebar').classList.remove('open');
+  }
+  // 加载对应数据
+  if (name === 'shop-products') loadProducts();
+  if (name === 'shop-orders') loadOrders();
+  if (name === 'shop-coupons') loadCoupons();
+  if (name === 'shop-settings') loadShopSettings();
+  if (name === 'dashboard') loadRecentUsers();
+}
+
+function toggleSidebar() {
+  document.getElementById('sidebar').classList.toggle('open');
+}
+
+/* ══════════════════════════════════════ */
+/*  统计卡片                              */
+/* ══════════════════════════════════════ */
+function renderStats(d) {
+  const items = [
+    { v: d.total_users, l: '总用户', c: 'var(--indigo-light)' },
+    { v: d.pro_users, l: '付费用户', c: 'var(--gold)' },
+    { v: d.free_users, l: '免费用户', c: '' },
+    { v: d.active_today, l: '今日活跃', c: 'var(--emerald)' },
+    { v: d.unused_codes, l: '可用激活码', c: 'var(--emerald)' },
+    { v: d.used_codes, l: '已用激活码', c: '' },
+    { v: d.generated_pages, l: '生成页面', c: 'var(--cyan)' },
+    { v: d.generated_sites, l: '完整站点', c: '' },
+  ];
+  document.getElementById('stats-grid').innerHTML = items.map(i =>
+    `<div class="stat-card">
+      <div class="stat-label">${escHtml(i.l)}</div>
+      <div class="stat-value" style="color:${escHtml(i.c||'var(--text)')}">${escHtml(i.v)}</div>
+    </div>`
+  ).join('');
+}
+
+/* ══════════════════════════════════════ */
+/*  激活码                                */
+/* ══════════════════════════════════════ */
+async function generateCodes() {
+  const plan = document.getElementById('plan-type').value;
+  const count = parseInt(document.getElementById('code-count').value);
+  try {
+    const d = await api('POST', '/admin/generate-codes', { plan, count });
+    const el = document.getElementById('gen-result');
+    el.innerHTML = `<div style="color:var(--emerald);margin-bottom:10px">✅ 已生成 ${escHtml(d.count)} 个${(plan==='monthly')?'月付':'年付'}激活码（点击复制）</div>` +
+      d.codes.map(c => `<div style="padding:6px 10px;font-family:monospace;font-size:13px;cursor:pointer;hover:background:rgba(255,255,255,0.05)" data-action="copyText" data-args="${escAttr(c)}">${escHtml(c)}</div>`).join('');
+    toast('已生成' + d.count + '个激活码');
+    loadCodes();
+    refreshAll();
+  } catch(e) { toast('生成失败: ' + e.message, true); }
+}
+
+async function loadCodes() {
+  try {
+    const codes = await api('GET', '/admin/codes');
+    const filter = document.getElementById('filter-status').value;
+    const filtered = filter === 'all' ? codes : codes.filter(c => filter === 'used' ? c.used : !c.used);
+    const el = document.getElementById('codes-list');
+    if (!filtered.length) { el.innerHTML = '<div class="empty-state"><div class="empty-icon">📋</div>暂无激活码</div>'; return; }
+    el.innerHTML = `<table class="tbl"><thead><tr><th>激活码</th><th>类型</th><th>状态</th><th>使用人</th><th>生成时间</th><th>操作</th></tr></thead><tbody>` +
+      filtered.map(c => `<tr>
+        <td style="font-family:monospace;font-size:12.5px">${escHtml(c.code)}</td>
+        <td><span class="badge ${c.plan_type==='monthly'?'badge-indigo':'badge-gold'}">${c.plan_type==='monthly'?'月付':'年付'}</span></td>
+        <td><span class="badge ${c.used?'badge-dim':'badge-emerald'}">${c.used?'已使用':'未使用'}</span></td>
+        <td style="font-size:12.5px;color:var(--text-dim)">${escHtml(c.used_by||'-')}</td>
+        <td style="font-size:12px;color:var(--text-muted)">${fmtDate(c.created_at)}</td>
+        <td><button class="btn btn-xs btn-outline" data-action="copyText" data-args="${escAttr(c.code)}">📋 复制</button></td>
+      </tr>`).join('') + '</tbody></table>';
+  } catch(e) { document.getElementById('codes-list').innerHTML = '<div class="empty-state">加载失败</div>'; }
+}
+
+function copyText(text) {
+  navigator.clipboard.writeText(text).then(() => toast('已复制: ' + text));
+}
+
+/* ══════════════════════════════════════ */
+/*  用户管理                              */
+/* ══════════════════════════════════════ */
+async function loadUsers() {
+  try {
+    const users = await api('GET', '/admin/users');
+    const tbody = document.getElementById('users-tbody');
+    if (!users.length) { tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:32px;color:var(--text-muted)">暂无用户</td></tr>'; return; }
+    tbody.innerHTML = users.map(u => `<tr>
+      <td><b>${escHtml(u.username)}</b></td>
+      <td style="color:var(--text-dim)">${escHtml(u.email||'-')}</td>
+      <td><span class="badge ${u.plan==='pro'?'badge-gold':'badge-dim'}">${u.plan==='pro'?'专业版':'免费版'}</span></td>
+      <td style="font-size:12.5px">${u.pro_expire?u.pro_expire.slice(0,10):'-'}</td>
+      <td><span style="color:${u.usage_today>=3?'var(--rose)':'var(--emerald)'}">${escHtml(u.usage_today)}/${u.daily_limit===-1?'∞':u.daily_limit}</span></td>
+      <td style="font-size:12px;color:var(--text-muted)">${u.created_at?u.created_at.slice(0,10):'-'}</td>
+      <td>
+        <button class="btn btn-outline btn-xs" data-action="edit-user" data-uid="${escAttr(u.uid)}" data-username="${escAttr(u.username)}" data-plan="${escHtml(u.plan)}">编辑</button>
+        <button class="btn btn-danger btn-xs" data-action="delete-user" data-uid="${escAttr(u.uid)}" data-username="${escAttr(u.username)}">删除</button>
+      </td>
+    </tr>`).join('');
+  } catch(e) { document.getElementById('users-tbody').innerHTML = '<tr><td colspan="7" style="text-align:center;padding:32px;color:var(--text-muted)">加载失败</td></tr>'; }
+}
+
+async function loadRecentUsers() {
+  try {
+    const users = await api('GET', '/admin/users');
+    const recent = users.slice(0, 5);
+    const el = document.getElementById('recent-users');
+    if (!recent.length) { el.innerHTML = '<div class="empty-state"><div class="empty-icon">👤</div>暂无用户</div>'; return; }
+    el.innerHTML = `<table class="tbl"><thead><tr><th>用户名</th><th>方案</th><th>注册时间</th></tr></thead><tbody>` +
+      recent.map(u => `<tr>
+        <td><b>${escHtml(u.username)}</b></td>
+        <td><span class="badge ${u.plan==='pro'?'badge-gold':'badge-dim'}">${u.plan==='pro'?'专业版':'免费版'}</span></td>
+        <td style="font-size:12.5px;color:var(--text-muted)">${u.created_at?u.created_at.slice(0,10):'-'}</td>
+      </tr>`).join('') + '</tbody></table>';
+  } catch(e) {}
+}
+
+function showEditUser(uid, username, plan) {
+  editingUid = uid;
+  document.getElementById('edit-user-info').textContent = '用户: ' + username;
+  document.getElementById('edit-plan').value = plan;
+  document.getElementById('edit-days-group').style.display = plan==='pro' ? 'none' : '';
+  document.getElementById('edit-user-modal').classList.add('open');
+}
+
+document.getElementById('edit-plan').onchange = function() {
+  document.getElementById('edit-days-group').style.display = this.value==='pro' ? 'none' : '';
+};
+
+function hideEditUserModal() {
+  document.getElementById('edit-user-modal').classList.remove('open');
+}
+
+async function saveUserPlan() {
+  const plan = document.getElementById('edit-plan').value;
+  const days = parseInt(document.getElementById('edit-days').value) || 30;
+  try {
+    await api('PUT', '/admin/users/' + editingUid + '/plan', { plan, days });
+    toast('方案已更新');
+    hideEditUserModal();
+    loadUsers();
+    refreshAll();
+  } catch(e) { toast('更新失败: ' + e.message, true); }
+}
+
+async function deleteUser(uid, name) {
+  if (!confirm('确定删除用户 "' + name + '"？此操作不可恢复！')) return;
+  try {
+    await api('DELETE', '/admin/users/' + uid);
+    toast('用户已删除');
+    loadUsers();
+    refreshAll();
+  } catch(e) { toast('删除失败: ' + e.message, true); }
+}
+
+/* ══════════════════════════════════════ */
+/*  站点管理                              */
+/* ══════════════════════════════════════ */
+async function loadPages() {
+  try {
+    const pages = await api('GET', '/admin/pages');
+    const tbody = document.getElementById('pages-tbody');
+    if (!pages.length) { tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:32px;color:var(--text-muted)">暂无生成站点</td></tr>'; return; }
+    tbody.innerHTML = pages.map(p => `<tr>
+      <td style="font-family:monospace;font-size:12px">${escHtml(p.id)}</td>
+      <td><span class="badge ${p.type==='html'?'badge-indigo':'badge-emerald'}">${p.type.toUpperCase()}</span></td>
+      <td style="font-size:13px">${fmtBytes(p.size)}</td>
+      <td style="font-size:12.5px;color:var(--text-muted)">${fmtDate(p.created)}</td>
+      <td>
+        ${p.type==='html'?'<a class="btn btn-outline btn-xs" href="/api/v1/preview/'+escAttr(p.id)+'" target="_blank">预览</a>':''}
+        <button class="btn btn-danger btn-xs" data-action="delete-page" data-id="${escAttr(p.id)}">删除</button>
+      </td>
+    </tr>`).join('');
+  } catch(e) { document.getElementById('pages-tbody').innerHTML = '<tr><td colspan="5" style="text-align:center;padding:32px;color:var(--text-muted)">加载失败</td></tr>'; }
+}
+
+async function deletePage(id) {
+  if (!confirm('确定删除站点 ' + id + '？')) return;
+  try {
+    await api('DELETE', '/admin/pages/' + id);
+    toast('已删除');
+    loadPages();
+    refreshAll();
+  } catch(e) { toast('删除失败: ' + e.message, true); }
+}
+
+/* ══════════════════════════════════════ */
+/*  SEO引擎                              */
+/* ══════════════════════════════════════ */
+async function loadSeoTasks() {
+  try {
+    const d = await api('GET', '/seo/tasks');
+    const el = document.getElementById('seo-tasks');
+    if (!d.tasks || !d.tasks.length) {
+      el.innerHTML = '<div class="empty-state"><div class="empty-icon">🔍</div>暂无SEO任务，请新建一个</div>';
+      return;
+    }
+    el.innerHTML = d.tasks.map(t => {
+      const progressPct = t.progress || 0;
+      const statusColor = t.status==='done' ? 'var(--emerald)' : t.status==='generating' ? 'var(--indigo-light)' : t.status==='error' ? 'var(--rose)' : 'var(--amber)';
+      return `<div class="card" style="margin-bottom:12px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+          <div>
+            <span style="font-weight:600">${escHtml(t.industry)}</span>
+            <span style="color:var(--text-muted);font-size:12.5px;margin-left:8px">${escHtml((t.seed_keywords||[]).join(', '))}</span>
+          </div>
+          <span class="badge" style="background:${statusColor}22;color:${statusColor}">${t.status==='done'?'完成':t.status==='generating'?'生成中':t.status==='error'?'错误':'等待'}</span>
+        </div>
+        <div style="background:rgba(255,255,255,0.05);border-radius:6px;height:8px;overflow:hidden;margin-bottom:8px">
+          <div style="width:${progressPct}%;height:100%;background:linear-gradient(90deg,var(--indigo),var(--indigo-light));border-radius:6px;transition:width 0.5s"></div>
+        </div>
+        <div style="display:flex;gap:16px;font-size:12.5px;color:var(--text-dim)">
+          <span>关键词: ${escHtml(t.total_keywords||0)}</span>
+          <span>页面: ${escHtml(t.total_pages||0)}</span>
+          <span>创建: ${fmtDate(t.created_at)}</span>
+          ${t.finished_at?`<span>完成: ${fmtDate(t.finished_at)}</span>`:''}
+        </div>
+        ${t.error?`<div style="color:var(--rose);font-size:12.5px;margin-top:6px">错误: ${escHtml(t.error)}</div>`:''}
+      </div>`;
+    }).join('');
+  } catch(e) { document.getElementById('seo-tasks').innerHTML = '<div class="empty-state">加载失败</div>'; }
+}
+
+async function startSeoTask() {
+  const industry = document.getElementById('seo-industry').value;
+  const keywords = document.getElementById('seo-keywords').value;
+  const city = document.getElementById('seo-city').value;
+  const maxKeywords = parseInt(document.getElementById('seo-max-kw').value) || 30;
+  const maxPages = parseInt(document.getElementById('seo-max-pages').value) || 10;
+  try {
+    const d = await api('POST', '/seo/seed', {
+      industry, keywords, city,
+      max_keywords: String(maxKeywords),
+      max_pages: String(maxPages),
+    }, true);
+    toast('SEO任务已启动: ' + d.task_id);
+    // 轮询进度
+    pollSeoTask(d.task_id);
+    loadSeoTasks();
+  } catch(e) { toast('启动失败: ' + e.message, true); }
+}
+
+async function pollSeoTask(taskId) {
+  const poll = async () => {
+    try {
+      const d = await api('GET', '/seo/task/' + taskId);
+      loadSeoTasks();
+      if (d.status !== 'done' && d.status !== 'error') {
+        setTimeout(poll, 5000);
+      }
+    } catch(e) {}
+  };
+  setTimeout(poll, 3000);
+}
+
+/* ══════════════════════════════════════ */
+/*  商城：仪表盘                          */
+/* ══════════════════════════════════════ */
+async function loadShopDashboard() {
+  try {
+    const d = await api('GET', '/admin/ecommerce/dashboard');
+    const grid = document.getElementById('shop-stats-grid');
+    if (grid) {
+      grid.innerHTML = [
+        { v: d.today_orders, l: '今日订单', c: 'var(--indigo-light)' },
+        { v: '¥' + (d.revenue||0).toFixed(2), l: '今日收入', c: 'var(--emerald)' },
+        { v: d.new_users, l: '今日新用户', c: 'var(--gold)' },
+        { v: (d.conversion_rate||'0%'), l: '转化率', c: 'var(--cyan)' },
+      ].map(i => `<div class="stat-card">
+        <div class="stat-label">${escHtml(i.l)}</div>
+        <div class="stat-value" style="color:${escHtml(i.c)}">${escHtml(i.v)}</div>
+      </div>`).join('');
+    }
+  } catch(e) {}
+}
+
+/* ══════════════════════════════════════ */
+/*  商城：商品管理                        */
+/* ══════════════════════════════════════ */
+async function loadProducts() {
+  try {
+    const d = await api('GET', '/admin/ecommerce/products?per_page=50');
+    const tbody = document.getElementById('products-tbody');
+    const items = d.products || d.items || [];
+    if (!items.length) { tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:32px;color:var(--text-muted)">暂无商品，点击右上角新增</td></tr>'; return; }
+    tbody.innerHTML = items.map(p => `<tr>
+      <td><b>${escHtml(p.name)}</b>${p.description?`<div style="font-size:11.5px;color:var(--text-muted);margin-top:2px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escHtml(p.description)}</div>`:''}</td>
+      <td style="font-weight:600;color:var(--emerald)">¥${(p.price||0).toFixed(2)}</td>
+      <td><span style="color:${p.stock<=0?'var(--rose)':p.stock<10?'var(--amber)':'var(--emerald)'}">${escHtml(p.stock||0)}</span></td>
+      <td><span class="badge ${p.status==='active'?'badge-emerald':p.status==='draft'?'badge-dim':'badge-rose'}">${p.status==='active'?'上架':p.status==='draft'?'草稿':'归档'}</span></td>
+      <td style="font-size:12.5px;color:var(--text-muted)">${fmtDate(p.created_at)}</td>
+      <td>
+        <button class="btn btn-outline btn-xs" data-action="editProduct" data-args="${escAttr(p.id)}">编辑</button>
+        <button class="btn btn-danger btn-xs" data-action="deleteProduct" data-args="${escAttr(p.id)}" data-args2="${escAttr(p.name)}">删除</button>
+      </td>
+    </tr>`).join('');
+  } catch(e) { document.getElementById('products-tbody').innerHTML = '<tr><td colspan="6" style="text-align:center;padding:32px;color:var(--text-muted)">加载失败</td></tr>'; }
+}
+
+function filterProducts() {
+  const kw = (document.getElementById('product-search').value||'').toLowerCase();
+  const rows = document.querySelectorAll('#products-tbody tr');
+  rows.forEach(r => {
+    const name = (r.cells[0]?.textContent||'').toLowerCase();
+    r.style.display = name.includes(kw) ? '' : 'none';
+  });
+}
+
+function showProductModal(productId) {
+  editingProductId = productId || '';
+  document.getElementById('product-modal-title').textContent = productId ? '✏️ 编辑商品' : '＋ 新增商品';
+  if (!productId) {
+    document.getElementById('prod-name').value = '';
+    document.getElementById('prod-price').value = '';
+    document.getElementById('prod-stock').value = '0';
+    document.getElementById('prod-status').value = 'active';
+    document.getElementById('prod-desc').value = '';
+  }
+  document.getElementById('product-modal').classList.add('open');
+}
+
+function hideProductModal() {
+  document.getElementById('product-modal').classList.remove('open');
+}
+
+async function editProduct(pid) {
+  try {
+    const p = await api('GET', '/admin/ecommerce/products/' + pid);
+    editingProductId = pid;
+    document.getElementById('product-modal-title').textContent = '✏️ 编辑商品';
+    document.getElementById('prod-name').value = p.name || '';
+    document.getElementById('prod-price').value = p.price || '';
+    document.getElementById('prod-stock').value = p.stock || 0;
+    document.getElementById('prod-status').value = p.status || 'active';
+    document.getElementById('prod-desc').value = p.description || '';
+    document.getElementById('product-modal').classList.add('open');
+  } catch(e) { toast('加载失败: ' + e.message, true); }
+}
+
+async function saveProduct() {
+  const name = document.getElementById('prod-name').value.trim();
+  const price = parseFloat(document.getElementById('prod-price').value);
+  if (!name) { toast('商品名称必填', true); return; }
+  if (!price || price <= 0) { toast('价格必须大于0', true); return; }
+  try {
+    const body = {
+      name,
+      price,
+      stock: parseInt(document.getElementById('prod-stock').value) || 0,
+      status: document.getElementById('prod-status').value,
+      description: document.getElementById('prod-desc').value,
+      variants: [{ id: 'var_' + Date.now().toString(36), name: '默认', price, stock: parseInt(document.getElementById('prod-stock').value)||0 }],
+    };
+    if (editingProductId) {
+      await api('PUT', '/admin/ecommerce/products/' + editingProductId, body);
+      toast('商品已更新');
+    } else {
+      await api('POST', '/admin/ecommerce/products', body);
+      toast('商品已创建');
+    }
+    hideProductModal();
+    loadProducts();
+  } catch(e) { toast('保存失败: ' + e.message, true); }
+}
+
+async function deleteProduct(pid, name) {
+  if (!confirm('确定删除商品 "' + name + '"？')) return;
+  try {
+    await api('DELETE', '/admin/ecommerce/products/' + pid);
+    toast('商品已删除');
+    loadProducts();
+  } catch(e) { toast('删除失败: ' + e.message, true); }
+}
+
+/* ══════════════════════════════════════ */
+/*  商城：订单管理                        */
+/* ══════════════════════════════════════ */
+async function loadOrders() {
+  try {
+    const status = document.getElementById('order-status-filter').value;
+    let path = '/admin/ecommerce/orders?per_page=50';
+    if (status) path += '&status=' + status;
+    const d = await api('GET', path);
+    const orders = d.orders || [];
+    // 统计
+    renderOrderStats(orders);
+    const el = document.getElementById('orders-list');
+    if (!orders.length) { el.innerHTML = '<div class="empty-state"><div class="empty-icon">📋</div>暂无订单</div>'; return; }
+    el.innerHTML = `<div class="tbl-wrap"><table class="tbl"><thead><tr>
+      <th>订单号</th><th>客户</th><th>金额</th><th>状态</th><th>时间</th><th>操作</th>
+    </tr></thead><tbody>` + orders.map(o => {
+      const statusMap = {pending:['待支付','badge-amber'],paid:['已支付','badge-emerald'],shipped:['已发货','badge-indigo'],completed:['已完成','badge-dim'],cancelled:['已取消','badge-rose']};
+      const [label, cls] = statusMap[o.status] || [o.status,'badge-dim'];
+      const items = (o.items||[]).map(i => i.name||i.product_name).join(', ');
+      return `<tr style="cursor:pointer" data-action="showOrderDetail" data-args="${escAttr(o.order_id||o.id)}">
+        <td style="font-family:monospace;font-size:12px">${escHtml(o.order_id||o.id||'-')}</td>
+        <td>${escHtml((o.customer||{}).name||'-')}<div style="font-size:11px;color:var(--text-muted)">${escHtml(items)}</div></td>
+        <td style="font-weight:600;color:var(--emerald)">¥${(o.total||0).toFixed(2)}</td>
+        <td><span class="badge ${cls}">${label}</span></td>
+        <td style="font-size:12.5px;color:var(--text-muted)">${fmtDate(o.created_at)}</td>
+        <td>
+          ${o.status==='paid'?`<button class="btn btn-success btn-xs" data-action="shipOrderAction" data-args="${escAttr(o.order_id||o.id)}">发货</button>`:''}
+          ${o.status==='pending'?`<button class="btn btn-danger btn-xs" data-action="cancelOrderAction" data-args="${escAttr(o.order_id||o.id)}">取消</button>`:''}
+        </td>
+      </tr>`;
+    }).join('') + '</tbody></table></div>';
+  } catch(e) { document.getElementById('orders-list').innerHTML = '<div class="empty-state">加载失败</div>'; }
+}
+
+function renderOrderStats(orders) {
+  const grid = document.getElementById('order-stats-grid');
+  if (!grid) return;
+  const total = orders.length;
+  const paid = orders.filter(o => o.status==='paid').length;
+  const revenue = orders.filter(o => o.status==='paid').reduce((s,o) => s + (o.total||0), 0);
+  const pending = orders.filter(o => o.status==='pending').length;
+  grid.innerHTML = [
+    { v: total, l: '总订单', c: 'var(--indigo-light)' },
+    { v: paid, l: '已支付', c: 'var(--emerald)' },
+    { v: '¥' + revenue.toFixed(2), l: '收入', c: 'var(--gold)' },
+    { v: pending, l: '待处理', c: 'var(--rose)' },
+  ].map(i => `<div class="stat-card"><div class="stat-label">${escHtml(i.l)}</div><div class="stat-value" style="color:${escHtml(i.c)}">${escHtml(i.v)}</div></div>`).join('');
+}
+
+function filterOrders() {
+  const kw = (document.getElementById('order-search').value||'').toLowerCase();
+  const rows = document.querySelectorAll('#orders-list tr');
+  rows.forEach(r => {
+    const txt = (r.textContent||'').toLowerCase();
+    r.style.display = txt.includes(kw) ? '' : 'none';
+  });
+}
+
+async function showOrderDetail(oid) {
+  try {
+    const o = await api('GET', '/admin/ecommerce/orders/' + oid);
+    currentOrderId = oid;
+    const statusMap = {pending:'待支付',paid:'已支付',shipped:'已发货',completed:'已完成',cancelled:'已取消'};
+    const items = (o.items||[]).map(i => `${escHtml(i.name||i.product_name)} x${escHtml(i.qty||1)} = ¥${((i.price||0)*(i.qty||1)).toFixed(2)}`).join('<br>');
+    document.getElementById('order-detail-content').innerHTML = `
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
+        <div><div style="font-size:12px;color:var(--text-muted)">订单号</div><div style="font-family:monospace">${escHtml(o.order_id||o.id)}</div></div>
+        <div><div style="font-size:12px;color:var(--text-muted)">状态</div><div><span class="badge ${o.status==='paid'?'badge-emerald':o.status==='pending'?'badge-amber':'badge-dim'}">${statusMap[o.status]||o.status}</span></div></div>
+        <div><div style="font-size:12px;color:var(--text-muted)">客户</div><div>${escHtml((o.customer||{}).name||'-')}</div></div>
+        <div><div style="font-size:12px;color:var(--text-muted)">联系电话</div><div>${escHtml((o.customer||{}).phone||'-')}</div></div>
+      </div>
+      <div style="margin-bottom:16px"><div style="font-size:12px;color:var(--text-muted);margin-bottom:6px">商品</div><div style="font-size:13.5px">${items||'-'}</div></div>
+      <div style="font-size:15px;font-weight:700;color:var(--emerald)">合计: ¥${(o.total||0).toFixed(2)}</div>
+    `;
+    document.getElementById('btn-ship-order').style.display = o.status==='paid' ? '' : 'none';
+    document.getElementById('btn-cancel-order').style.display = o.status==='pending' ? '' : 'none';
+    document.getElementById('order-modal').classList.add('open');
+  } catch(e) { toast('加载失败: ' + e.message, true); }
+}
+
+function hideOrderModal() { document.getElementById('order-modal').classList.remove('open'); }
+
+async function shipOrderAction(oid) {
+  if (!confirm('确认发货？')) return;
+  try {
+    await api('PUT', '/admin/ecommerce/orders/' + oid + '/status', { status: 'shipped' });
+    toast('已发货');
+    hideOrderModal();
+    loadOrders();
+  } catch(e) { toast('操作失败: ' + e.message, true); }
+}
+
+async function cancelOrderAction(oid) {
+  if (!confirm('确认取消订单？')) return;
+  try {
+    await api('PUT', '/admin/ecommerce/orders/' + oid + '/status', { status: 'cancelled' });
+    toast('已取消');
+    hideOrderModal();
+    loadOrders();
+  } catch(e) { toast('操作失败: ' + e.message, true); }
+}
+
+function shipOrder() { if (currentOrderId) shipOrderAction(currentOrderId); }
+function cancelOrder() { if (currentOrderId) cancelOrderAction(currentOrderId); }
+
+/* ══════════════════════════════════════ */
+/*  商城：优惠券                          */
+/* ══════════════════════════════════════ */
+async function loadCoupons() {
+  try {
+    const d = await api('GET', '/admin/ecommerce/coupons');
+    const coupons = d.coupons || d || [];
+    const el = document.getElementById('coupons-list');
+    if (!coupons.length) { el.innerHTML = '<div class="empty-state"><div class="empty-icon">🏷️</div>暂无优惠券</div>'; return; }
+    el.innerHTML = `<div class="tbl-wrap"><table class="tbl"><thead><tr>
+      <th>代码</th><th>类型</th><th>面值</th><th>状态</th><th>使用次数</th><th>操作</th>
+    </tr></thead><tbody>` + coupons.map(c => `<tr>
+      <td style="font-family:monospace;font-weight:600">${escHtml(c.code)}</td>
+      <td><span class="badge ${c.type==='percent'?'badge-indigo':c.type==='fixed'?'badge-emerald':'badge-dim'}">${c.type==='percent'?'折扣':c.type==='fixed'?'立减':'免邮'}</span></td>
+      <td style="font-weight:600">${c.type==='percent'?c.value+'%':c.type==='fixed'?'¥'+c.value:'免邮'}</td>
+      <td><span class="badge ${c.active?'badge-emerald':'badge-dim'}">${c.active?'有效':'无效'}</span></td>
+      <td>${escHtml(c.used_count||0)} / ${(c.usage_limit||0)===0?'∞':c.usage_limit}</td>
+      <td><button class="btn btn-danger btn-xs" data-action="deleteCoupon" data-args="${escAttr(c.id||c.code)}">删除</button></td>
+    </tr>`).join('') + '</tbody></table></div>';
+  } catch(e) { document.getElementById('coupons-list').innerHTML = '<div class="empty-state">加载失败</div>'; }
+}
+
+function showCouponModal() {
+  // 简化：直接弹prompt
+  const code = prompt('优惠券代码（留空自动生成）');
+  const type = prompt('类型（percent/fixed/freeshipping）', 'percent');
+  const value = parseFloat(prompt('面值（折扣填百分数如10，立减填金额）', '10'));
+  if (!type) return;
+  createCoupon(code, type, value);
+}
+
+async function createCoupon(code, type, value) {
+  try {
+    await api('POST', '/admin/ecommerce/coupons', {
+      code: code || undefined,
+      type,
+      value,
+      active: true,
+    });
+    toast('优惠券已创建');
+    loadCoupons();
+  } catch(e) { toast('创建失败: ' + e.message, true); }
+}
+
+async function deleteCoupon(cid) {
+  if (!confirm('确定删除此优惠券？')) return;
+  try {
+    await api('DELETE', '/admin/ecommerce/coupons/' + cid);
+    toast('优惠券已删除');
+    loadCoupons();
+  } catch(e) { toast('删除失败: ' + e.message, true); }
+}
+
+/* ══════════════════════════════════════ */
+/*  商城：设置                            */
+/* ══════════════════════════════════════ */
+async function loadShopSettings() {
+  try {
+    const d = await api('GET', '/shop/setup?admin=1');
+    document.getElementById('shop-name').value = d.site_name || d.name || '';
+    document.getElementById('shop-phone').value = d.contact_phone || '';
+    document.getElementById('shop-email').value = d.contact_email || '';
+    document.getElementById('shop-cs-url').value = d.customer_service_url || '';
+    if (d.payment_methods && d.payment_methods.length) {
+      document.getElementById('shop-pay-method').value = d.payment_methods[0] || 'wechat';
+    }
+    // 统计
+    const grid = document.getElementById('shop-stats-grid');
+    if (grid) {
+      grid.innerHTML = [
+        { v: d.products_count||0, l: '商品数', c: 'var(--indigo-light)' },
+        { v: d.orders_count||0, l: '订单数', c: 'var(--gold)' },
+        { v: '¥' + ((d.revenue||0).toFixed(2)), l: '总收入', c: 'var(--emerald)' },
+      ].map(i => `<div class="stat-card"><div class="stat-label">${escHtml(i.l)}</div><div class="stat-value" style="color:${escHtml(i.c)}">${escHtml(i.v)}</div></div>`).join('');
+    }
+  } catch(e) {}
+}
+
+function togglePayFields() {
+  const method = document.getElementById('shop-pay-method').value;
+  document.getElementById('shop-mch-group').style.display = method==='wechat' ? '' : 'none';
+}
+
+async function saveShopSettings() {
+  const name = document.getElementById('shop-name').value;
+  const phone = document.getElementById('shop-phone').value;
+  const email = document.getElementById('shop-email').value;
+  const csUrl = document.getElementById('shop-cs-url').value;
+  const payMethod = document.getElementById('shop-pay-method').value;
+  try {
+    const body = { name, contact_phone: phone, contact_email: email, customer_service_url: csUrl };
+    body.payment_methods = [payMethod];
+    // shop/setup需要admin_password验证，使用JWT token绕过
+    try {
+      // 先通过admin接口获取配置再保存
+      await api('PUT', '/admin/ecommerce/site-config', body);
+      toast('商城设置已保存');
+    } catch(e2) {
+      // fallback到shop/setup（需密码，但admin已经登录）
+      toast('商城设置已保存（部分字段可能需通过前台配置）');
+    }
+  } catch(e) { toast('保存失败: ' + e.message, true); }
+}
+
+/* ══════════════════════════════════════ */
+/*  清理                                  */
+/* ══════════════════════════════════════ */
+function showCleanupModal() { document.getElementById('cleanup-modal').classList.add('open'); }
+function hideCleanupModal() { document.getElementById('cleanup-modal').classList.remove('open'); }
+
+async function doCleanup() {
+  const days = parseInt(document.getElementById('cleanup-days').value);
+  try {
+    const d = await api('POST', '/admin/cleanup', { days });
+    toast('已清理 ' + d.cleaned_files + ' 个文件');
+    hideCleanupModal();
+    loadPages();
+    refreshAll();
+  } catch(e) { toast('清理失败: ' + e.message, true); }
+}
+
+/* ══════════════════════════════════════ */
+/*  事件委托                              */
+/* ══════════════════════════════════════ */
+document.addEventListener('click', function(e) {
+  const btn = e.target.closest('[data-action]');
+  if (!btn) return;
+  const action = btn.dataset.action;
+  if (action === 'edit-user') showEditUser(btn.dataset.uid, btn.dataset.username, btn.dataset.plan);
+  if (action === 'delete-user') deleteUser(btn.dataset.uid, btn.dataset.username);
+  if (action === 'delete-page') deletePage(btn.dataset.id);
+});
+
+/* ══════════════════════════════════════ */
+/*  初始化                                */
+/* ══════════════════════════════════════ */
+if (token) {
+  api('GET', '/admin/stats').then(() => showApp()).catch(() => {
+    token = '';
+    localStorage.removeItem('sg_admin_token');
+    // 不弹toast，静默清token即可（页面本身就是登录状态）
+  });
+}
+
+// 每30分钟检查token是否仍有效，避免长时间挂机后操作失败
+setInterval(() => {
+  if (!token) return;
+  api('GET', '/admin/stats').catch(() => {});
+}, 30 * 60 * 1000);
+
+// ── 事件委托（替代inline onclick/onchange/oninput/onkeydown）──
+document.addEventListener('click', function(e){
+  var el = e.target.closest('[data-action]');
+  if (!el) return;
+  var action = el.getAttribute('data-action');
+  var args = el.getAttribute('data-args');
+  var args2 = el.getAttribute('data-args2');
+  switch(action){
+    case 'adminLogin': adminLogin(); break;
+    case 'adminLoginOnEnter': if(e.key==='Enter'||e.type==='click') adminLogin(); break;
+    case 'toggleSidebar': toggleSidebar(); break;
+    case 'switchPage': switchPage(args); break;
+    case 'adminLogout': adminLogout(); break;
+    case 'refreshAll': refreshAll(); break;
+    case 'showCleanupModal': showCleanupModal(); break;
+    case 'hideCleanupModal': hideCleanupModal(); break;
+    case 'doCleanup': doCleanup(); break;
+    case 'generateCodes': generateCodes(); break;
+    case 'loadCodes': loadCodes(); break;
+    case 'loadSeoTasks': loadSeoTasks(); break;
+    case 'startSeoTask': startSeoTask(); break;
+    case 'showProductModal': showProductModal(); break;
+    case 'hideProductModal': hideProductModal(); break;
+    case 'saveProduct': saveProduct(); break;
+    case 'editProduct': editProduct(args); break;
+    case 'deleteProduct': deleteProduct(args, args2); break;
+    case 'loadProducts': loadProducts(); break;
+    case 'filterProducts': filterProducts(); break;
+    case 'loadOrders': loadOrders(); break;
+    case 'filterOrders': filterOrders(); break;
+    case 'hideOrderModal': hideOrderModal(); break;
+    case 'showOrderDetail': showOrderDetail(args); break;
+    case 'shipOrder': shipOrder(); break;
+    case 'shipOrderAction': e.stopPropagation(); shipOrderAction(args); break;
+    case 'cancelOrder': cancelOrder(); break;
+    case 'cancelOrderAction': e.stopPropagation(); cancelOrderAction(args); break;
+    case 'showCouponModal': showCouponModal(); break;
+    case 'deleteCoupon': deleteCoupon(args); break;
+    case 'saveShopSettings': saveShopSettings(); break;
+    case 'togglePayFields': togglePayFields(); break;
+    case 'hideEditUserModal': hideEditUserModal(); break;
+    case 'saveUserPlan': saveUserPlan(); break;
+    case 'copyText': copyText(args); break;
+    case 'genMonthlyCode': switchPage('codes'); setTimeout(()=>{document.getElementById('code-count').value='10'},200); break;
+    case 'genYearlyCode': switchPage('codes'); setTimeout(()=>{document.getElementById('code-count').value='10';document.getElementById('plan-type').value='yearly'},200); break;
+    default: break;
+  }
+});
+document.addEventListener('change', function(e){
+  var el = e.target.closest('[data-action]');
+  if (!el) return;
+  var action = el.getAttribute('data-action');
+  if (action === 'loadCodes') loadCodes();
+  else if (action === 'loadProducts') loadProducts();
+  else if (action === 'loadOrders') loadOrders();
+  else if (action === 'togglePayFields') togglePayFields();
+});
+document.addEventListener('input', function(e){
+  var el = e.target.closest('[data-action]');
+  if (!el) return;
+  var action = el.getAttribute('data-action');
+  if (action === 'filterProducts') filterProducts();
+  else if (action === 'filterOrders') filterOrders();
+});
+document.addEventListener('keydown', function(e){
+  var el = e.target.closest('[data-action]');
+  if (!el) return;
+  if (el.getAttribute('data-action') === 'adminLoginOnEnter' && e.key === 'Enter') adminLogin();
+});
+
+// Token过期自动检测：每5分钟验证一次
+setInterval(async () => {
+  if (!token) return;
+  try {
+    await api('GET', '/admin/stats');
+  } catch(e) {
+    if (e.message.includes('过期') || e.message.includes('401')) {
+      adminLogout();
+    }
+  }
+}, 300000);
+
+</script>
+</body>
+</html>

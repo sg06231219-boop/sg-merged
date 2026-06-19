@@ -1,0 +1,19 @@
+# Docker ignore — 排除不需要进Docker镜像的文件
+tools/electron/
+outputs/
+__pycache__/
+*.pyc
+.git/
+.gitignore
+*.md
+deploy_*.py
+_push_*.py
+_fix_*.py
+_audit_*.py
+_verify_*.py
+_security_*.py
+_local_*.py
+*_test.py
+test_*.py
+.env
+*.zip

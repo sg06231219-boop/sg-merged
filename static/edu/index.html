@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+<meta name="description" content="多智能体协同学习平台：7个AI Agent协同工作，提供学情诊断、知识生成、审核辩论、实操指南、分阶测试、动态迭代、苏格拉底导学">
+<title>多智能体协同学习平台 v6.1.0 · XH-202630</title>
+<link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+<!-- 阅读进度条 -->
+<div class="reading-progress" id="readingProgress"></div>
+<!-- 回到顶部 -->
+<button class="back-to-top" id="backToTop" title="回到顶部">↑</button>
+
+<!-- 欢迎引导 -->
+<div class="onboarding-overlay" id="onboarding">
+  <div class="onboarding-card">
+    <div class="onboarding-step active" id="obStep1">
+      <div class="ob-icon">🧠</div>
+      <h2>多智能体协同学习平台</h2>
+      <p class="ob-sub">7个AI Agent协同决策 · 领域知识个性化生成</p>
+      <div class="ob-badge">XH-202630 挑战杯参赛作品</div>
+      <div class="ob-features">
+        <div class="ob-feat"><span>🔍</span> 学情诊断</div>
+        <div class="ob-feat"><span>📚</span> 知识生成</div>
+        <div class="ob-feat"><span>⚔️</span> 审核辩论</div>
+        <div class="ob-feat"><span>🔧</span> 实操指南</div>
+        <div class="ob-feat"><span>📝</span> 分阶测试</div>
+        <div class="ob-feat"><span>🔄</span> 动态迭代</div>
+        <div class="ob-feat"><span>💬</span> 苏格拉底导学</div>
+      </div>
+    </div>
+    <div class="ob-dots"><span class="active"></span><span></span><span></span></div>
+    <button class="btn btn-primary ob-btn" id="obNext">开始体验 →</button>
+  </div>
+</div>
+
+<!-- Header -->
+<div class="header">
+  <div style="display:flex;align-items:center;gap:10px">
+    <button class="mobile-toggle" data-action="toggleSidebar">☰</button>
+    <div>
+      <h1>🧠 多智能体协同学习平台</h1>
+      <div class="sub"><span class="contest-badge">XH-202630</span> · 7-Agent协同决策系统</div>
+    </div>
+  </div>
+  <div class="header-right">
+    <button class="mode-toggle" id="modeToggle" title="切换亮/暗模式">🌓</button>
+    <button data-action="showModelModal" class="hdr-btn" id="btnModel">🤖 模型</button>
+    <button data-action="showApiKeyModal" class="hdr-btn" id="btnApiKey">🔑 Key</button>
+    <span class="badge-live" id="liveBadge">● LIVE</span>
+    <span style="font-size:11px;color:var(--muted)" id="timerDisplay">00:00</span>
+  </div>
+</div>
+
+<div class="main">
+<!-- Sidebar -->
+<div class="sidebar" id="sidebar">
+  <div>
+    <div class="panel-title">📋 学习者画像</div>
+    <div class="form-group"><label>背景描述</label><textarea id="inpBg" placeholder="例如：计算机科学大二学生，学过C语言和数据结构，想学AI开发">计算机科学大二学生，学过C语言和数据结构，想学AI开发</textarea></div>
+    <div class="form-group"><label>编程经验</label><select id="inpExp"><option value="无编程经验">无编程经验</option><option value="学过一门语言" selected>学过一门语言</option><option value="有项目经验">有项目经验</option><option value="熟练开发者">熟练开发者</option></select></div>
+    <div class="form-group"><label>学习目标</label><input id="inpGoal" value="掌握Python和AI开发基础" placeholder="你想学会什么？"></div>
+    <div class="form-group"><label>自评水平</label><select id="inpLvl"><option value="beginner">零基础入门</option><option value="intermediate" selected>有一定基础</option><option value="advanced">进阶提升</option></select></div>
+  </div>
+  <div>
+    <div class="panel-title">⚙️ 协同参数</div>
+    <div class="slider-group"><label>辩论轮数 <span id="vRounds">2</span></label><input type="range" id="sRounds" min="1" max="5" value="2" oninput="document.getElementById('vRounds').textContent=this.value"></div>
+    <div class="slider-group"><label>LLM温度 <span id="vTemp">0.3</span></label><input type="range" id="sTemp" min="0" max="10" value="3" oninput="document.getElementById('vTemp').textContent=(this.value/10).toFixed(1)"></div>
+  </div>
+  <button class="btn btn-primary" id="btnStart" data-action="startPipeline">🚀 启动全流程协同</button>
+  <button class="btn btn-stop" id="btnStop" data-action="stopPipeline">⏹ 停止</button>
+  <div style="margin-top:8px">
+    <div class="panel-title">🔍 知识库搜索</div>
+    <div style="display:flex;gap:4px">
+      <input id="kbSearchInput" placeholder="搜索知识点..." style="flex:1;padding:6px 10px;background:var(--bg);border:1px solid var(--border);border-radius:7px;color:var(--text);font-size:11px" onkeydown="if(event.key==='Enter')searchKB()">
+      <button data-action="searchKB" style="padding:6px 10px;border:1px solid var(--border);border-radius:7px;background:var(--bg);color:var(--accent);font-size:11px;cursor:pointer">🔍</button>
+    </div>
+    <div class="kb-filter-btns" id="kbFilters">
+      <button class="kb-filter active" data-domain="all">全部</button>
+      <button class="kb-filter" data-domain="python_basics">Python</button>
+      <button class="kb-filter" data-domain="ai_basics">AI</button>
+      <button class="kb-filter" data-domain="data_science">数据科学</button>
+      <button class="kb-filter" data-domain="web_dev">Web</button>
+      <button class="kb-filter" data-domain="llm_engineering">大模型</button>
+    </div>
+  </div>
+  <div style="margin-top:6px">
+    <button class="btn" style="width:100%;background:var(--bg);border:1px solid var(--accent2);color:var(--accent2);font-size:11px;padding:8px" data-action="generateReport">📊 生成学情可视化报告</button>
+  </div>
+  <div style="margin-top:auto">
+    <div class="panel-title">⚡ 单步调试</div>
+    <div style="display:flex;flex-direction:column;gap:4px">
+      <button class="btn single-btn" data-action="runSingle" data-args="diagnosis">🔍 学情诊断</button>
+      <button class="btn single-btn" data-action="runSingle" data-args="knowledge_gen">📚 知识生成</button>
+      <button class="btn single-btn" data-action="runSingle" data-args="reviewer">🔎 内容审核</button>
+      <button class="btn single-btn" data-action="runSingle" data-args="practice_guide">🔧 实操指南</button>
+      <button class="btn single-btn" data-action="runSingle" data-args="quiz">📝 分阶测试</button>
+      <button class="btn single-btn" data-action="runSingle" data-args="iteration">🔄 迭代优化</button>
+      <button class="btn single-btn" data-action="runSingle" data-args="socratic">💬 苏格拉底</button>
+    </div>
+  </div>
+</div>
+
+<!-- Content -->
+<div class="content">
+  <!-- 指标行 -->
+  <div class="metrics-row" id="metricsRow">
+    <div class="metric-card"><div class="val" id="mTime">0s</div><div class="lbl">总耗时</div></div>
+    <div class="metric-card"><div class="val" id="mAgents">0/7</div><div class="lbl">Agent完成</div></div>
+    <div class="metric-card"><div class="val" id="mHalluc">-</div><div class="lbl">幻觉分数</div></div>
+    <div class="metric-card"><div class="val" id="mAcc">-</div><div class="lbl">准确度</div></div>
+    <div class="metric-card"><div class="val" id="mQuiz">-</div><div class="lbl">测验得分</div></div>
+  </div>
+
+  <!-- Agent拓扑流程图Canvas -->
+  <div class="topology-wrap">
+    <canvas id="topoCanvas" class="topology-canvas"></canvas>
+  </div>
+
+  <!-- 流水线进度条 -->
+  <div class="pipeline-bar" id="pipeBar">
+    <span class="pipe-step" data-s="1">① 诊断</span><span class="pipe-arrow" data-a="1">→</span>
+    <span class="pipe-step" data-s="2">② 生成</span><span class="pipe-arrow" data-a="2">→</span>
+    <span class="pipe-step" data-s="3">③ 审核</span><span class="pipe-arrow" data-a="3">↔</span>
+    <span class="pipe-step" data-s="4">④ 实操</span><span class="pipe-arrow" data-a="4">→</span>
+    <span class="pipe-step" data-s="5">⑤ 测试</span><span class="pipe-arrow" data-a="5">→</span>
+    <span class="pipe-step" data-s="6">⑥ 迭代</span><span class="pipe-arrow" data-a="6">→</span>
+    <span class="pipe-step" data-s="7">⑦ 导学</span>
+  </div>
+
+  <!-- 进度条 -->
+  <div class="progress-wrap" id="progressWrap">
+    <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+    <div class="progress-text"><span id="progressLabel">准备中...</span><span id="progressPct">0%</span></div>
+  </div>
+
+  <!-- 日志面板 -->
+  <div class="log-panel" id="logPanel">
+    <div class="log-line"><span class="log-time">系统</span><span class="log-msg info">就绪 · 7个Agent协同 · 填写画像后点击启动</span></div>
+  </div>
+
+  <!-- 结果区域 -->
+  <div id="resultsArea">
+    <div class="empty-state" id="emptyState">
+      <div class="icon">🧠</div>
+      <h3>多智能体协同学习系统</h3>
+      <p>7个Agent协同 · 学情诊断→知识生成→审核辩论→实操→测试→迭代→导学</p>
+      <p style="font-size:10px;margin-top:4px;color:var(--muted)">点击右上角「Key」配置智谱API密钥 · Ctrl+Enter快速启动</p>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- 辩论可视化Overlay -->
+<div class="debate-overlay" id="debateOverlay">
+  <div class="debate-panel">
+    <div class="debate-header">
+      <h3>⚔️ 多Agent辩论机制</h3>
+      <span class="debate-round-label" id="debateRoundLabel">第 1 轮</span>
+      <button class="debate-close" data-action="closeDebate">✕</button>
+    </div>
+    <div class="debate-body">
+      <div class="debate-side debate-gen" id="debateGenSide">
+        <div class="debate-side-label">📚 生成方</div>
+        <div class="debate-content" id="debateGenContent">
+          <div class="debate-placeholder">等待生成...</div>
+        </div>
+      </div>
+      <div class="debate-vs">
+        <div class="debate-score-display" id="debateScoreDisplay">
+          <span class="debate-score-num" id="debateScoreNum">--</span>
+          <span class="debate-score-label">幻觉分数</span>
+        </div>
+        <div class="vs-text">VS</div>
+      </div>
+      <div class="debate-side debate-rev" id="debateRevSide">
+        <div class="debate-side-label">🔎 审核方</div>
+        <div class="debate-content" id="debateRevContent">
+          <div class="debate-placeholder">等待审核...</div>
+        </div>
+      </div>
+    </div>
+    <div class="debate-footer" id="debateFooter">
+      <div class="debate-verdict" id="debateVerdict"></div>
+    </div>
+  </div>
+</div>
+
+<!-- 模型选择弹窗 -->
+<div class="modal-overlay" id="modelModal">
+  <div class="modal-box">
+    <h3>🤖 选择AI模型</h3>
+    <div class="hint">DeepSeek-V3 质量最好（免费）。智谱GLM-4-Flash 备选。</div>
+    <select id="modelSelect">
+      <option value="deepseek">DeepSeek-V3（推荐，免费最强）</option>
+      <option value="zhipu">智谱 GLM-4-Flash（备选）</option>
+      <option value="openai-compat">OpenAI兼容接口（自定义）</option>
+    </select>
+    <div class="btn-row">
+      <button class="btn" style="background:var(--bg);border:1px solid var(--border);color:var(--text);flex:1" data-action="closeModelModal">取消</button>
+      <button class="btn btn-primary" style="flex:1" data-action="confirmModel">确认</button>
+    </div>
+  </div>
+</div>
+
+<!-- API Key弹窗 -->
+<div class="modal-overlay" id="apiKeyModal">
+  <div class="modal-box">
+    <h3>🔑 配置API密钥</h3>
+    <div class="hint" id="apiKeyHint">智谱：Key格式 {id}.{secret}（open.bigmodel.cn获取）<br>DeepSeek：sk-开头（platform.deepseek.com获取）<br>没有Key？点击「跳过」进入Demo模式</div>
+    <input type="password" id="apiKeyInput" placeholder="输入API Key（留空进入Demo模式）">
+    <div class="btn-row">
+      <button class="btn" style="background:var(--bg);border:1px solid var(--border);color:var(--muted);flex:1" data-action="skipApiKey">跳过（Demo）</button>
+      <button class="btn btn-primary" style="flex:1" data-action="confirmApiKey">确认</button>
+    </div>
+    <div class="error-msg" id="apiKeyError"></div>
+  </div>
+</div>
+
+<!-- 全局对话FAB -->
+<button class="chat-fab" id="chatFab" data-action="toggleChat">💬</button>
+<div class="chat-panel" id="chatPanel">
+  <div class="chat-header">
+    <span>💬 智能导学对话</span>
+    <button data-action="toggleChat">✕</button>
+  </div>
+  <div class="chat-messages" id="chatMessages">
+    <div class="chat-bubble-ai">你好！我是你的AI导学助手。你可以问我任何学习相关的问题，我会通过苏格拉底式追问引导你思考 🤔</div>
+  </div>
+  <div class="chat-quick-btns">
+    <button data-action="quickChat" data-args="我的水平如何？">🎯 我的水平如何？</button>
+    <button data-action="quickChat" data-args="推荐学习路径">📍 推荐学习路径</button>
+    <button data-action="quickChat" data-args="解释一个概念">💡 解释一个概念</button>
+  </div>
+  <div class="chat-input-row">
+    <input id="chatInput" placeholder="输入你的问题..." onkeydown="if(event.key==='Enter')sendGlobalChat()">
+    <button data-action="sendGlobalChat">发送</button>
+  </div>
+</div>
+
+<script src="/static/js/app.js"></script>
+<script>
+// ============ UX增强: 进度条 + 回到顶部 + 亮暗模式 ============
+(function(){
+  // --- 阅读进度条 ---
+  const progressBar = document.getElementById('readingProgress');
+  function updateReadingProgress(){
+    const scrollTop = window.scrollY || document.documentElement.scrollTop;
+    const scrollHeight = document.documentElement.scrollHeight - document.documentElement.clientHeight;
+    const pct = scrollHeight > 0 ? (scrollTop / scrollHeight) * 100 : 0;
+    if(progressBar) progressBar.style.width = pct + '%';
+  }
+  window.addEventListener('scroll', updateReadingProgress, {passive:true});
+  window.addEventListener('resize', updateReadingProgress, {passive:true});
+
+  // --- 回到顶部按钮 ---
+  const backToTop = document.getElementById('backToTop');
+  function toggleBackToTop(){
+    const scrollTop = window.scrollY || document.documentElement.scrollTop;
+    if(backToTop){
+      if(scrollTop > 400) backToTop.classList.add('visible');
+      else backToTop.classList.remove('visible');
+    }
+  }
+  window.addEventListener('scroll', toggleBackToTop, {passive:true});
+  if(backToTop){
+    backToTop.addEventListener('click', function(){
+      window.scrollTo({top:0, behavior:'smooth'});
+    });
+  }
+
+  // --- 亮/暗模式切换 ---
+  const modeToggle = document.getElementById('modeToggle');
+  const savedMode = localStorage.getItem('theme-mode');
+  if(savedMode === 'light'){
+    document.body.classList.add('light-mode');
+    if(modeToggle) modeToggle.textContent = '🌙';
+  }
+  if(modeToggle){
+    modeToggle.addEventListener('click', function(){
+      document.body.classList.toggle('light-mode');
+      const isLight = document.body.classList.contains('light-mode');
+      localStorage.setItem('theme-mode', isLight ? 'light' : 'dark');
+      modeToggle.textContent = isLight ? '🌙' : '🌓';
+    });
+  }
+
+  // --- 骨架屏增强: 包装原始 showSkeleton ---
+  // 在app.js加载后，包装showSkeleton以使用增强骨架
+  const origShowSkeleton = typeof showSkeleton === 'function' ? showSkeleton : null;
+  if(origShowSkeleton){
+    window.showSkeleton = function(name){
+      const rg = document.getElementById('resultsArea');
+      if(!rg) return;
+      // 如果已有骨架则跳过
+      if(document.getElementById('sk-'+name)) return;
+      const icon = (typeof AGENT_ICONS!=='undefined') ? (AGENT_ICONS[name]||'⏳') : '⏳';
+      const label = (typeof AGENT_LABELS!=='undefined') ? (AGENT_LABELS[name]||name) : name;
+      const color = (typeof AGENT_COLORS!=='undefined') ? (AGENT_COLORS[name]||'var(--accent)') : 'var(--accent)';
+      const sk = document.createElement('div');
+      sk.className = 'skeleton-card';
+      sk.id = 'sk-'+name;
+      sk.innerHTML =
+        '<div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">'+
+          '<div class="skeleton skeleton-avatar"></div>'+
+          '<div class="skeleton skeleton-title" style="width:140px"></div>'+
+        '</div>'+
+        '<div class="skeleton skeleton-line w80"></div>'+
+        '<div class="skeleton skeleton-line w60"></div>'+
+        '<div class="skeleton skeleton-line w80"></div>'+
+        '<div class="skeleton skeleton-line w40"></div>'+
+        '<div style="margin-top:10px">'+
+          '<div class="skeleton-bubble" style="width:75%">'+
+            '<div class="skeleton skeleton-line w60"></div>'+
+            '<div class="skeleton skeleton-line w80"></div>'+
+          '</div>'+
+        '</div>';
+      rg.appendChild(sk);
+      // 滚动到骨架位置
+      sk.scrollIntoView({behavior:'smooth', block:'nearest'});
+    };
+  }
+
+  // --- 初始化 ---
+  updateReadingProgress();
+  toggleBackToTop();
+})();
+</script>
+</body>
+</html>

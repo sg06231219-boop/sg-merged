@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第10章：PCB与硬件基础 - 嵌入式小白完全指南</title>
+<style>
+:root{--bg:#0d1117;--bg2:#161b22;--bg3:#21262d;--br:#30363d;--t:#c9d1d9;--t2:#8b949e;--a:#58a6ff;--g:#3fb950;--o:#d2991d;--r:#f85149;--p:#a371f7;--c1:#39c5cf}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--t);line-height:1.8;max-width:880px;margin:0 auto;padding:14px}
+h1{font-size:1.55em;text-align:center;padding:16px 0;background:linear-gradient(135deg,var(--a),var(--p));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+h2{font-size:1.15em;color:var(--a);margin:30px 0 10px;padding-bottom:6px;border-bottom:2px solid var(--br)}
+h3{font-size:1.02em;color:var(--g);margin:18px 0 7px}
+h4{font-size:.95em;color:var(--o);margin:12px 0 5px}
+pre{background:#1c2128;border:1px solid var(--br);border-radius:8px;padding:12px 14px;overflow-x:auto;margin:8px 0 12px;font-size:.82em;line-height:1.6;white-space:pre-wrap;word-break:break-all;position:relative}
+code{font-family:'SF Mono','Fira Code',monospace}
+pre code{color:#e6edf3}
+.note{background:rgba(210,153,29,.08);border:1px solid rgba(210,153,29,.3);border-radius:8px;padding:10px 14px;margin:10px 0;font-size:.83em;color:var(--o)}
+.warn{background:rgba(248,81,73,.08);border:1px solid rgba(248,81,73,.3);border-radius:8px;padding:10px 14px;margin:10px 0;font-size:.83em;color:var(--r)}
+.tip{background:rgba(63,185,80,.06);border:1px solid rgba(63,185,80,.25);border-radius:8px;padding:10px 14px;margin:10px 0;font-size:.83em;color:var(--g)}
+.example{background:rgba(88,166,255,.06);border:1px solid rgba(88,166,255,.25);border-radius:8px;padding:10px 14px;margin:8px 0;font-size:.82em;color:var(--a)}
+.example b{color:var(--g)}
+.trouble{background:rgba(163,113,247,.06);border:1px solid rgba(163,113,247,.3);border-radius:8px;padding:10px 14px;margin:8px 0;font-size:.82em;color:var(--p)}
+.trouble b{color:var(--p)}
+.card{background:var(--bg2);border:1px solid var(--br);border-radius:10px;margin:14px 0;overflow:hidden}
+.card>.h{padding:10px 14px;background:var(--bg3);display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.card>.h>.name{font-weight:700;font-size:.9em;color:var(--t);font-family:monospace}
+.card>.h>.tag{font-size:.65em;padding:2px 8px;border-radius:8px;white-space:nowrap;border:1px solid var(--br);color:var(--t2)}
+.card>.h>.tag.g{background:rgba(63,185,80,.15);border-color:var(--g);color:var(--g)}
+.card>.h>.tag.y{background:rgba(210,153,29,.15);border-color:var(--o);color:var(--o)}
+.card>.h>.tag.r{background:rgba(248,81,73,.15);border-color:var(--r);color:var(--r)}
+.card>.h>.tag.b{background:rgba(88,166,255,.15);border-color:var(--a);color:var(--a)}
+.card>.h>.tag.p{background:rgba(163,113,247,.15);border-color:var(--p);color:var(--p)}
+.card>.b{padding:10px 14px;font-size:.87em}
+.card>.b>.desc{font-size:.92em;color:var(--t2);margin-bottom:8px}
+table{width:100%;border-collapse:collapse;margin:10px 0;font-size:.81em;background:var(--bg2);border-radius:8px;overflow:hidden;border:1px solid var(--br)}
+td,th{padding:8px 12px;border-bottom:1px solid var(--br);text-align:left}
+th{background:var(--bg3);color:var(--a);font-weight:600}
+tr:last-child td{border-bottom:none}
+.step{background:var(--bg3);border-radius:6px;padding:8px 13px;margin:6px 0;font-size:.83em}
+.step b{color:var(--a)}
+.summary{background:linear-gradient(135deg,rgba(88,166,255,.1),rgba(163,113,247,.1));border:1px solid var(--br);border-radius:10px;padding:12px 16px;margin:18px 0;font-size:.88em;color:var(--t)}
+.summary b{color:var(--a)}
+.analogy{background:rgba(57,197,207,.07);border-left:3px solid var(--c1);padding:8px 13px;margin:8px 0;font-size:.82em;color:var(--c1);border-radius:0 6px 6px 0}
+.analogy b{color:var(--c1)}
+.chnav{display:flex;justify-content:space-between;margin:30px 0 10px;gap:12px;border-top:1px solid var(--br);padding-top:16px;flex-wrap:wrap}
+.chnav a{flex:1;text-align:center;padding:10px 14px;background:var(--bg2);border:1px solid var(--br);border-radius:8px;color:var(--a);text-decoration:none;font-size:.85em;transition:all .2s;min-width:120px;cursor:pointer}
+.chnav a:hover{background:var(--bg3);border-color:var(--a)}
+.chnav .toc-link{flex:0;min-width:80px;background:var(--bg3);color:var(--t2)}
+.chnav .toc-link:hover{color:var(--a)}
+.copy-btn{position:absolute;top:4px;right:4px;padding:3px 10px;background:var(--bg3);border:1px solid var(--br);border-radius:5px;color:var(--t2);font-size:.72em;cursor:pointer;opacity:0;transition:opacity .2s}
+pre:hover .copy-btn{opacity:1}
+.copy-btn:hover{background:var(--a);color:var(--bg)}
+.copy-btn.copied{background:var(--g);color:var(--bg);border-color:var(--g)}
+@media(max-width:480px){body{padding:10px}h1{font-size:1.3em}h2{font-size:1.05em}pre{font-size:.75em}}
+</style>
+</head>
+<body>
+
+<h1>第10章：PCB与硬件基础</h1>
+<div class="summary"><b>📖 小白完全指南 · 10/14</b> | 阅读时间约12分钟</div>
+
+<p>嵌入式工程师不能只会写代码——<strong>硬件是软件的肉体</strong>。不懂硬件的程序员，遇到问题只会"可能是硬件问题"，然后束手无策。</p>
+
+<div class="analogy">💡 <b>类比：</b>原理图=建筑图纸（标注了每面墙、每根管线的位置），PCB=盖好的房子（电路板的物理实现），数据手册=建材规格表（每个元件的详细参数）。</div>
+
+<h2>从原理图到PCB的设计流程</h2>
+
+<p>一个嵌入式项目的硬件设计通常遵循以下流程：需求分析 → 芯片选型 → 原理图设计 → PCB Layout → 打样 → 焊接调试。每一步都很重要。</p>
+
+<div class="step"><b>Step 1：</b>需求分析 —— 确定输入/输出信号类型、数量、电源需求、尺寸限制</div>
+<div class="step"><b>Step 2：</b>芯片选型 —— 选择MCU型号、外围IC（传感器、电源芯片、接口芯片）</div>
+<div class="step"><b>Step 3：</b>原理图设计 —— 画出所有元件的电气连接关系</div>
+<div class="step"><b>Step 4：</b>PCB Layout —— 将原理图转化为实际的电路板走线</div>
+<div class="step"><b>Step 5：</b>打样 —— 发给PCB厂制造样板（嘉立创5元5片是入门神器）</div>
+<div class="step"><b>Step 6：</b>焊接调试 —— 手工焊接或SMT贴片，上电测试</div>
+
+<h3>原理图阅读方法</h3>
+
+<div class="step"><b>步骤1：</b>找电源——VCC/GND/VDD/3V3/5V，先搞清楚供电网络</div>
+<div class="step"><b>步骤2：</b>找MCU——大方框就是主芯片，周围引脚标了功能</div>
+<div class="step"><b>步骤3：</b>看信号流向——从左到右：输入→处理→输出</div>
+<div class="step"><b>步骤4：</b>看网络标号——相同标号=电气连接（即使没画线）</div>
+
+<h3>原理图常见符号识别</h3>
+
+<table>
+<tr><th>符号</th><th>含义</th><th>常见场景</th></tr>
+<tr><td>VCC / VDD / 3V3 / +5V</td><td>正电源</td><td>芯片供电引脚</td></tr>
+<tr><td>GND / VSS</td><td>地（0V参考）</td><td>所有芯片都需要接地</td></tr>
+<tr><td>AGND / DGND</td><td>模拟地 / 数字地</td><td>混合信号电路（ADC等）</td></tr>
+<tr><td>NC</td><td>No Connect（不连接）</td><td>芯片未使用的引脚</td></tr>
+<tr><td>RESET / RST / NRST</td><td>复位引脚</td><td>低电平有效，上拉到VCC</td></tr>
+<tr><td>BOOT0 / BOOT1</td><td>启动模式选择</td><td>STM32特有，决定从哪启动</td></tr>
+<tr><td>SWCLK / SWDIO</td><td>调试接口</td><td>ST-Link/J-Link烧录口</td></tr>
+<tr><td>VBAT</td><td>备份电池供电</td><td>RTC时钟保持</td></tr>
+</table>
+
+<div class="note">⚠️ <b>原理图不是PCB！</b>原理图上靠近的元件，在PCB上可能离得很远。原理图讲究逻辑清晰，PCB讲究电气性能。很多新手以为原理图连线短=PCB连线短，这是大误区。</div>
+
+<h3>数据手册关键参数</h3>
+
+<table>
+<tr><th>参数</th><th>含义</th><th>在哪看</th></tr>
+<tr><td>VDD范围</td><td>供电电压范围</td><td>Absolute Maximum Ratings</td></tr>
+<tr><td>IO口电流</td><td>单个引脚最大输出电流</td><td>Electrical Characteristics</td></tr>
+<tr><td>工作温度</td><td>-40°C ~ 85°C(工业级) / 0~70°C(商业级)</td><td>Ordering Information</td></tr>
+<tr><td>封装尺寸</td><td>LQFP48/QFN32等</td><td>Mechanical Drawing</td></tr>
+<tr><td>时序图</td><td>通信信号的时间关系</td><td>Timing Diagrams</td></tr>
+</table>
+
+<div class="tip">💡 <b>读数据手册技巧：</b>不要从头读到尾！先看Pinout（引脚图）和Typical Application Circuit（典型应用电路），这两个最重要。其他参数用到再查。</div>
+
+<h3>数据手册实战：读取STM32F103C8T6关键参数</h3>
+
+<pre><code>// 从数据手册中提取的STM32F103C8T6关键参数
+// 文档：DS5319 (STM32F103x8/xB datasheet)
+
+// 1. 电气特性 (Electrical Characteristics)
+//    工作电压: 2.0V ~ 3.6V
+//    IO口吸入电流(max): 25mA (单个引脚)
+//    IO口总电流(max): 150mA (所有IO口总和!)
+//    → 这意味着不能同时点亮超过5个20mA的LED!
+//
+// 2. 时钟
+//    内部HSI: 8MHz (±1%)
+//    外部HSE: 4~16MHz (常用8MHz)
+//    PLL最高: 72MHz
+//    → APB1最高36MHz, APB2最高72MHz
+//
+// 3. 存储
+//    Flash: 64KB (C8) / 128KB (CB)
+//    SRAM:  20KB
+//    → STM32F103C8T6与CBT6相同晶圆，C8实际有128K Flash!
+
+// 4. 引脚IO结构
+//    GPIO可配置为:
+//    - 浮空输入 (Input floating)
+//    - 上拉输入 (Input pull-up)
+//    - 下拉输入 (Input pull-down)
+//    - 模拟输入 (Analog)
+//    - 开漏输出 (Output open-drain)
+//    - 推挽输出 (Output push-pull)
+//    - 复用推挽 (Alternate function push-pull)
+//    - 复用开漏 (Alternate function open-drain)
+
+// 5. ADC特性
+//    分辨率: 12位
+//    通道数: 10个外部 + 2个内部(温度/Vref)
+//    采样率: 最高1MSPS (1MHz采样)
+//    输入阻抗: 建议信号源阻抗 &lt;10KΩ</code></pre>
+
+<h2>PCB Layout基础</h2>
+
+<p>Layout是把原理图变成实际电路板的过程。好的Layout让电路稳定工作，差的Layout会让电路异常、干扰严重甚至根本不工作。</p>
+
+<h3>PCB层数选择</h3>
+
+<table>
+<tr><th>层数</th><th>结构</th><th>价格(10x10cm)</th><th>适用场景</th></tr>
+<tr><td>2层</td><td>顶层走线+底层走线</td><td>¥5/5片</td><td>低速数字电路、简单模拟</td></tr>
+<tr><td>4层</td><td>信号-GND-VCC-信号</td><td>¥30-50/5片</td><td>高速数字、混合信号</td></tr>
+<tr><td>6层</td><td>信号-GND-信号-信号-VCC-信号</td><td>¥80-150/5片</td><td>DDR内存、FPGA、RF</td></tr>
+</table>
+
+<div class="note">⚠️ <b>2层板最容易出错：</b>2层板没有完整的参考地层，走线时需要注意信号回路。4层板多几十块钱但信号质量好一个数量级。入门做2层，有经验后尽量用4层。</div>
+
+<h3>PCB走线规则</h3>
+
+<pre><code>// PCB Layout黄金法则（从简单到进阶）
+//
+// 1. 线宽与电流关系 (1oz铜厚, 温升10°C)
+//    0.25mm (10mil):  ~1A
+//    0.5mm  (20mil):  ~2A
+//    1.0mm  (40mil):  ~3.5A
+//    2.0mm  (80mil):  ~6A
+//    → 电源线至少0.5mm！大电流加宽或用多边形铺铜
+//
+// 2. 线间距 (信号完整性)
+//    普通信号: 0.15mm (6mil) 就够
+//    高压信号: 1mm/100V 安全间距
+//    差分信号: 紧密耦合，等长等间距
+//
+// 3. 过孔 (Via)
+//    信号过孔: 内径0.3mm/外径0.6mm (大多数PCB厂标准)
+//    电源过孔: 内径0.5mm/外径1.0mm (载流能力更强)
+//    尽量避免在高速信号上打过孔
+//
+// 4. 去耦电容布局
+//    每个VDD引脚附近放一个100nF电容
+//    电容离引脚越近越好 (&lt;5mm)
+//    走线：VDD → 电容 → 芯片引脚 (不要芯片→电容→VDD)</code></pre>
+
+<h3>去耦电容深入解析</h3>
+
+<p>去耦电容(Decoupling Capacitor)是PCB设计中<strong>最重要的单个元件</strong>。没有它，数字电路基本无法稳定工作。</p>
+
+<div class="analogy">💡 <b>去耦电容=芯片旁边的"小水库"：</b><br>
+芯片内部成千上万个晶体管同时翻转时，需要瞬间大电流（di/dt可达A/ns级）。PCB走线有电感，电流跟不上，电压就会跌落。去耦电容就像芯片旁的小水库，随时提供瞬时电流。100nF是最常用的值，因为对于0~100MHz范围的噪声有良好的去耦效果。</div>
+
+<pre><code>// 去耦电容的选择与布局
+// 
+// 容量选择:
+//   100nF (0.1μF) X7R陶瓷电容 → 每个VDD引脚放一个（标准配置）
+//   10μF  钽电容/陶瓷电容 → 每个芯片放1~2个（大水库）
+//   1μF   陶瓷电容 → 中等频率去耦
+//
+// 电容类型:
+//   X7R: 温度稳定性好(-55~+125°C), 常用
+//   X5R: 温度范围稍窄(-55~+85°C), 便宜
+//   NP0/C0G: 精度高、温度特性好, 但容量小, 高频用
+//   Y5V: 精度差，不推荐
+//
+// 错误的布局（电容离引脚5cm远）：
+//   [芯片] ======5cm走线====== [100nF] ----- [VCC]
+//   ↑ 走线电感很大，电容等于没接！
+//
+// 正确的布局（电容紧挨引脚）：
+//   [VCC] -- [100nF] -- [芯片VDD引脚]
+//                    |
+//   过孔到GND层 ←---┘
+//
+// 更优的做法（多层板）：
+//   顶层: VDD走线 → 电容焊盘 → 芯片VDD焊盘
+//   电容另一端 → 过孔 → 第二层GND平面
+//   ↓ 回路面积最小，电感最低</code></pre>
+
+<h3>电源与地的处理</h3>
+
+<pre><code>// 电源设计要点
+//
+// 1. 星形电源拓扑 vs 总线拓扑
+//    ★ 星形（推荐）: 从电源入口分别走线到各模块
+//      [电源入口]→[MCU电源]
+//               →[传感器电源]
+//               →[通信模块电源]
+//    优点：各模块干扰不互相耦合
+//
+//    × 总线形（不推荐）:
+//      [电源入口]→[MCU]→[传感器]→[通信模块]
+//    缺点：后级模块受前级干扰影响
+//
+// 2. 地平面设计
+//    - 尽量用完整的地平面（不要切碎！）
+//    - 数字地和模拟地分开，在电源入口处单点连接（0Ω电阻或磁珠）
+//    - 高频信号下方必须有连续的地参考面
+//
+// 3. 电源滤波
+//    [电源输入] → [TVS管] → [π型滤波] → [LDO/DCDC] → [去耦电容] → [负载]
+//                          ↓
+//                  10μF→磁珠→100nF
+//    TVS: 防浪涌（TVS管击穿后短路，保护后级）
+//    π型滤波: 滤除电源纹波和噪声
+
+// 4. 模拟电源与数字电源隔离
+//    示例：STM32的VDDA（模拟电源）需要独立滤波
+//    VDD(数字3.3V) → 磁珠/0Ω → VDDA(模拟3.3V)
+//                            ↓
+//                    10μF || 100nF → GND
+//    注意：VDDA和VREF+通常接在一起</code></pre>
+
+<div class="card">
+<div class="h"><span class="name">PCB设计工具推荐</span><span class="tag b">工具</span><span class="tag g">免费</span></div>
+<div class="b">
+<div class="desc">适合嵌入式开发者的PCB设计工具对比。</div>
+
+<table>
+<tr><th>工具</th><th>价格</th><th>优缺点</th><th>推荐度</th></tr>
+<tr><td>立创EDA (LCEDA)</td><td>免费</td><td>浏览器/客户端都能用，元件库全，直接下单打样</td><td>⭐⭐⭐⭐⭐ 入门首选</td></tr>
+<tr><td>KiCad</td><td>免费开源</td><td>功能强大，跨平台，4层以上板也胜任</td><td>⭐⭐⭐⭐⭐ 进阶首选</td></tr>
+<tr><td>Altium Designer</td><td>$7000+/年</td><td>工业标准，功能最全，学习曲线陡</td><td>⭐⭐⭐ 公司用</td></tr>
+<tr><td>EAGLE</td><td>免费(2层)</td><td>Autodesk收购后强制联网，不推荐</td><td>⭐⭐ 不推荐</td></tr>
+</table>
+
+<div class="tip">💡 <b>建议：</b>先用立创EDA做第一个板子（市面最全的元件库+一键下单），功能不够用了再换KiCad。立创EDA有团队协作和版本管理，对个人开发者很友好。</div>
+</div></div>
+
+<div class="tip">💡 <b>实战练习：设计一个最小系统板</b><br>
+任务：用立创EDA或KiCad设计一个STM32F103C8T6最小系统板<br>
+要求：① MCU + 晶振(8MHz + 32.768KHz) + 复位电路 + 电源(AMS1117-3.3) ② 引出所有GPIO到排针 ③ SWD调试接口(4针) ④ USB转串口(CH340N) ⑤ 每个VDD引脚配100nF去耦电容<br>
+进阶需求：做成Arduino Nano兼容引脚排列，可直插面包板<br>
+打样验证：发嘉立创打样(5元5片)，回来焊接并烧录Blink程序。</div>
+
+<h2>电磁兼容(EMC)基础</h2>
+
+<p>EMC（电磁兼容性）分为两方面：EMI（不干扰别人）和EMS（不被别人干扰）。对于嵌入式系统，最常遇到的问题是"板子一接电机就不正常"或"附近一打电话就复位"。</p>
+
+<pre><code>// EMC设计的"三板斧"
+//
+// 1. 去耦电容（最重要的EMC措施）
+//    每个IC的VCC-GND之间放0.1μF
+//    多个IC的板子再放1个10μF钽电容
+//
+// 2. 地平面/接地
+//    多层板用完整的GND平面层
+//    双面板底层尽量铺铜做GND
+//    信号线不要跨分割的地平面
+//
+// 3. 信号完整性
+//    高速信号串接22~33Ω电阻（抑制反射）
+//    长走线避免直角转弯（用45°或圆弧）
+//    差分信号等长走线
+//    I2C/SPI总线串接小电阻(10~100Ω)抑制振铃</code></pre>
+
+<div class="trouble">🔍 <b>常见EMC问题与解决方法</b><br><br>
+<b>问题1：附近手机来电时板子复位</b><br>
+原因：GSM信号（900MHz/1800MHz）通过IO线耦合进来，干扰RESET引脚<br>
+解决：① RESET引脚对地加100nF电容 ② 敏感信号线两端对地加22pF电容 ③ 检查是否有长导线当天线<br><br>
+<b>问题2：控制电机时单片机跑飞</b><br>
+原因：电机电刷火花产生宽频谱电磁干扰<br>
+解决：① 电机两端并联104电容(100nF) ② 电机外壳接地 ③ MCU与电机驱动之间用光耦隔离 ④ 驱动电路和MCU电路分开供电<br><br>
+<b>问题3：ADC读数抖动厉害</b><br>
+原因：数字噪声窜入模拟电路<br>
+解决：① 模拟地与数字地分开，单点连接 ② VDDA加LC滤波 ③ ADC输入加RC低通滤波(R=1K, C=100nF)</div>
+
+<h2>万用表使用</h2>
+
+<pre><code># 测电压
+红笔接VDD，黑笔接GND → 读数应为3.3V或5V
+
+# 测通断（蜂鸣档）
+两根表笔分别接两端 → 蜂鸣=导通（短路），无声=断路
+
+# 测电阻
+断电！量程选对 → 读数应与色环/标称值一致
+
+# 测电流
+串联进电路 → 注意量程（mA档 or A档）</code></pre>
+
+<h3>万用表进阶技巧</h3>
+
+<pre><code>// 万用表排错流程（程序跑不起来时）
+//
+// 第1步：测电源
+//   测VDD-GND电压 → 应为3.3V或5V
+//   如果电压不满足条件：
+//     - 测AMS1117输入：应为5V+（USB供电正常？）
+//     - 测AMS1117输出：应为3.3V（LDO坏？短路？）
+//     - 断电，测VDD-GND之间电阻：应>1KΩ（短路的话&lt;10Ω）
+//
+// 第2步：测晶振
+//   测OSC_IN/OSC_OUT引脚对地电压：
+//     正常值约VDD/2 ≈ 1.6V (如果晶振起振)
+//     0V或3.3V → 晶振不起振！检查负载电容
+//   更好的方法：示波器看是否有正弦波
+//
+// 第3步：测复位
+//   NRST引脚对地电压：
+//     正常 = 3.3V（高电平）
+//     0V = 一直在复位！检查复位按键是否短路、上拉电阻
+//
+// 第4步：测BOOT引脚
+//   BOOT0: 应为0V（从Flash启动）
+//   BOOT1: 应为0V
+//   如果BOOT0=3.3V → 进入了系统存储器启动模式（不会跑你的代码）
+//
+// 第5步：用二极管档测IO口
+//   红笔接GND，黑笔接IO → 应显示0.5~0.7V（内部ESD二极管压降）
+//   如果显示0V → 该IO口可能已击穿短路</code></pre>
+
+<h3>焊接技巧</h3>
+
+<table>
+<tr><th>工具</th><th>推荐</th><th>价格</th></tr>
+<tr><td>烙铁</td><td>936/JBC C245/TS100</td><td>¥50-200</td></tr>
+<tr><td>焊锡</td><td>0.6mm 63/37有铅焊锡丝</td><td>¥15</td></tr>
+<tr><td>助焊剂</td><td>松香膏/免洗助焊剂</td><td>¥10</td></tr>
+<tr><td>吸锡器</td><td>手动/电动</td><td>¥10-50</td></tr>
+</table>
+
+<div class="note">⚠️ <b>焊接要点：</b>①先给焊盘上锡 ②放元件 ③烙铁同时加热焊盘和引脚 ④送焊锡 ⑤先撤焊锡再撤烙铁 ⑥检查焊点——光亮圆滑=好，灰暗毛刺=冷焊。新手一定要用助焊剂！</div>
+
+<h3>焊接进阶：QFP/LQFP封装焊接</h3>
+
+<pre><code>// STM32F103C8T6是LQFP48封装（48脚，0.5mm间距）
+// 新手焊接方法：拖焊法(Drag Soldering)
+//
+// 步骤：
+// 1. 先给PCB焊盘上一遍薄锡（所有焊盘）
+// 2. 涂助焊剂（大量！新手不要省）
+// 3. 放上芯片，对齐引脚（用镊子微调）
+// 4. 先焊对角两个引脚固定芯片
+// 5. 重新检查对齐，歪了就重新加热固定点调整
+// 6. 在一边引脚上涂助焊剂
+// 7. 烙铁头上挂一个小锡球（直径~2mm）
+// 8. 沿引脚方向缓慢拖过（从里向外）
+// 9. 如果有连锡 → 加助焊剂 + 用吸锡带吸掉
+// 10. 重复6-9焊完另外三边
+// 11. 用放大镜检查：是否有连锡（短路）或虚焊
+//
+// 拖焊法成功的关键：
+// - 大量助焊剂！（推荐AMTECH NC-559）
+// - 烙铁温度350°C（有铅焊锡）
+// - 速度适中（太快=虚焊，太慢=连锡）
+// - 尖头烙铁头（比刀头更容易拖出好效果）</code></pre>
+
+<div class="card">
+<div class="h"><span class="name">热风枪焊接 QFN封装</span><span class="tag p">进阶</span><span class="tag y">高阶技巧</span></div>
+<div class="b">
+<div class="desc">QFN封装（底部焊盘，引脚不伸出侧面）是小型化的主流。用热风枪+锡膏焊接。</div>
+
+<pre><code>// QFN焊接流程（如MPU6050 = QFN24）
+// 1. PCB焊盘刷锡膏（钢网或手动涂抹）
+// 2. 放上芯片（镊子轻放，不要按压）
+// 3. 热风枪：350°C, 中低风速
+// 4. 先远距离预热PCB（10秒）
+// 5. 距离3~5cm绕圈加热
+// 6. 看到锡膏融化→芯片会"自动归位"（表面张力！）
+// 7. 保持1-2秒后移开
+// 8. 自然冷却
+// 9. 检查：轻推芯片，如果不回弹 = 虚焊</code></pre>
+</div></div>
+
+<h3>常用元件速查</h3>
+
+<table>
+<tr><th>元件</th><th>符号</th><th>作用</th><th>典型值</th></tr>
+<tr><td>电阻</td><td>R</td><td>限流/分压/上拉</td><td>4.7K(上拉)、10K(下拉)、330Ω(LED限流)</td></tr>
+<tr><td>电容</td><td>C</td><td>滤波/储能/耦合</td><td>100nF(去耦)、10μF(储能)、22pF(晶振)</td></tr>
+<tr><td>晶振</td><td>Y</td><td>提供时钟频率</td><td>8MHz(STM32外部)、32.768KHz(RTC)</td></tr>
+<tr><td>二极管</td><td>D</td><td>单向导通/保护</td><td>1N4148(开关)、1N5819(肖特基)</td></tr>
+<tr><td>MOSFET</td><td>Q</td><td>开关/驱动</td><td>AO3400(N沟道)、IRF9540(P沟道)</td></tr>
+<tr><td>LED</td><td>LED</td><td>指示灯</td><td>红色2V/绿色2.2V/蓝色3V</td></tr>
+</table>
+
+<h3>电阻电容读数方法</h3>
+
+<pre><code>// 贴片电阻读数（3位数码标记）
+// 规则：前两位是有效数字，第三位是10的幂次
+// 103 = 10 × 10³ = 10KΩ
+// 472 = 47 × 10² = 4.7KΩ
+// 100 = 10 × 10⁰ = 10Ω  (不等于100Ω!)
+// 101 = 10 × 10¹ = 100Ω
+// 0   = 0Ω（跳线/短路电阻）
+//
+// 四位数的电阻（1%精度）:
+// 1002 = 100 × 10² = 10KΩ
+// 4991 = 499 × 10¹ = 4.99KΩ
+//
+// 贴片电容读数
+// 贴片电容大多数不标值！只能靠万用表测
+// 有标记的少数：
+// 104 = 10 × 10⁴ pF = 100nF = 0.1μF
+// 106 = 10 × 10⁶ pF = 10μF
+// 22  = 22pF
+
+// 色环电阻（直插元件）
+// 黑0 棕1 红2 橙3 黄4 绿5 蓝6 紫7 灰8 白9
+// 4环：环1=第1位, 环2=第2位, 环3=倍数, 环4=误差
+//   棕黑红金 = 1 0 ×100 = 1000Ω = 1KΩ, ±5%
+// 5环：环1-3=有效数字, 环4=倍数, 环5=误差
+//   棕黑黑棕棕 = 1 0 0 ×10 = 1KΩ, ±1%</code></pre>
+
+<div class="trouble">🔍 <b>常见问题：上电没反应</b><br>
+1. 万用表测VDD/GND之间电压 → 应为3.3V<br>
+2. 测晶振引脚 → 应有正弦波（示波器）或约1.6V DC（万用表）<br>
+3. 测RESET引脚 → 应为高电平(3.3V)，低电平=一直复位<br>
+4. 检查BOOT0/BOOT1引脚状态 → 都为低才从Flash启动</div>
+
+<div class="trouble">🔍 <b>常见问题：板子短路冒烟</b><br>
+1. <b>立即断电！</b> 拔掉USB/电源适配器<br>
+2. 用万用表蜂鸣档测VDD和GND → 蜂鸣=短路<br>
+3. 嗅探大法：闻哪里焦糊味（LDO和钽电容是重灾区）<br>
+4. 手指感觉大法：断电后摸芯片，烫手的在短路（电流全流过它了）<br>
+5. 割线法：切断电源走线，分段排查短路区域<br>
+6. 极限法：用可调电源限制电流（如0.5A），短路处会发烫<br>
+7. 常见短路原因：焊盘连锡、钽电容焊反、芯片焊歪</div>
+
+<div class="trouble">🔍 <b>常见问题：ST-Link/J-Link连接不上芯片</b><br>
+1. SWDIO/SWCLK接线正确？（SWDIO→SWDIO, SWCLK→SWCLK, GND→GND, 3.3V→VCC）<br>
+2. 杜邦线是否松动？（SWD频率高，接触不良就失败）<br>
+3. BOOT0是否为低电平？（高电平时从系统存储器启动，SWD可能无法连接）<br>
+4. NRST是否为高电平？（如果一直被拉低，芯片处于复位状态）<br>
+5. 芯片是否正常供电（3.3V）？<br>
+6. SWD引脚是否有其他电路冲突？（某些项目把SWDIO用作普通IO）<br>
+7. 连接时按住RESET再释放（"Connect Under Reset"）</div>
+
+<h2>本章总结</h2>
+
+<div class="summary"><b>📋 知识点回顾：</b><br><br>
+<b>设计流程：</b>需求分析 → 芯片选型 → 原理图 → PCB Layout → 打样 → 焊接调试。先想清楚再画图。<br><br>
+<b>原理图阅读：</b>按电源→MCU→信号流向→网络标号的顺序看。注意VCC/GND/NC/RESET/BOOT等关键符号。<br><br>
+<b>数据手册：</b>先看Pinout和Typical Application。关键参数：VDD范围、IO电流、工作温度、封装。Absolute Maximum Ratings是"超过必烧"的底线。<br><br>
+<b>PCB Layout核心：</b>去耦电容(100nF紧贴VDD引脚)、线宽与电流匹配、完整地平面、电源星形拓扑。2层板够入门，4层板信号质量好得多。<br><br>
+<b>去耦电容：</b>每个VDD引脚一颗100nF X7R电容，布局离引脚&le;5mm。它是数字电路稳定工作的"定海神针"。<br><br>
+<b>EMC设计：</b>去耦+地平面+信号端接+模拟数字地隔离。电机干扰要光耦隔离。<br><br>
+<b>检测工具：</b>万用表(电压/通断/电阻)是最基本工具。有条件加示波器和逻辑分析仪。焊接要练，热风枪+锡膏是QFN的标配。<br><br>
+<b>排错顺序：</b>电源 → 晶振 → 复位 → BOOT → IO口。按这个顺序检查，80%的硬件问题都能找到。
+</div>
+
+<!-- ====== 第11章 ====== -->
+<a id="ch11"></a>
+<div class="summary">📖 <b>第11章学完你能干啥：</b>掌握printf调试/SWO/HardFault分析方法，能快速定位常见Bug（空指针/栈溢出/中断竞争）。</div>
+
+<div class="chnav">
+<a onclick="window.parent.loadPage('guide-ch09')">← 第9章</a>
+<a class="toc-link" onclick="window.parent.loadPage('guide')">📑 目录</a>
+<a onclick="window.parent.loadPage('guide-ch11')">第11章 →</a>
+</div>
+
+<script>
+document.querySelectorAll('pre').forEach(pre => {
+  const btn = document.createElement('button');
+  btn.className = 'copy-btn';
+  btn.textContent = 'Copy';
+  btn.onclick = () => {
+    navigator.clipboard.writeText(pre.textContent).then(() => {
+      btn.textContent = 'Copied!';
+      btn.classList.add('copied');
+      setTimeout(() => { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 1500);
+    });
+  };
+  pre.appendChild(btn);
+});
+</script>
+<div class="chnav">
+  <a onclick="window.parent.loadPage('guide-ch09')">◀ 上一章：通信协议</a>
+  <a class="toc-link" onclick="window.parent.loadPage('guide')">📑 章节目录</a>
+  <a onclick="window.parent.loadPage('guide-ch11')">调试技巧 ：下一章 ▶</a>
+</div>
+</body>
+</html>

@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>管理员登录 - 多智能体协同学习平台</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Microsoft YaHei',sans-serif;background:#0a0e17;color:#e8edf5;min-height:100vh;display:flex;align-items:center;justify-content:center}
+.login-box{background:#131a2b;border:1px solid #1e2a42;border-radius:14px;padding:40px;width:360px;text-align:center}
+.login-box h1{font-size:20px;margin-bottom:6px;background:linear-gradient(90deg,#00d4aa,#6c5ce7);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.login-box p{font-size:12px;color:#8892a8;margin-bottom:24px}
+.form-group{margin-bottom:16px;text-align:left}
+.form-group label{display:block;font-size:11px;color:#8892a8;margin-bottom:4px;font-weight:600}
+.form-group input{width:100%;padding:10px 12px;background:#0a0e17;border:1px solid #1e2a42;border-radius:8px;color:#e8edf5;font-size:13px;outline:none;transition:border .2s}
+.form-group input:focus{border-color:#00d4aa}
+.btn{width:100%;padding:11px;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;background:linear-gradient(135deg,#00d4aa,#6c5ce7);color:#fff;transition:transform .2s}
+.btn:hover{transform:translateY(-1px);box-shadow:0 4px 18px rgba(0,212,170,.3)}
+.error{color:#ff6b6b;font-size:11px;margin-top:8px;display:none}
+.back{display:inline-block;margin-top:16px;font-size:11px;color:#8892a8;text-decoration:none}
+.back:hover{color:#00d4aa}
+</style>
+</head>
+<body>
+<div class="login-box">
+  <h1>管理员登录</h1>
+  <p>多智能体协同学习平台 · 管理后台</p>
+  <div class="form-group">
+    <label>管理员密码</label>
+    <input type="password" id="pwdInput" placeholder="请输入密码" onkeydown="if(event.key==='Enter')doLogin()">
+  </div>
+  <button class="btn" onclick="doLogin()">登录</button>
+  <div class="error" id="errMsg"></div>
+  <a class="back" href="/">← 返回首页</a>
+</div>
+<script>
+async function doLogin(){
+  const pwd=document.getElementById('pwdInput').value;
+  if(!pwd){document.getElementById('errMsg').style.display='block';document.getElementById('errMsg').textContent='请输入密码';return;}
+  try{
+    const r=await fetch('/api/admin/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:pwd})});
+    if(r.ok){window.location.href='/admin';}
+    else{const d=await r.json();document.getElementById('errMsg').style.display='block';document.getElementById('errMsg').textContent=d.detail||'密码错误';}
+  }catch(e){document.getElementById('errMsg').style.display='block';document.getElementById('errMsg').textContent='网络错误';}
+}
+</script>
+</body>
+</html>

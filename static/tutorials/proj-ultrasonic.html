@@ -1,0 +1,594 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0"><title>教程8：超声波测距 - STM32嵌入式开发</title><style>:root{--bg:#0d1117;--bg2:#161b22;--bg3:#21262d;--br:#30363d;--t:#c9d1d9;--t2:#8b949e;--a:#58a6ff;--g:#3fb950;--o:#d29922;--r:#f85149;--p:#a371f7;--c1:#39c5cf}body{background:var(--bg);color:var(--t);font-family:system-ui,sans-serif;line-height:1.8;max-width:900px;margin:0 auto;padding:20px}h1{text-align:center;background:linear-gradient(135deg,var(--a),var(--p));-webkit-background-clip:text;-webkit-text-fill-color:transparent}h2{color:var(--a);border-bottom:2px solid var(--br);padding-bottom:6px;margin-top:32px}h3{color:var(--c1);margin-top:22px}pre{background:#1c2128;border:1px solid var(--br);border-radius:8px;padding:14px;overflow-x:auto;font-size:.84em}code{font-family:'Cascadia Code',Consolas,monospace}:not(pre)>code{background:var(--bg3);padding:2px 6px;border-radius:4px;color:var(--c1)}table{width:100%;border-collapse:collapse;margin:12px 0}th{background:var(--bg3);color:var(--a);padding:8px 12px;border:1px solid var(--br);text-align:left}td{padding:8px 12px;border:1px solid var(--br)}.note{background:rgba(88,166,255,.08);border-left:3px solid var(--a);border-radius:8px;padding:12px 16px;margin:12px 0}.warn{background:rgba(248,81,73,.08);border-left:3px solid var(--r);border-radius:8px;padding:12px 16px;margin:12px 0}.tip{background:rgba(63,185,80,.08);border-left:3px solid var(--g);border-radius:8px;padding:12px 16px;margin:12px 0}.step{background:var(--bg2);border:1px solid var(--br);border-radius:8px;padding:12px 16px;margin:10px 0}</style></head><body>
+<h1>📏 教程8：超声波测距</h1>
+<p style="text-align:center;color:var(--t2)">STM32F103C8T6 + HC-SR04 | 输入捕获 | 距离计算 | 报警系统</p>
+
+<h2>📖 你将学到什么</h2>
+<ul>
+<li>超声波测距原理（飞行时间法）</li>
+<li>STM32输入捕获模式测量脉冲宽度</li>
+<li>GPIO模拟Trig输出 + 定时器测量Echo</li>
+<li>精确距离计算与温度补偿</li>
+<li>LCD/OLED显示 + 报警阈值功能</li>
+</ul>
+
+<h2>🧰 硬件清单</h2>
+<table>
+<tr><th>元件</th><th>数量</th><th>说明</th></tr>
+<tr><td>STM32F103C8T6 最小系统板</td><td>1</td><td>Blue Pill</td></tr>
+<tr><td>HC-SR04 超声波模块</td><td>1</td><td>测距范围2cm~400cm</td></tr>
+<tr><td>0.96寸 OLED 显示屏</td><td>1</td><td>可选，用于显示</td></tr>
+<tr><td>无源蜂鸣器模块</td><td>1</td><td>用于报警</td></tr>
+<tr><td>杜邦线</td><td>若干</td><td>公对公</td></tr>
+</table>
+
+<h2>🔬 HC-SR04 工作原理</h2>
+
+<h3>超声波测距原理</h3>
+<p>HC-SR04 使用超声波飞行时间（Time of Flight, ToF）原理：</p>
+
+<pre><code>                    被测物体
+                       ▼
+                       │
+超声波脉冲 → ●━━━━━━━━━━━━━━━━━━━━━► ╱ ╲
+                       │             ╱     ╲ 反射
+                       │            ╱       ╲
+                       │           ╱         ╲
+                       │          ╱           ╲
+                       │         ╱  超声波束   ╲
+                       │        ╱               ╲
+发射器 → ◄━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━► → 接收器
+         │                                            │
+         │ ←─────────── 往返距离 ─────────────→       │
+         │                                            │
+         └────────────────────────────────────────────┘
+
+原理公式：
+  距离 = 声速 × 飞行时间 ÷ 2
+
+声速 = 340 m/s = 0.034 cm/μs
+
+示例：
+  如果 Echo 高电平持续 588μs
+  距离 = 0.034 × 588 / 2 ≈ 10 cm</code></pre>
+
+<h3>HC-SR04 时序图</h3>
+<pre><code>MCU Trig ──┐                    ┌────────────
+           │   至少10μs        │ Echo高电平宽度
+           └────────────────────┘    │
+                                    ▼
+MCU Echo ───────────────────────────────────────────
+           │         ↑ Echo上升沿  ↑ Echo下降沿
+           │         │            │
+           │    触发测量      测量此宽度
+           │         │            │
+           │    开始捕获      停止捕获
+           │         │            │
+           └─────────┴────────────┘
+              ≈ 200μs    高电平持续时间
+              (模块内部发射)
+
+HC-SR04 参数：
+  Trig 输入: 10μs 高电平脉冲
+  工作电压: 5V（VCC和Echo都需要5V）
+  测量范围: 2cm ~ 400cm
+  测量角度: ±15°
+  盲区:     < 2cm（无法测量）</code></pre>
+
+<h3>距离计算公式</h3>
+<pre><code>设 Echo 高电平持续时间为 T (微秒)
+
+声速 = 340 m/s = 0.034 cm/μs = 34.3 cm/ms
+
+单程距离 = 声速 × 时间 / 2
+         = 0.034 × T / 2
+         = 0.017 × T  cm
+
+用定时器计数值计算（假设 PSC=72, 1MHz计数）:
+  T(μs) = 定时器计数值
+  
+  distance_cm = T × 0.017
+  distance_cm = T × 17 / 1000
+  distance_cm = (T * 17) / 1000
+
+常用值速查：
+  T=58μs   → 1cm
+  T=232μs  → 4cm
+  T=580μs  → 10cm
+  T=5800μs → 100cm
+  T=11600μs→ 200cm
+  T=23200μs→ 400cm (最大测量距离)</code></pre>
+
+<h2>🔌 接线图</h2>
+
+<pre><code>STM32F103C8T6          HC-SR04 模块
+─────────────          ───────────
+PA0 (GPIO Out) ──────── Trig (触发输入)
+PA1 (TIM2_CH2 IC) ───── Echo (回响输出)⚠需要分压或直接5V接单片机
+
+HC-SR04 模块           电源
+─────────────          ────
+VCC          ──────── 5V (必须5V!)
+GND          ──────── GND (与STM32共地)
+
+⚠ 关于Echo电压：
+  HC-SR04的Echo输出是5V高电平，STM32是3.3V电平
+  方案1（推荐）: 在Echo和PA1之间串联1kΩ+2kΩ电阻分压
+  方案2: 直接接PA1（部分STM32有保护二极管，5V可能损坏）
+  方案3: 用电压转换模块
+  
+分压电路:
+  HC-SR04 Echo ───┬── 1kΩ ───┬── PA1 (STM32)
+                  │          │
+                  └── 2kΩ ───┴── GND
+                  
+  5V × (2kΩ / 3kΩ) ≈ 3.3V ✓
+
+STM32F103C8T6          蜂鸣器 (可选)
+─────────────          ───────
+PA2 (GPIO)  ──────── 蜂鸣器信号
+GND          ──────── 蜂鸣器GND</code></pre>
+
+<div class="warn">
+<strong>⚠ 重要警告：</strong><br>
+- HC-SR04 <strong>必须使用5V供电</strong>，3.3V会导致模块工作不正常或无输出<br>
+- Echo输出是5V，<strong>必须做电平转换</strong>才能接到STM32的3.3V引脚！<br>
+- 如果没有分压电路，可能烧毁STM32的GPIO引脚！
+</div>
+
+<h2>📝 分步操作指引</h2>
+
+<div class="step">
+<strong>Step 1：CubeMX 配置</strong><br>
+1. PA0 → GPIO_Output（Trig触发）<br>
+2. PA1 → TIM2_CH2 Input Capture（测量Echo）<br>
+3. TIM2 Prescaler=72 (1MHz), Period=65535<br>
+4. TIM2_CH2 → Input Capture direct mode<br>
+5. 配置NVIC使能TIM2中断<br>
+6. 配置PA2为GPIO_Output（蜂鸣器）
+</div>
+
+<div class="step">
+<strong>Step 2：Trig 触发信号</strong><br>
+每60ms以上，发送一个10μs的高电平脉冲给Trig。
+</div>
+
+<div class="step">
+<strong>Step 3：配置输入捕获</strong><br>
+使用上升沿触发开始捕获，下降沿触发停止捕获。
+</div>
+
+<div class="step">
+<strong>Step 4：计算距离</strong><br>
+<code>distance = high_time × 17 / 1000</code>（单位：cm）
+</div>
+
+<div class="step">
+<strong>Step 5：添加报警功能</strong><br>
+当距离小于阈值时，蜂鸣器报警。
+</div>
+
+<h2>💻 完整代码</h2>
+
+<h3>main.c — 超声波测距完整实现</h3>
+<pre><code>/* USER CODE BEGIN Includes */
+#include &lt;stdio.h&gt;
+#include &lt;stdint.h&gt;
+/* USER CODE END Includes */
+
+/* USER CODE BEGIN PV */
+
+// 超声波测量状态
+typedef enum {
+    US_STATE_IDLE = 0,
+    US_STATE_WAITING_ECHO,  // 等待Echo上升沿
+    US_STATE_MEASURING,     // 测量中
+    US_STATE_DONE           // 测量完成
+} US_State_t;
+
+// 测量数据
+volatile US_State_t g_us_state = US_STATE_IDLE;
+volatile uint32_t g_us_start_tick = 0;  // Echo上升沿时刻
+volatile uint32_t g_us_end_tick = 0;    // Echo下降沿时刻
+volatile uint16_t g_distance_cm = 0;    // 测量距离(cm)
+volatile uint8_t g_us_ready = 0;        // 测量完成标志
+
+// 配置参数
+#define US_TRIG_PORT GPIOA
+#define US_TRIG_PIN  GPIO_PIN_0
+#define US_TIMEOUT    25000  // 超时阈值（约4.3m/最大距离）
+#define US_MIN_DIST   2      // 最小测量距离（盲区）
+#define US_MAX_DIST   400     // 最大测量距离
+#define BUZZER_PORT   GPIOA
+#define BUZZER_PIN    GPIO_PIN_2
+#define ALERT_THRESHOLD 10   // 报警阈值（cm）
+
+// 定时器句柄（TIM2用于输入捕获）
+extern TIM_HandleTypeDef htim2;
+
+// 上次Trig发送时间
+volatile uint32_t g_last_trig_tick = 0;
+/* USER CODE END PV */
+
+/* USER CODE BEGIN 0 */
+
+// 发送超声波触发脉冲 (至少10μs高电平)
+void US_Trigger(void)
+{
+    // 确保Trig为低
+    HAL_GPIO_WritePin(US_TRIG_PORT, US_TRIG_PIN, GPIO_PIN_RESET);
+    HAL_Delay(1);  // 等待稳定
+    
+    // 发送10μs高电平脉冲
+    HAL_GPIO_WritePin(US_TRIG_PORT, US_TRIG_PIN, GPIO_PIN_SET);
+    // 使用定时器延时（更精确）
+    uint32_t start = HAL_GetTick();
+    while (HAL_GetTick() - start &lt; 1) {
+        __NOP(); __NOP(); __NOP(); __NOP();
+        __NOP(); __NOP(); __NOP(); __NOP();
+        __NOP(); __NOP(); __NOP(); __NOP();
+        __NOP(); __NOP(); __NOP(); __NOP();
+    }
+    HAL_GPIO_WritePin(US_TRIG_PORT, US_TRIG_PIN, GPIO_PIN_RESET);
+    
+    g_us_state = US_STATE_WAITING_ECHO;
+}
+
+// TIM2 输入捕获中断回调
+void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim)
+{
+    if (htim-&gt;Instance != TIM2) return;
+    
+    uint32_t current_tick = __HAL_TIM_GET_COUNTER(htim);
+    
+    if (htim-&gt;Channel == HAL_TIM_ACTIVE_CHANNEL_2) {
+        
+        if (g_us_state == US_STATE_WAITING_ECHO) {
+            // 检测到上升沿（Echo变高）
+            if (HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_1) == GPIO_PIN_SET) {
+                __HAL_TIM_SET_COUNTER(htim, 0);  // 清零定时器
+                g_us_start_tick = 0;
+                g_us_state = US_STATE_MEASURING;
+            }
+        }
+        else if (g_us_state == US_STATE_MEASURING) {
+            // 检测到下降沿（Echo变低）
+            if (HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_1) == GPIO_PIN_RESET) {
+                g_us_end_tick = current_tick;
+                
+                // 计算距离
+                uint32_t high_time = g_us_end_tick - g_us_start_tick; // μs
+                
+                // distance = high_time × 0.017 (cm)
+                // 精确公式: distance_cm = (high_time * 34) / 200
+                //         = (high_time * 17) / 100
+                if (high_time &gt; US_TIMEOUT || high_time == 0) {
+                    g_distance_cm = 0; // 超时/无效
+                } else {
+                    g_distance_cm = (high_time * 17) / 100; // cm
+                }
+                
+                g_us_ready = 1;
+                g_us_state = US_STATE_IDLE;
+            }
+        }
+    }
+}
+
+// TIM2 更新中断（用于超时检测）
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
+{
+    if (htim-&gt;Instance == TIM2) {
+        if (g_us_state == US_STATE_MEASURING) {
+            // 测量超时（约25000μs × 1μs = 25ms）
+            g_distance_cm = 0;
+            g_us_ready = 1;
+            g_us_state = US_STATE_IDLE;
+        }
+    }
+}
+
+// 报警控制
+void Alert_Check(uint16_t dist)
+{
+    static uint8_t alert_on = 0;
+    
+    if (dist &gt; 0 &amp;&amp; dist &lt; ALERT_THRESHOLD) {
+        if (!alert_on) {
+            alert_on = 1;
+            HAL_GPIO_WritePin(BUZZER_PORT, BUZZER_PIN, GPIO_PIN_SET);
+        }
+    } else {
+        if (alert_on) {
+            alert_on = 0;
+            HAL_GPIO_WritePin(BUZZER_PORT, BUZZER_PIN, GPIO_PIN_RESET);
+        }
+    }
+}
+
+// printf 重定向
+#ifdef __GNUC__
+int __io_putchar(int ch)
+#else
+int fputc(int ch, FILE *f)
+#endif
+{
+    HAL_UART_Transmit(&amp;huart1, (uint8_t *)&amp;ch, 1, HAL_MAX_DELAY);
+    return ch;
+}
+
+/* USER CODE END 0 */
+
+int main(void)
+{
+    HAL_Init();
+    SystemClock_Config();
+    MX_GPIO_Init();
+    MX_TIM2_Init();
+    MX_USART1_UART_Init();
+
+    /* USER CODE BEGIN 2 */
+    // 启动TIM2输入捕获 (Channel 2)
+    HAL_TIM_IC_Start_IT(&amp;htim2, TIM_CHANNEL_2);
+    
+    // 蜂鸣器初始关闭
+    HAL_GPIO_WritePin(BUZZER_PORT, BUZZER_PIN, GPIO_PIN_RESET);
+    
+    // 初始化Trig为低
+    HAL_GPIO_WritePin(US_TRIG_PORT, US_TRIG_PIN, GPIO_PIN_RESET);
+    
+    printf("Ultrasonic Distance Meter Ready!\r\n");
+    printf("Measuring every 100ms...\r\n");
+    /* USER CODE END 2 */
+
+    /* USER CODE BEGIN WHILE */
+    while (1)
+    {
+        // 每100ms触发一次测量
+        static uint32_t last_measure_tick = 0;
+        if (HAL_GetTick() - last_measure_tick &gt;= 100) {
+            last_measure_tick = HAL_GetTick();
+            US_Trigger();
+        }
+        
+        // 处理测量结果
+        if (g_us_ready) {
+            g_us_ready = 0;
+            
+            if (g_distance_cm &gt; 0) {
+                printf("Distance: %3d cm", g_distance_cm);
+                
+                // 简易条形图显示
+                uint8_t bar_len = (g_distance_cm &gt; 50) ? 50 : g_distance_cm;
+                printf(" |");
+                for (uint8_t i = 0; i &lt; bar_len; i++) printf("#");
+                printf("\r\n");
+                
+                // 报警检查
+                Alert_Check(g_distance_cm);
+            } else {
+                printf("Distance: OUT OF RANGE\r\n");
+            }
+        }
+        
+        HAL_Delay(10);
+    }
+    /* USER CODE END WHILE */
+}</code></pre>
+
+<h3>CubeMX TIM2 输入捕获配置</h3>
+<pre><code>// TIM2 配置（用于测量Echo脉冲宽度）
+htim2.Instance = TIM2;
+htim2.Init.Prescaler = 72 - 1;      // 72MHz/72 = 1MHz → 1μs/计数
+htim2.Init.CounterMode = TIM_COUNTERMODE_UP;
+htim2.Init.Period = 0xFFFF;          // 最大值65535
+htim2.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+htim2.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+
+// 输入捕获配置 Channel 2
+sConfigIC.ICPolarity = TIM_INPUTCHANNELPOLARITY_BOTH;
+  // BOTH = 上升沿和下降沿都捕获，在中断中判断当前电平
+sConfigIC.ICSelection = TIM_ICSELECTION_DIRECTTI;
+sConfigIC.ICPrescaler = TIM_ICPSC_DIV1;
+sConfigIC.ICFilter = 0x0;
+
+// 或者分开配置两次触发的模式：
+// 第一次：上升沿触发
+// 第二次：下降沿触发
+// 在中断回调中区分处理</code></pre>
+
+<h2>❓ 常见问题排查</h2>
+
+<h3>问题1：距离始终为0</h3>
+<div class="warn">
+<strong>最可能的原因：</strong><br>
+1. <strong>Echo接错了</strong> — 最常见！确认PA1（TIM2_CH2）接的是Echo，不是Trig。<br>
+2. <strong>电平转换没做好</strong> — 5V Echo直接接STM32可能损坏引脚。<br>
+3. <strong>Trig没有真正发出10μs脉冲</strong> — 用示波器或逻辑分析仪检查PA0。<br>
+4. <strong>HC-SR04没有5V供电</strong> — 用万用表测量VCC引脚电压是否接近5V。<br>
+5. <strong>输入捕获中断没有使能</strong> — 检查NVIC配置。
+</div>
+
+<h3>问题2：测量值不准确</h3>
+<div class="note">
+<strong>误差来源与解决方案：</strong><br>
+1. <strong>温度影响声速</strong> — 声速随温度变化：<br>
+<pre><code>// 温度补偿公式
+// 声速(m/s) = 331.4 + 0.59 × 温度(℃)
+
+#define TEMP_CORRECTION  // 启用温度补偿
+
+#ifdef TEMP_CORRECTION
+    #define ROOM_TEMP 25  // 当前温度
+    #define SOUND_SPEED (3314 + 59 * ROOM_TEMP) / 10  // 单位: 0.1cm/ms
+    // 距离 = high_time × SOUND_SPEED / 2000
+    g_distance_cm = (high_time * SOUND_SPEED) / 2000;
+#else
+    g_distance_cm = (high_time * 17) / 100;  // 默认20℃下的近似
+#endif</code></pre>
+2. 被测物体表面不是垂直的（斜面反射信号弱）<br>
+3. 测量距离超出规格（>400cm）<br>
+4. 目标物体太小或吸声材料<br>
+5. 多次测量取平均值
+</div>
+
+<h3>问题3：HC-SR04 盲区问题</h3>
+<div class="tip">
+<strong>盲区 < 2cm 是物理限制，无法消除。</strong><br>
+解决方案：<br>
+- 如果需要测 < 2cm，使用红外测距传感器（如SHARP GP2Y0A21）<br>
+- HC-SR04数据手册标注最小距离2cm，实际可能在3~5cm才能可靠测量<br>
+- 代码中对 < US_MIN_DIST 的值过滤掉或标记为"太近"
+</div>
+
+<h3>问题4：串口只打印一次数据</h3>
+<div class="note">
+检查是否只触发了一次US_Trigger()。应该周期性调用，参考代码中的100ms间隔。<br>
+另外检查g_us_ready标志是否正确清零了。
+</div>
+
+<h3>问题5：Echo高电平时间计算错误</h3>
+<div class="warn">
+确认定时器PSC=72，时钟=72MHz：<br>
+- 计数频率 = 72000000 / 72 = 1000000 Hz = 1MHz<br>
+- 每个计数 = 1μs<br>
+- 如果PSC设置成其他值，公式需要相应调整：<br>
+<pre><code>// 通用公式
+uint32_t count_freq = 72000000 / (PSC + 1);
+uint32_t high_time_us = (g_us_end_tick - g_us_start_tick);
+uint32_t distance_cm = (high_time_us * 34) / 200; // 除以2再×100000转cm</code></pre>
+</div>
+
+<h2>🎯 进阶练习</h2>
+<ol>
+<li>添加OLED显示距离（cm为单位的大字体）</li>
+<li>实现距离阈值报警（蜂鸣器+LED双重报警）</li>
+<li>多超声波融合（3个模块测不同方向）</li>
+<li>温度补偿（添加DS18B20温度传感器）</li>
+<li>实现移动平均滤波（平滑测量数据）</li>
+<li>做一个小车避障系统：超声波检测前方障碍物</li>
+<li>添加卡尔曼滤波提升测量稳定性</li>
+</ol>
+
+
+
+<h2>📡 超声波传感器阵列与多目标检测</h2>
+<pre><code>// 多个HC-SR04同时工作会互相干扰
+// 方案1: 分时触发 - 轮流触发，每个等60ms(最大测量距离4m)
+// 方案2: 不同频率 - 定制不同频率的探头(40kHz/25kHz/58kHz)
+
+// 冲突避免算法 - 基于随机退避
+#define SONAR_COUNT 4
+
+typedef struct {
+    GPIO_TypeDef* trig_port;
+    uint16_t trig_pin;
+    GPIO_TypeDef* echo_port;
+    uint16_t echo_pin;
+    uint32_t last_trigger;
+    float distance_cm;
+} SonarSensor;
+
+void Sonar_TriggerWithAvoidance(SonarSensor* sn, uint8_t index) {
+    // 检查是否有其他传感器正在测量
+    uint32_t now = HAL_GetTick();
+    for (int i = 0; i < SONAR_COUNT; i++) {
+        if (i == index) continue;
+        uint32_t since = now - sonars[i].last_trigger;
+        if (since < 50) {  // 50ms内有人在工作
+            return;  // 等下一轮
+        }
+    }
+    // 安全触发
+    HAL_GPIO_WritePin(sn->trig_port, sn->trig_pin, GPIO_PIN_SET);
+    delay_us(10);
+    HAL_GPIO_WritePin(sn->trig_port, sn->trig_pin, GPIO_PIN_RESET);
+    sn->last_trigger = now;
+}</code></pre>
+
+<h2>🔬 超声波信号处理与滤波</h2>
+<table>
+<tr><th>方法</th><th>效果</th><th>实现复杂度</th><th>适用场景</th></tr>
+<tr><td>中值滤波</td><td>去除偶然野点</td><td>低(3-5样本排序取中)</td><td>基本抗干扰</td></tr>
+<tr><td>滑动平均</td><td>平滑数据</td><td>低(队列+累加/除)</td><td>实时显示</td></tr>
+<tr><td>卡尔曼滤波</td><td>最优估计+预测</td><td>中(6个浮点运算)</td><td>机器人定位</td></tr>
+<tr><td>互相关匹配</td><td>识别特定波形</td><td>高(DSP/FFT)</td><td>高级回波分析</td></tr>
+</table>
+
+<pre><code>// 超声波距离测量的卡尔曼滤波器
+typedef struct {
+    float x;     // 状态(距离估计)
+    float P;     // 估计误差协方差
+    float Q;     // 过程噪声 (越小越信任模型, 典型0.01)
+    float R;     // 测量噪声 (越小越信任传感器, 典型5.0)
+} KalmanFilter1D;
+
+float Kalman_Update(KalmanFilter1D* kf, float measurement) {
+    // 预测
+    kf->P = kf->P + kf->Q;
+    // 更新
+    float K = kf->P / (kf->P + kf->R);  // 卡尔曼增益
+    kf->x = kf->x + K * (measurement - kf->x);
+    kf->P = (1.0f - K) * kf->P;
+    return kf->x;
+}
+
+// 使用示例:
+KalmanFilter1D sonar_kf = {.x=100, .P=1, .Q=0.01, .R=5.0};
+float raw = Sonar_ReadDistance();
+float filtered = Kalman_Update(&sonar_kf, raw);
+// filtered响应平滑，不会因单个异常值跳变</code></pre>
+
+<h2>🌡️ 温度补偿与声速修正</h2>
+<p>声速随温度变化：v = 331.3 + 0.606 × T (m/s)，T为摄氏温度。在-10°C到40°C范围内，声速变化约15%，距离测量误差同比例。</p>
+<pre><code>// 带温度补偿的距离计算
+float Sonar_DistanceWithTemp(float pulse_us, float temp_c) {
+    float speed_of_sound = 331.3f + 0.606f * temp_c;  // m/s
+    float speed_cm_us = speed_of_sound / 10000.0f;     // cm/&mu;s (除以100×100)
+    return (pulse_us * speed_cm_us) / 2.0f;  // 除以2(往返)
+}
+
+// 不同温度下的声速对照:
+// -10°C: 325.2 m/s → 1cm需要61.5μs往返
+//  20°C: 343.4 m/s → 1cm需要58.2μs往返
+//  40°C: 355.5 m/s → 1cm需要56.2μs往返</code></pre>
+
+<h2>📐 波束角与安装策略</h2>
+<table>
+<tr><th>型号</th><th>波束角</th><th>盲区</th><th>最大距离</th><th>精度</th></tr>
+<tr><td>HC-SR04</td><td>~15°</td><td>2cm</td><td>4m</td><td>±3mm</td></tr>
+<tr><td>JSN-SR04T(防水)</td><td>~75°</td><td>25cm</td><td>4.5m</td><td>±1cm</td></tr>
+<tr><td>US-100</td><td>~15°</td><td>2cm</td><td>4.5m</td><td>±1mm</td></tr>
+<tr><td>AJ-SR04M(防水)</td><td>~75°</td><td>20cm</td><td>8m</td><td>±1cm</td></tr>
+</table>
+
+<div class="note">
+<strong>波束角实战意义：</strong> 15°波束角下，4m距离的覆盖直径约1.05m。如果检测窄小物体(如桌腿直径5cm)，需要精确对准。75°广角防水探头适合液位测量，但盲区大(25cm)。
+</div>
+
+<h2>🎯 超声波 vs 其他测距方案对比</h2>
+<table>
+<tr><th>方案</th><th>精度</th><th>距离</th><th>刷新率</th><th>受光线影响</th><th>价格</th></tr>
+<tr><td>HC-SR04(超声)</td><td>±3mm</td><td>2cm-4m</td><td>25Hz</td><td>不受影响</td><td>¥3</td></tr>
+<tr><td>VL53L0X(ToF激光)</td><td>±1mm</td><td>3cm-2m</td><td>50Hz</td><td>不受影响(940nm)</td><td>¥15</td></tr>
+<tr><td>GP2Y0A21(红外)</td><td>±3cm</td><td>10-80cm</td><td>40Hz</td><td>严重影响</td><td>¥8</td></tr>
+<tr><td>TFMini Plus(激光雷达)</td><td>±1cm</td><td>10cm-12m</td><td>1000Hz</td><td>室内不受影响</td><td>¥120</td></tr>
+</table><hr><h2>❓ 常见问题 FAQ</h2>
+
+<div style="margin:12px 0;padding:12px 16px;background:var(--bg2);border-left:3px solid var(--a);border-radius:0 8px 8px 0">
+  <p style="font-weight:600;color:var(--c1);margin-bottom:4px">Q: 测距不准？</p>
+  <p style="color:var(--t)">A: 1)声速随温度变化(331.4+0.6T m/s)需温度补偿 2)超过4m回波太弱 3)盲区<2cm无法测</p>
+</div>
+
+<div style="margin:12px 0;padding:12px 16px;background:var(--bg2);border-left:3px solid var(--a);border-radius:0 8px 8px 0">
+  <p style="font-weight:600;color:var(--c1);margin-bottom:4px">Q: 多传感器互相干扰？</p>
+  <p style="color:var(--t)">A: 时分复用：依次触发每个传感器，等回波结束后再触发下一个。</p>
+</div>
+
+<hr><h2>🔗 相关教程</h2>
+<div style="display:flex;flex-wrap:wrap;gap:8px;margin:12px 0">
+<a href="#" onclick="parent.loadPage && parent.loadPage('proj-smart-car')" style="display:inline-block;padding:6px 14px;background:var(--bg3);border:1px solid var(--br);border-radius:6px;color:var(--a);text-decoration:none;font-size:.85em">智能小车 →</a>
+<a href="#" onclick="parent.loadPage && parent.loadPage('proj-pwm-motor')" style="display:inline-block;padding:6px 14px;background:var(--bg3);border:1px solid var(--br);border-radius:6px;color:var(--a);text-decoration:none;font-size:.85em">PWM电机 →</a>
+</div>
+
+</body></html>

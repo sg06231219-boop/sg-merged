@@ -1,0 +1,653 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
+<title>UniPulse — 选校·选专业·看就业</title>
+<meta name="theme-color" content="#0a0e1a">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+:root{--bg:#0a0e1a;--bg2:#111827;--card:rgba(255,255,255,0.05);--card2:rgba(255,255,255,0.08);--border:rgba(255,255,255,0.08);--text:#e2e8f0;--soft:#94a3b8;--muted:#64748b;--blue:#3b82f6;--cyan:#06b6d4;--purple:#8b5cf6;--gold:#f59e0b;--orange:#f97316;--green:#10b981;--red:#ef4444;--pink:#ec4899;--radius:12px}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;background:var(--bg);color:var(--text);line-height:1.6;overflow-x:hidden;-webkit-font-smoothing:antialiased;min-height:100vh;padding-bottom:60px}
+button{cursor:pointer;border:none;background:none;font:inherit;color:inherit}
+input,select,textarea{font:inherit;color:var(--text)}
+
+/* Tab栏 */
+.tab-bar{position:fixed;bottom:0;left:0;right:0;z-index:100;background:rgba(17,24,39,0.95);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-top:1px solid var(--border);display:flex;padding:4px 0 calc(env(safe-area-inset-bottom,8px) + 4px)}
+.tab-bar .tab{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 0;font-size:10px;color:var(--muted);transition:color .2s;background:none;border:none}
+.tab-bar .tab.active{color:var(--blue)}
+.tab-bar .tab .icon{font-size:18px;line-height:1}
+.tab-bar .tab .label{font-weight:500}
+
+/* Header */
+.header{position:sticky;top:0;z-index:90;background:rgba(10,14,26,0.92);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-bottom:1px solid var(--border);padding:12px 16px;display:flex;align-items:center;gap:12px}
+.logo{font-size:18px;font-weight:800;letter-spacing:-0.5px;background:linear-gradient(135deg,var(--gold),var(--orange));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.header-actions{margin-left:auto;display:flex;gap:8px;align-items:center}
+
+/* 页面通用 */
+.page{display:none;padding:0 16px 20px}
+.page.active{display:block}
+
+/* Hero搜索 */
+.hero{padding:24px 0 16px;text-align:center}
+.hero h1{font-size:22px;font-weight:800;letter-spacing:-0.5px;margin-bottom:4px}
+.hero h1 .grad{background:linear-gradient(135deg,var(--gold),var(--orange),var(--pink));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.hero .sub{color:var(--soft);font-size:13px;margin-bottom:14px}
+.search-row{display:flex;gap:8px}
+.search-row input{flex:1;background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:10px 14px;font-size:14px;outline:none;transition:border-color .2s;width:100%}
+.search-row input:focus{border-color:rgba(59,130,246,0.5)}
+.search-row .btn-search{background:linear-gradient(135deg,var(--blue),var(--purple));color:#fff;padding:10px 16px;border-radius:var(--radius);font-weight:600;font-size:13px;white-space:nowrap;border:none}
+
+/* 快捷筛选 */
+.chips{display:flex;gap:6px;overflow-x:auto;padding:8px 0;-webkit-overflow-scrolling:touch;scrollbar-width:none;-ms-overflow-style:none}
+.chips::-webkit-scrollbar{display:none}
+.chip{flex-shrink:0;padding:5px 12px;border-radius:20px;font-size:12px;font-weight:500;background:var(--card);border:1px solid var(--border);color:var(--soft);transition:all .2s}
+.chip.active{background:linear-gradient(135deg,rgba(59,130,246,0.2),rgba(139,92,246,0.2));color:#fff;border-color:rgba(59,130,246,0.4)}
+
+/* 统计条 */
+.stat-bar{display:flex;justify-content:space-around;padding:12px 0;margin-bottom:8px;border-bottom:1px solid var(--border)}
+.stat-item{text-align:center}
+.stat-item .num{font-size:18px;font-weight:800;background:linear-gradient(135deg,var(--gold),var(--orange));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.stat-item .lbl{font-size:10px;color:var(--muted)}
+
+/* 大学卡片 */
+.uni-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:14px;margin-bottom:10px;transition:all .2s}
+.uni-card:active{transform:scale(0.98);background:var(--card2)}
+.uni-top{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.uni-logo{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;color:#fff;flex-shrink:0;box-shadow:0 2px 8px rgba(0,0,0,0.3)}
+.uni-info{flex:1;min-width:0}
+.uni-info h3{font-size:14px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.uni-info .loc{font-size:11px;color:var(--muted)}
+.uni-score{text-align:center;flex-shrink:0}
+.uni-score .num{font-size:20px;font-weight:800;background:linear-gradient(135deg,var(--gold),var(--orange));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.uni-score .lbl{font-size:9px;color:var(--muted)}
+.uni-tags{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:6px}
+.uni-tag{font-size:9px;padding:2px 7px;border-radius:8px;background:rgba(59,130,246,0.1);color:var(--blue);border:1px solid rgba(59,130,246,0.15)}
+.uni-metrics{display:flex;gap:12px;font-size:11px;color:var(--muted)}
+.uni-metrics b{color:var(--text);font-weight:600}
+
+/* 就业数据页 */
+.section-title{font-size:16px;font-weight:700;margin:20px 0 12px;display:flex;align-items:center;gap:6px}
+.major-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:14px;margin-bottom:10px;transition:all .2s}
+.major-card:active{transform:scale(0.98)}
+.major-name{font-size:14px;font-weight:700;margin-bottom:8px}
+.major-stats{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.major-stat{background:var(--card2);border-radius:8px;padding:8px 10px}
+.major-stat .val{font-size:16px;font-weight:700}
+.major-stat .label{font-size:10px;color:var(--muted)}
+.salary-high .val{color:var(--green)}
+.rate-high .val{color:var(--blue)}
+.pressure-low .val{color:var(--gold)}
+.prospects-high .val{color:var(--purple)}
+.major-count{font-size:11px;color:var(--muted);margin-top:6px}
+
+/* 专业对比 */
+.prog-compare-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:12px;margin-bottom:8px;transition:all .2s}
+.prog-compare-card:active{transform:scale(0.98)}
+.prog-compare-card h4{font-size:13px;font-weight:600;margin-bottom:6px}
+.prog-compare-row{display:flex;justify-content:space-between;font-size:11px;padding:3px 0;border-bottom:1px solid var(--border)}
+.prog-compare-row:last-child{border-bottom:none}
+
+/* AI选校 */
+.ai-form{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:16px}
+.form-group{margin-bottom:12px}
+.form-group label{display:block;font-size:12px;font-weight:600;color:var(--soft);margin-bottom:4px}
+.form-group input,.form-group select{width:100%;background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-size:14px;outline:none;transition:border-color .2s}
+.form-group input:focus,.form-group select:focus{border-color:rgba(59,130,246,0.5)}
+.btn-generate{width:100%;background:linear-gradient(135deg,var(--gold),var(--orange));color:#fff;padding:10px;border-radius:8px;font-size:14px;font-weight:700;border:none;box-shadow:0 4px 15px rgba(245,158,11,0.3);transition:all .2s}
+.btn-generate:active{transform:scale(0.98)}
+.report-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:14px;margin-bottom:10px;position:relative;overflow:hidden}
+.report-card::before{content:"";position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,var(--gold),var(--orange),var(--pink))}
+.report-rank{position:absolute;top:8px;right:10px;font-size:11px;font-weight:700;padding:2px 8px;border-radius:10px}
+.rank-1{background:rgba(245,158,11,0.2);color:var(--gold)}
+.rank-2{background:rgba(192,192,192,0.2);color:#c0c0c0}
+.rank-3{background:rgba(205,127,50,0.2);color:#cd7f32}
+.report-card h4{font-size:14px;font-weight:700;margin-bottom:4px;padding-right:50px}
+.report-meta{font-size:11px;color:var(--soft);margin-bottom:6px}
+.report-reasons{display:flex;gap:4px;flex-wrap:wrap}
+.report-reason{font-size:10px;padding:2px 8px;border-radius:8px;background:rgba(139,92,246,0.12);color:var(--purple);border:1px solid rgba(139,92,246,0.2)}
+
+/* 论坛 */
+.forum-header{display:flex;justify-content:space-between;align-items:center;margin:16px 0 12px}
+.forum-header h2{font-size:16px;font-weight:700}
+.btn-new-post{background:linear-gradient(135deg,var(--blue),var(--purple));color:#fff;padding:6px 14px;border-radius:8px;font-size:12px;font-weight:600;border:none;box-shadow:0 2px 8px rgba(59,130,246,0.3)}
+.cat-scroll{display:flex;gap:6px;overflow-x:auto;padding-bottom:8px;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+.cat-scroll::-webkit-scrollbar{display:none}
+.cat-pill{flex-shrink:0;padding:5px 12px;border-radius:16px;font-size:11px;font-weight:500;background:var(--card);border:1px solid var(--border);color:var(--soft);transition:all .2s;border:none}
+.cat-pill.active{background:linear-gradient(135deg,rgba(139,92,246,0.2),rgba(59,130,246,0.2));color:#fff;border-color:rgba(139,92,246,0.4)}
+.post-item{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:12px;margin-bottom:8px;transition:all .2s}
+.post-item:active{transform:scale(0.98)}
+.post-item h4{font-size:13px;font-weight:600;margin-bottom:4px;line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.post-meta{font-size:11px;color:var(--muted);display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.cat-badge{font-size:9px;padding:1px 6px;border-radius:6px;background:rgba(139,92,246,0.12);color:var(--purple)}
+.post-uni{font-size:10px;color:var(--cyan)}
+
+/* 帖子详情 */
+.back-row{display:flex;align-items:center;gap:6px;padding:12px 0;color:var(--soft);font-size:13px;background:none;border:none;width:100%;text-align:left}
+.detail-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:12px}
+.detail-card h2{font-size:17px;font-weight:700;margin-bottom:8px;line-height:1.4}
+.detail-meta{font-size:12px;color:var(--muted);display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px;align-items:center}
+.detail-body{font-size:14px;line-height:1.8;white-space:pre-wrap;color:rgba(255,255,255,0.85);margin-bottom:12px}
+.detail-tags{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:12px}
+.dtag{font-size:10px;padding:2px 8px;border-radius:8px;background:rgba(59,130,246,0.1);color:var(--blue);border:1px solid rgba(59,130,246,0.15)}
+
+/* 评论 */
+.comment-item{background:var(--card2);border-radius:8px;padding:10px;margin-bottom:8px;border:1px solid var(--border)}
+.c-author{font-size:12px;font-weight:700;color:var(--cyan)}
+.c-time{font-size:10px;color:var(--muted);margin-left:6px}
+.c-text{font-size:13px;margin-top:4px;line-height:1.6;white-space:pre-wrap;color:rgba(255,255,255,0.8)}
+.c-likes{font-size:11px;color:var(--muted);margin-top:4px}
+.reply-box{margin-top:12px}
+.reply-box textarea{width:100%;min-height:80px;background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:10px;font-size:13px;resize:vertical;outline:none;font-family:inherit;transition:border-color .2s;color:var(--text)}
+.reply-box textarea:focus{border-color:rgba(59,130,246,0.5)}
+.reply-actions{display:flex;gap:8px;margin-top:8px}
+.btn-reply{background:linear-gradient(135deg,var(--blue),var(--purple));color:#fff;padding:7px 16px;border-radius:8px;font-weight:600;font-size:12px;border:none}
+
+/* 发帖表单 */
+.compose-form{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:16px}
+.compose-form h3{font-size:16px;font-weight:700;margin-bottom:14px}
+.compose-form textarea{min-height:120px;width:100%;background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:10px;font-size:14px;resize:vertical;outline:none;font-family:inherit;transition:border-color .2s;color:var(--text)}
+.compose-form textarea:focus{border-color:rgba(59,130,246,0.5)}
+.form-actions{display:flex;gap:8px;margin-top:12px}
+.btn-submit{background:linear-gradient(135deg,var(--blue),var(--purple));color:#fff;padding:8px 20px;border-radius:8px;font-weight:600;font-size:13px;border:none}
+.btn-cancel{background:var(--card);border:1px solid var(--border);color:var(--soft);padding:8px 20px;border-radius:8px;font-size:13px}
+
+/* Sheet弹窗 */
+.sheet-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:200;justify-content:flex-end;align-items:stretch;backdrop-filter:blur(4px)}
+.sheet-bg.open{display:flex}
+.sheet{background:var(--bg2);border-radius:16px 16px 0 0;width:100%;max-height:90vh;overflow-y:auto;padding:0;position:relative;animation:slideUp .25s ease}
+@keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+.sheet-handle{width:36px;height:4px;border-radius:2px;background:var(--border);margin:8px auto 0}
+.sheet-close{position:absolute;top:12px;right:12px;background:var(--card);border:1px solid var(--border);color:var(--soft);font-size:14px;padding:4px 8px;border-radius:6px;z-index:1;border:none;cursor:pointer}
+.sheet-body{padding:16px}
+.sheet-body h2{font-size:18px;font-weight:700;margin-bottom:4px}
+.sheet-body .sub{font-size:12px;color:var(--muted);margin-bottom:14px}
+.dim-row{display:flex;align-items:center;gap:8px;margin-bottom:6px;font-size:12px}
+.dim-label{width:60px;text-align:right;flex-shrink:0;color:var(--soft);font-weight:500}
+.dim-bar{flex:1;height:6px;background:var(--card);border-radius:3px;overflow:hidden}
+.dim-fill{height:100%;border-radius:3px;transition:width .4s ease}
+.dim-val{width:24px;font-weight:700;font-size:12px;text-align:right}
+
+/* 就业数据在sheet中 */
+.emp-section{margin-top:16px}
+.emp-section h3{font-size:14px;font-weight:700;margin-bottom:10px;color:var(--gold)}
+.emp-item{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:10px;margin-bottom:6px}
+.emp-item .prog-name{font-size:13px;font-weight:600;margin-bottom:6px}
+.emp-stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px}
+.emp-stat{text-align:center;font-size:10px}
+.emp-stat .v{font-weight:700;font-size:13px;display:block}
+.emp-stat.v-green .v{color:var(--green)}
+.emp-stat.v-blue .v{color:var(--blue)}
+.emp-stat.v-gold .v{color:var(--gold)}
+.emp-desc{font-size:11px;color:var(--soft);margin-top:6px;line-height:1.5}
+
+/* Toast */
+.toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:var(--bg2);border:1px solid var(--blue);color:var(--text);padding:8px 18px;border-radius:8px;font-size:12px;font-weight:500;opacity:0;transition:opacity .3s,transform .3s;z-index:300;box-shadow:0 8px 30px rgba(0,0,0,0.4);pointer-events:none}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(-4px)}
+
+.spinner{text-align:center;padding:20px;color:var(--muted);font-size:13px}
+.empty-state{text-align:center;padding:40px 20px;color:var(--muted);font-size:14px}
+
+/* 认证弹窗 */
+.modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:200;justify-content:center;align-items:center;padding:16px;backdrop-filter:blur(4px)}
+.modal-bg.open{display:flex}
+.modal{background:var(--bg2);border:1px solid var(--border);border-radius:16px;max-width:400px;width:100%;max-height:85vh;overflow-y:auto;padding:20px;box-shadow:0 20px 60px rgba(0,0,0,0.5)}
+.modal-close{float:right;background:var(--card);border:1px solid var(--border);color:var(--soft);font-size:14px;padding:4px 8px;border-radius:6px;cursor:pointer;border:none}
+.modal h2{font-size:18px;font-weight:700;margin-bottom:14px;text-align:center}
+.auth-switch{text-align:center;font-size:12px;color:var(--soft);margin-top:10px}
+.auth-switch a{color:var(--blue);font-weight:600;cursor:pointer}
+
+/* 桌面端适配 */
+@media(min-width:768px){body{max-width:480px;margin:0 auto;border-left:1px solid var(--border);border-right:1px solid var(--border)}}
+
+@media (prefers-color-scheme: dark){body{background:#0f1419!important;color:#e7e9ea!important;}.container{background:#1a1f25!important;box-shadow:0 2px 20px rgba(0,0,0,.4)!important;}input,select{background:#2d3339!important;color:#e7e9ea!important;border-color:#444c56!important;}.btn-primary{background:linear-gradient(135deg,#4f8cff,#6c5ce7)!important;}table{background:#1a1f25!important;}th{background:#2d3339!important;color:#e7e9ea!important;}td{border-color:#444c56!important;}}
+
+</style>
+<script>
+document.addEventListener('click', function(e) {
+    const action = e.target.closest('[data-action]');
+    if (action) {
+        const fn = action.dataset.action;
+        if (typeof window[fn] === 'function') window[fn](e);
+    }
+});
+</script>
+</head>
+<body>
+
+<div class="header">
+  <div class="logo">UniPulse</div>
+  <div class="header-actions" id="headerActions"></div>
+</div>
+
+<div class="tab-bar" id="tabBar">
+  <button class="tab active" data-page="discover"><span class="icon">🏫</span><span class="label">发现</span></button>
+  <button class="tab" data-page="employment"><span class="icon">💼</span><span class="label">就业</span></button>
+  <button class="tab" data-page="ai"><span class="icon">🤖</span><span class="label">AI选校</span></button>
+  <button class="tab" data-page="forum"><span class="icon">💬</span><span class="label">论坛</span></button>
+  <button class="tab" data-page="profile"><span class="icon">👤</span><span class="label">我的</span></button>
+</div>
+
+<div class="page active" id="page-discover">
+  <div class="hero">
+    <h1>找到适合你的<span class="grad">大学</span></h1>
+    <div class="sub">573所高校 · 就业数据 · AI选校</div>
+    <div class="search-row">
+      <input id="searchInput" type="search" placeholder="搜索大学、专业、城市...">
+      <button class="btn-search" id="searchBtn">搜索</button>
+    </div>
+  </div>
+  <div class="chips" id="regionChips"></div>
+  <div class="stat-bar">
+    <div class="stat-item"><div class="num" id="statUni">-</div><div class="lbl">高校</div></div>
+    <div class="stat-item"><div class="num" id="statMajor">-</div><div class="lbl">专业</div></div>
+    <div class="stat-item"><div class="num" id="statEmp">-</div><div class="lbl">就业数据</div></div>
+  </div>
+  <div id="uniList"></div>
+  <div class="load-more" id="loadMoreWrap" style="display:none"><button class="btn-search" id="loadMoreBtn" style="background:var(--card);color:var(--blue);border:1px solid var(--border)">加载更多</button></div>
+  <div class="spinner" id="discoverSpinner" style="display:none">加载中...</div>
+</div>
+
+<div class="page" id="page-employment">
+  <div style="padding:16px 0 8px">
+    <h2 style="font-size:18px;font-weight:800;margin-bottom:2px">💼 就业数据</h2>
+    <div style="color:var(--muted);font-size:12px">各专业薪资·就业率·前景对比</div>
+  </div>
+  <div class="search-row" style="margin-bottom:12px">
+    <input id="majorSearch" type="search" placeholder="搜索专业名称...">
+  </div>
+  <div id="majorList"></div>
+  <div id="majorDetail" style="display:none"></div>
+  <div class="spinner" id="empSpinner" style="display:none">加载中...</div>
+</div>
+
+<div class="page" id="page-ai">
+  <div style="padding:16px 0 8px">
+    <h2 style="font-size:18px;font-weight:800;margin-bottom:2px">🤖 AI选校报告 <span style="font-size:12px;color:#888;">(每小时3次)</span></h2>
+    <div style="color:var(--muted);font-size:12px">输入条件，智能匹配最适合你的院校</div>
+  </div>
+  <div class="ai-form" id="aiForm">
+    <div class="form-group"><label>GPA (0-5)</label><input id="aiGpa" type="number" step="0.1" min="0" max="5" placeholder="如 3.5"></div>
+    <div class="form-group"><label>意向专业</label><select id="aiMajor"><option value="">加载中...</option></select></div>
+    <div class="form-group"><label>意向地区</label><select id="aiRegion"><option value="不限">不限</option><option value="北美">北美</option><option value="欧洲">欧洲</option><option value="亚洲">亚洲</option><option value="大洋洲">大洋洲</option><option value="中国">中国</option></select></div>
+    <div class="form-group"><label>预算</label><select id="aiBudget"><option value="不限">不限</option><option value="0-20万">0-20万</option><option value="20-50万">20-50万</option><option value="50万以上">50万以上</option></select></div>
+    <div class="form-group"><label>授课语言</label><select id="aiLang"><option value="不限">不限</option><option value="英语">英语</option><option value="中文">中文</option><option value="双语">双语</option></select></div>
+    <button class="btn-generate" id="btnGenerate">生成选校报告</button>
+  </div>
+  <div id="aiResult"></div>
+  <div class="spinner" id="aiSpinner" style="display:none">AI分析中，请稍候...</div>
+</div>
+
+<div class="page" id="page-forum">
+  <div id="forumListView">
+    <div class="forum-header"><h2>社区讨论</h2><button class="btn-new-post" id="newPostBtn">✏️ 发帖</button></div>
+    <div class="cat-scroll" id="forumCats"></div>
+    <div id="postList"></div>
+    <div class="spinner" id="forumSpinner" style="display:none">加载中...</div>
+  </div>
+  <div id="forumDetailView" style="display:none">
+    <button class="back-row" id="backToList">← 返回列表</button>
+    <div id="postDetailContent"></div>
+  </div>
+  <div id="forumComposeView" style="display:none">
+    <button class="back-row" id="backFromCompose">← 返回</button>
+    <div class="compose-form">
+      <h3>✏️ 发布话题</h3>
+      <div class="form-group"><label>标题</label><input id="composeTitle" maxlength="100" placeholder="输入话题标题..."></div>
+      <div class="form-group"><label>分类</label><select id="composeCategory"></select></div>
+      <div class="form-group"><label>内容</label><textarea id="composeContent" placeholder="分享你的经验、观点或疑问..."></textarea></div>
+      <div class="form-group"><label>关联大学(可选)</label><select id="composeUni"><option value="">不关联</option></select></div>
+      <div class="form-group"><label>关联专业(可选)</label><input id="composeProgram" placeholder="如：计算机科学"></div>
+      <div class="form-actions">
+        <button class="btn-submit" id="submitPost">发布</button>
+        <button class="btn-cancel" id="cancelPost">取消</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="page" id="page-profile">
+  <div id="profileContent" style="padding:16px 0"></div>
+  <div class="spinner" id="profileSpinner" style="display:none">加载中...</div>
+</div>
+
+<div class="sheet-bg" id="sheetBg">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <button class="sheet-close" id="sheetClose">✕</button>
+    <div class="sheet-body" id="sheetBody"></div>
+  </div>
+</div>
+
+<div class="modal-bg" id="modalBg">
+  <div class="modal">
+    <button class="modal-close" id="modalClose">✕</button>
+    <div id="modalBody"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+function escHtml(s){if(!s)return'';return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
+
+(function(){
+  var API="/api";
+  var TKEY="unipulse_token", UKEY="unipulse_user";
+  var curPage="discover", uniPage=1, uniLoading=false, uniAll=false, curRegion="all", curSearch="";
+  var forumCat="all", currentUser=null, toastTimer=null;
+  var FORUM_CATS=["全部话题","选校咨询","专业对比","就业前景","留学申请","考研交流","校园生活","奖学金","实习经验"];
+
+  function $(id){return document.getElementById(id)}
+  function esc(s){return String(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;")}
+  function toast(msg){var t=$("toast");t.textContent=msg;t.classList.add("show");clearTimeout(toastTimer);toastTimer=setTimeout(function(){t.classList.remove("show")},2500)}
+  function getToken(){return localStorage.getItem(TKEY)||""}
+  function authH(){var t=getToken();return t?{"Authorization":"Bearer "+t}:{}}
+  function colorFor(v){if(v==null)return"var(--soft)";if(v>=85)return"var(--green)";if(v>=70)return"var(--gold)";return"var(--red)"}
+
+  function saveUser(u){localStorage.setItem(UKEY,JSON.stringify(u));currentUser=u;updateHeader()}
+  function loadUser(){try{var u=JSON.parse(localStorage.getItem(UKEY));if(u)currentUser=u}catch(e){}updateHeader()}
+  function logout(){localStorage.removeItem(TKEY);localStorage.removeItem(UKEY);currentUser=null;updateHeader();toast("已退出")}
+  function updateHeader(){
+    var el=$("headerActions");
+    if(currentUser){
+      el.innerHTML='<span style="font-size:12px;color:var(--gold);font-weight:600">'+esc(currentUser.username||"用户")+'</span><button class="btn-cancel" style="font-size:11px;padding:4px 10px" data-action="logout">退出</button>';
+    }else{
+      el.innerHTML='<button class="btn-search" style="font-size:12px;padding:5px 12px" data-action="showAuth">登录</button>';
+    }
+  }
+
+  function switchPage(name){
+    curPage=name;
+    document.querySelectorAll(".page").forEach(function(p){p.classList.remove("active")});
+    var el=$("page-"+name);if(el)el.classList.add("active");
+    document.querySelectorAll(".tab-bar .tab").forEach(function(b){b.classList.toggle("active",b.dataset.page===name)});
+    if(name==="employment"&&!$("majorList").children.length)loadMajors();
+    if(name==="forum"&&!$("postList").children.length)loadForumCats();
+    if(name==="profile")loadProfile();
+  }
+
+  document.querySelectorAll(".tab-bar .tab").forEach(function(b){
+    b.addEventListener("click",function(){switchPage(this.dataset.page)});
+  });
+
+  window.showAuth=function(mode){
+    var isLogin=mode==="login";
+    var html="<h2>"+(isLogin?"登录":"注册")+" UniPulse</h2>";
+    if(!isLogin)html+='<div class="form-group"><label>用户名(3-30字)</label><input id="authUser" maxlength="30" placeholder="取个名字..."></div>';
+    html+='<div class="form-group"><label>邮箱</label><input id="authEmail" type="email" placeholder="you@example.com"></div>';
+    html+='<div class="form-group"><label>密码(至少6位)</label><input id="authPass" type="password" placeholder="••••••"></div>';
+    html+='<button class="btn-generate" id="authSubmit">'+(isLogin?"登录":"注册")+"</button>";
+    html+='<div class="auth-switch">'+(isLogin?'没有账号？<a data-action="showAuth">立即注册</a>':'已有账号？<a data-action="showAuth">去登录</a>')+"</div>";
+    $("modalBody").innerHTML=html;
+    $("modalBg").classList.add("open");
+    $("authSubmit").onclick=function(){doAuth(mode)};
+  };
+
+  function doAuth(mode){
+    var email=($("authEmail")||{}).value||"",pass=($("authPass")||{}).value||"",user=($("authUser")||{}).value||"";
+    if(!email||!pass){toast("请填写邮箱和密码");return}
+    if(mode==="register"&&(!user||user.length<3)){toast("用户名至少3个字符");return}
+    if(pass.length<6){toast("密码至少6位");return}
+    var body=mode==="login"?{email:email,password:pass}:{username:user,email:email,password:pass};
+    fetch(API+"/auth/"+mode,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)})
+    .then(function(r){return r.json()}).then(function(d){
+      if(d.token){localStorage.setItem(TKEY,d.token);saveUser(d.user||{username:user||email.split("@")[0]});$("modalBg").classList.remove("open");toast("✅ "+(mode==="login"?"登录成功!":"注册成功!"))}
+      else{toast(d.detail||d.message||"操作失败")}
+    }).catch(function(){toast("网络错误")});
+  }
+
+  function buildRegionChips(){
+    var regions=["all","北美","欧洲","亚洲","大洋洲","中国","南美"];
+    var html=regions.map(function(r){
+      var label=r==="all"?"全部":r;
+      return '<button class="chip" data-region="'+r+'">'+label+"</button>";
+    }).join("");
+    $("regionChips").innerHTML=html;
+    $("regionChips").querySelectorAll(".chip").forEach(function(c){
+      c.addEventListener("click",function(){
+        $("regionChips").querySelectorAll(".chip").forEach(function(x){x.classList.remove("active")});
+        c.classList.add("active");
+        curRegion=c.dataset.region;uniPage=1;uniAll=false;$("uniList").innerHTML="";loadUniversities();
+      });
+    });
+    var def=$("regionChips").querySelector("[data-region='all']");
+    if(def)def.classList.add("active");
+  }
+
+  function resetDiscover(){uniPage=1;uniAll=false;$("uniList").innerHTML="";loadUniversities()}
+  function loadUniversities(){
+    if(uniLoading||uniAll)return;
+    uniLoading=true;$("discoverSpinner").style.display="block";
+    var url=API+"/universities?page="+uniPage+"&size=20";
+    if(curRegion!=="all")url+="&region="+encodeURIComponent(curRegion);
+    if(curSearch)url+="&search="+encodeURIComponent(curSearch);
+    fetch(url).then(function(r){return r.json()}).then(function(data){
+      var items=data.items||[],total=data.total||0;
+      $("statUni").textContent=total;
+      if(items.length<20)uniAll=true;
+      items.forEach(function(u){
+        var m=u.metrics||{},tags=(u.tags||[]).slice(0,3);
+        var tagsHtml=tags.map(function(t){return'<span class="uni-tag">'+esc(typeof t==="string"?t:t.text||"")+"</span>"}).join("");
+        var card=document.createElement("div");
+        card.className="uni-card";
+        card.innerHTML='<div class="uni-top"><div class="uni-logo" style="background:linear-gradient(135deg,'+(u.logo||"#3b82f6")+','+(u.logo2||"#8b5cf6")+')">'+esc((u.initials||"?").substring(0,2))+'</div><div class="uni-info"><h3>'+esc(u.cn||u.name)+'</h3><div class="loc">'+esc(u.loc||u.country||"")+'</div></div><div class="uni-score"><div class="num">'+(u.score||"-")+'</div><div class="lbl">/100</div></div></div>'+(tagsHtml?'<div class="uni-tags">'+tagsHtml+"</div>":"")+'<div class="uni-metrics"><span>学术 <b>'+(m.academic!=null?m.academic:"-")+'</b></span><span>就业 <b>'+(m.career!=null?m.career:"-")+'</b></span><span>性价比 <b>'+(m.value!=null?m.value:"-")+"</b></span></div>";
+        card.addEventListener("click",function(){openUniDetail(u.id)});
+        $("uniList").appendChild(card);
+      });
+      uniPage++;$("loadMoreWrap").style.display=uniAll?"none":"block";$("discoverSpinner").style.display="none";uniLoading=false;
+    }).catch(function(){$("discoverSpinner").style.display="none";uniLoading=false;toast("加载失败")});
+  }
+
+  function openUniDetail(id){
+    fetch(API+"/universities/"+id).then(function(r){return r.json()}).then(function(u){
+      var m=u.metrics||{};
+      var dims=[{k:"academic",l:"学术"},{k:"research",l:"科研"},{k:"reputation",l:"声誉"},{k:"campus",l:"校园"},{k:"support",l:"关怀"},{k:"international",l:"国际化"},{k:"value",l:"性价比"},{k:"career",l:"就业"}];
+      var mHtml=dims.map(function(d){var v=m[d.k];var pct=v!=null?v:0;return'<div class="dim-row"><span class="dim-label">'+d.l+'</span><div class="dim-bar"><div class="dim-fill" style="width:'+pct+"%;background:"+colorFor(v)+'"></div></div><span class="dim-val">'+(v!=null?v:"-")+"</span></div>"}).join("");
+      var tagsHtml=(u.tags||[]).map(function(t){return'<span class="uni-tag">'+esc(typeof t==="string"?t:t.text||"")+"</span>"}).join("");
+      var empHtml="";
+      if(u.programs&&u.programs.length>0){
+        empHtml+='<div class="emp-section"><h3>💼 专业就业数据</h3>';
+        u.programs.forEach(function(p){
+          empHtml+='<div class="emp-item"><div class="prog-name">'+esc(p.program_name)+'</div><div class="emp-stats"><div class="emp-stat v-green"><span class="v">'+(p.salary_avg||"-")+'</span><span class="label">平均薪资</span></div><div class="emp-stat v-blue"><span class="v">'+(p.employment_rate!=null?p.employment_rate+"%":"-")+'</span><span class="label">就业率</span></div><div class="emp-stat v-gold"><span class="v">'+(p.pressure||"-")+'</span><span class="label">就业压力(1-10)</span></div></div>'+(p.description?'<div class="emp-desc">'+esc(p.description)+"</div>":"")+"</div>";
+        });
+        empHtml+="</div>";
+      }
+      $("sheetBody").innerHTML="<h2>"+esc(u.cn||u.name)+'</h2><div class="sub">'+esc(u.name||"")+" · "+esc(u.loc||u.country||"")+"</div>"+(tagsHtml?'<div style="margin-bottom:12px">'+tagsHtml+"</div>":"")+'<div style="margin-bottom:16px"><div style="font-size:11px;color:var(--muted);margin-bottom:8px;font-weight:600">多维评分</div>'+mHtml+'</div><div style="font-size:11px;color:var(--muted);display:flex;gap:12px;flex-wrap:wrap"><span>排名 #'+(u.rank||"-")+'</span><span>★ '.repeat(Math.round(u.stars||0))+" "+(u.stars||0)+'/5</span><span>'+(u.reviews||0)+"条评价</span></div>"+empHtml;
+      $("sheetBg").classList.add("open");
+    }).catch(function(){toast("加载失败")});
+  }
+
+  function loadMajors(){
+    $("empSpinner").style.display="block";
+    fetch(API+"/majors/overview").then(function(r){return r.json()}).then(function(data){
+      $("empSpinner").style.display="none";
+      if(!data||!data.length){$("majorList").innerHTML='<div class="empty-state">暂无数据</div>';return}
+      $("statMajor").textContent=data.length;
+      var html="";
+      data.forEach(function(m){
+        html+='<div class="major-card" data-name="'+esc(m.program_name)+'"><div class="major-name">'+esc(m.program_name)+' <span style="font-size:11px;color:var(--muted">('+m.uni_count+"所)</span></div><div class=\"major-stats\"><div class=\"major-stat salary-high\"><span class=\"val\">"+(m.avg_salary||"-")+'</span><span class="label">平均薪资</span></div><div class="major-stat rate-high"><span class="val">'+(m.avg_employment!=null?m.avg_employment+"%":"-")+'</span><span class="label">平均就业率</span></div><div class="major-stat pressure-low"><span class="val">'+(m.avg_pressure||"-")+'</span><span class="label">压力均值</span></div><div class="major-stat prospects-high"><span class="val">'+(m.avg_prospects||"-")+'</span><span class="label">前景均值</span></div></div></div>';
+      });
+      $("majorList").innerHTML=html;
+      $("majorList").querySelectorAll(".major-card").forEach(function(card){
+        card.addEventListener("click",function(){loadMajorDetail(this.dataset.name)});
+      });
+    }).catch(function(){$("empSpinner").style.display="none";toast("加载失败")});
+    fetch(API+"/majors").then(function(r){return r.json()}).then(function(names){
+      var sel=$("aiMajor");
+      sel.innerHTML='<option value="">请选择专业</option>'+names.map(function(n){return'<option value="'+esc(n)+'">'+esc(n)+"</option>"}).join("");
+    }).catch(function(){});
+  }
+
+  function loadMajorDetail(name){
+    $("empSpinner").style.display="block";
+    $("majorList").style.display="none";
+    $("majorDetail").style.display="block";
+    fetch(API+"/majors/"+encodeURIComponent(name)).then(function(r){return r.json()}).then(function(data){
+      $("empSpinner").style.display="none";
+      if(!data||!data.length){$("majorDetail").innerHTML='<div class="empty-state">暂无数据 <button class="btn-cancel" data-action="backToMajorList">返回</button></div>';return}
+      var html='<div style="margin-bottom:12px"><button class="btn-cancel" data-action="backToMajorList">← 返回列表</button></div>';
+      html+="<h3 style=\"font-size:16px;font-weight:700;margin-bottom:12px\">"+esc(name)+" — 各校就业对比</h3>";
+      data.forEach(function(d,i){
+        html+='<div class="prog-compare-card"><h4>'+(i+1)+". "+esc(d.uni_cn||d.uni_name)+' <span style="font-size:11px;color:var(--muted)">('+esc(d.country||"")+")</span></h4><div class=\"prog-compare-row\"><span>平均薪资</span><b style=\"color:var(--green)\">"+d.salary_avg+"</b></div><div class=\"prog-compare-row\"><span>起薪</span><b style=\"color:var(--blue)\">"+d.salary_entry+"</b></div><div class=\"prog-compare-row\"><span>就业率</span><b>"+d.employment_rate+"%</b></div><div class=\"prog-compare-row\"><span>就业压力</span><b>"+d.pressure+"/10</b></div>"+(d.description?'<div style="font-size:11px;color:var(--soft);margin-top:6px;line-height:1.5">'+esc(d.description)+"</div>":"")+"</div>";
+      });
+      $("majorDetail").innerHTML=html;
+    }).catch(function(){$("empSpinner").style.display="none";toast("加载失败")});
+  }
+  window.backToMajorList=function(){$("majorDetail").style.display="none";$("majorDetail").innerHTML="";$("majorList").style.display="block"};
+
+  $("majorSearch").addEventListener("input",function(){
+    var q=this.value.toLowerCase();
+    $("majorList").querySelectorAll(".major-card").forEach(function(c){
+      c.style.display=c.dataset.name.toLowerCase().indexOf(q)>=0?"block":"none";
+    });
+  });
+
+  $("btnGenerate").addEventListener("click",function(){
+    var gpa=parseFloat($("aiGpa").value), major=$("aiMajor").value, region=$("aiRegion").value, budget=$("aiBudget").value, lang=$("aiLang").value;
+    if(!gpa||gpa<0||gpa>5){toast("请输入有效GPA(0-5)");return}
+    if(!major){toast("请选择意向专业");return}
+    $("aiSpinner").style.display="block";$("aiResult").innerHTML="";
+    fetch(API+"/ai/report?gpa="+gpa+"&major="+encodeURIComponent(major)+"&regions="+encodeURIComponent(region)+"&budget="+encodeURIComponent(budget)+"&language="+encodeURIComponent(lang),{method:"POST"})
+    .then(function(r){return r.json()}).then(function(d){
+      if(d.report_id){pollReport(d.report_id)}
+      else{$("aiSpinner").style.display="none";toast(d.detail||"生成失败")}
+    }).catch(function(){$("aiSpinner").style.display="none";toast("网络错误")});
+  });
+
+  function pollReport(rid){
+    function check(){
+      fetch(API+"/ai/report/"+rid).then(function(r){return r.json()}).then(function(d){
+        if(d.status==="done"&&d.result){$("aiSpinner").style.display="none";renderReport(d.result)}
+        else if(d.status==="processing"){setTimeout(check,2000)}
+        else{$("aiSpinner").style.display="none";toast("生成超时")}
+      }).catch(function(){$("aiSpinner").style.display="none";toast("查询失败")});
+    }
+    setTimeout(check,2000);
+  }
+
+  function renderReport(rpt){
+    var html='<div style="margin-bottom:12px"><div style="font-size:13px;color:var(--soft);margin-bottom:8px">'+esc(rpt.summary||"")+"</div></div>";
+    if(rpt.top_recommendations){
+      html+="<h3 style=\"font-size:15px;font-weight:700;margin-bottom:10px\">🎯 推荐院校</h3>";
+      rpt.top_recommendations.forEach(function(rec,i){
+        var cls="rank-"+(i+1);
+        var reasons=(rec.match_reasons||[]).map(function(r){return'<span class="report-reason">'+esc(r)+"</span>"}).join("");
+        html+='<div class="report-card"><span class="report-rank '+cls+'">#'+(i+1)+'</span><h4>'+esc(rec.cn||rec.name)+'</h4><div class="report-meta">排名#'+rec.rank+" · 匹配度"+rec.score+"% · "+esc(rec.tuition_hint||"")+"</div><div class=\"report-reasons\">"+reasons+"</div></div>";
+      });
+    }
+    $("aiResult").innerHTML=html;
+  }
+
+  function loadForumCats(){
+    var html='<button class="cat-pill active" data-cat="all">全部</button>';
+    FORUM_CATS.slice(1).forEach(function(c){html+='<button class="cat-pill" data-cat="'+c+'">'+c+"</button>"});
+    $("forumCats").innerHTML=html;
+    $("forumCats").querySelectorAll(".cat-pill").forEach(function(b){
+      b.addEventListener("click",function(){
+        $("forumCats").querySelectorAll(".cat-pill").forEach(function(x){x.classList.remove("active")});
+        b.classList.add("active");
+        forumCat=b.dataset.cat;loadPosts();
+      });
+    });
+    loadPosts();
+  }
+
+  function loadPosts(){
+    $("forumSpinner").style.display="block";
+    var url=API+"/forum/posts?limit=30";
+    if(forumCat!=="all")url+="&category="+encodeURIComponent(forumCat);
+    fetch(url).then(function(r){return r.json()}).then(function(data){
+      $("forumSpinner").style.display="none";
+      var posts=data.items||[];
+      if(!posts.length){$("postList").innerHTML='<div class="empty-state"><div style="font-size:40px;margin-bottom:12px">💬</div>还没有帖子，来做第一个发帖的人吧！</div>';return}
+      var html="";
+      posts.forEach(function(p){
+        html+='<div class="post-item" data-pid="'+p.id+'"><h4>'+esc(p.title)+'</h4><div class="post-meta"><span class="cat-badge">'+esc(p.category||"")+'</span><span>👤 '+esc(p.author||"匿名")+'</span><span>💬 '+(p.replies||0)+"</span></div></div>";
+      });
+      $("postList").innerHTML=html;
+      $("postList").querySelectorAll(".post-item").forEach(function(card){
+        card.addEventListener("click",function(){openPost(parseInt(this.dataset.pid))});
+      });
+    }).catch(function(){$("forumSpinner").style.display="none";toast("加载失败")});
+  }
+
+  function openPost(id){
+    $("forumDetailView").style.display="block";
+    $("forumListView").style.display="none";
+    $("forumComposeView").style.display="none";
+    fetch(API+"/forum/posts/"+id).then(function(r){return r.json()}).then(function(p){
+      var commentsHtml=(p.comments||[]).map(function(c){
+        return'<div class="comment-item"><div><span class="c-author">'+esc(c.author||"匿名")+'</span><span class="c-time">'+esc((c.created_at||"").substring(0,10))+'</span></div><div class="c-text">'+esc(c.text)+'</div><div class="c-likes">👍 '+(c.likes||0)+"</div></div>";
+      }).join("");
+      var tagsHtml=(p.tags||[]).map(function(t){return'<span class="dtag">'+esc(t)+"</span>"}).join("");
+      var replyHtml=currentUser?'<div class="reply-box"><textarea id="replyText" placeholder="写下你的回复..."></textarea><div class="reply-actions"><button class="btn-reply" id="submitReply">回复</button></div></div>':'<p style="color:var(--soft);font-size:12px">🔑 登录后回复</p>';
+      $("postDetailContent").innerHTML='<div class="detail-card"><h2>'+esc(p.title)+'</h2><div class="detail-meta"><span class="cat-badge">'+esc(p.category||"")+'</span><span>👤 '+esc(p.author||"匿名")+'</span><span>👁 '+(p.views||0)+'次阅读</span><span>'+esc((p.created_at||"").substring(0,10))+"</span></div>"+(tagsHtml?'<div class="detail-tags">'+tagsHtml+"</div>":"")+'<div class="detail-body">'+esc(p.content)+'</div><div class="comment-section"><h3 style="font-size:15px;font-weight:700;margin-bottom:12px">💬 评论('+(p.comments||[]).length+")</h3>"+commentsHtml+"</div>"+replyHtml+"</div>";
+      var sr=$("submitReply");if(sr)sr.addEventListener("click",function(){submitReply(id)});
+    }).catch(function(){toast("加载失败")});
+  }
+
+  function submitReply(postId){
+    var text=($("replyText")||{}).value||"";
+    if(!text.trim()){toast("请输入回复内容");return}
+    fetch(API+"/forum/posts/"+postId+"/comments",{method:"POST",headers:Object.assign({"Content-Type":"application/json"},authH()),body:JSON.stringify({text:text})})
+    .then(function(r){return r.json()}).then(function(d){if(d.id){toast("✅ 回复成功");openPost(postId)}else{toast(d.detail||"回复失败")}})
+    .catch(function(){toast("回复失败")});
+  }
+
+  $("newPostBtn").addEventListener("click",function(){
+    if(!currentUser){toast("请先登录");showAuth("login");return}
+    var sel=$("composeCategory");
+    sel.innerHTML=FORUM_CATS.map(function(c){return'<option value="'+c+'">'+c+"</option>"}).join("");
+    fetch(API+"/universities?size=200").then(function(r){return r.json()}).then(function(d){
+      var usel=$("composeUni");
+      usel.innerHTML='<option value="">不关联</option>'+(d.items||[]).map(function(u){return'<option value="'+u.id+'">'+esc(u.cn||u.name)+"</option>"}).join("");
+    }).catch(function(){});
+    $("composeTitle").value="";$("composeContent").value="";$("composeProgram").value="";
+    $("forumListView").style.display="none";$("forumDetailView").style.display="none";$("forumComposeView").style.display="block";
+  });
+
+  $("submitPost").addEventListener("click",function(){
+    var title=($("composeTitle")||{}).value||"",content=($("composeContent")||{}).value||"",cat=($("composeCategory")||{}).value||FORUM_CATS[0],tags=[],uni_id=($("composeUni")||{}).value||null,prog=($("composeProgram")||{}).value||null;
+    if(!title.trim()){toast("请输入标题");return}
+    if(!content.trim()){toast("请输入内容");return}
+    fetch(API+"/forum/posts",{method:"POST",headers:Object.assign({"Content-Type":"application/json"},authH()),body:JSON.stringify({title:title,category:cat,content:content,tags:tags,uni_id:uni_id?parseInt(uni_id):null,program_name:prog})})
+    .then(function(r){return r.json()}).then(function(d){if(d.id){toast("✅ 发布成功！");$("forumComposeView").style.display="none";$("forumListView").style.display="block";loadPosts()}else{toast(d.detail||"发布失败")}})
+    .catch(function(){toast("发布失败")});
+  });
+
+  $("cancelPost").addEventListener("click",function(){$("forumComposeView").style.display="none";$("forumListView").style.display="block"});
+  $("backToList").addEventListener("click",function(){$("forumDetailView").style.display="none";$("forumListView").style.display="block"});
+  $("backFromCompose").addEventListener("click",function(){$("forumComposeView").style.display="none";$("forumListView").style.display="block"});
+
+  function loadProfile(){
+    var el=$("profileContent");
+    if(!currentUser){
+      el.innerHTML='<div class="empty-state"><div style="font-size:40px;margin-bottom:12px">👤</div><div>请先登录查看个人信息</div><button class="btn-generate" style="margin-top:16px;width:auto;padding:10px 24px" data-action="showAuth">登录 / 注册</button></div>';
+      return;
+    }
+    el.innerHTML='<div style="text-align:center;padding:20px 0"><div style="width:64px;height:64px;border-radius:50%;background:linear-gradient(135deg,var(--blue),var(--purple));display:flex;align-items:center;justify-content:center;font-size:24px;color:#fff;font-weight:700;margin:0 auto 12px">'+(currentUser.username?currentUser.username[0].toUpperCase():"?")+'</div><div style="font-size:18px;font-weight:700">'+esc(currentUser.username)+'</div><div style="font-size:13px;color:var(--soft)">'+esc(currentUser.email||"")+'</div></div><div style="margin-top:20px"><button class="btn-cancel" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:8px;font-size:13px" data-action="logout">退出登录</button></div>';
+  }
+
+  $("sheetClose").addEventListener("click",function(){$("sheetBg").classList.remove("open")});
+  $("sheetBg").addEventListener("click",function(e){if(e.target===$("sheetBg"))$("sheetBg").classList.remove("open")});
+  $("modalClose").addEventListener("click",function(){$("modalBg").classList.remove("open")});
+  $("modalBg").addEventListener("click",function(e){if(e.target===$("modalBg"))$("modalBg").classList.remove("open")});
+  document.addEventListener("keydown",function(e){if(e.key==="Escape"){$("sheetBg").classList.remove("open");$("modalBg").classList.remove("open")}});
+
+  var st=null;
+  $("searchInput").addEventListener("input",function(){
+    clearTimeout(st);
+    st=setTimeout(function(){curSearch=$("searchInput").value.trim();resetDiscover()},350);
+  });
+  $("searchBtn").addEventListener("click",function(){curSearch=$("searchInput").value.trim();resetDiscover()});
+  $("loadMoreBtn").addEventListener("click",loadUniversities);
+
+  loadUser();
+  buildRegionChips();
+  loadUniversities();
+  fetch(API+"/majors/overview").then(function(r){return r.json()}).then(function(d){$("statMajor").textContent=d.length||"-";$("statEmp").textContent=d.reduce(function(s,m){return s+(m.uni_count||0)},0)||"-"}).catch(function(){});
+})();
+</script>
+</body>
+</html>

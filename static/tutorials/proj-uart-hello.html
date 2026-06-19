@@ -1,0 +1,892 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>STM32 串口打印Hello World教程</title>
+<style>
+:root{--bg:#0d1117;--bg2:#161b22;--bg3:#21262d;--br:#30363d;--t:#c9d1d9;--t2:#8b949e;--a:#58a6ff;--g:#3fb950;--o:#d2991d;--r:#f85149;--p:#a371f7;--c1:#39c5cf}
+body{background:var(--bg);color:var(--t);font-family:system-ui,sans-serif;line-height:1.8;max-width:900px;margin:0 auto;padding:20px}
+h1{text-align:center;background:linear-gradient(135deg,var(--a),var(--p));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+h2{color:var(--a);border-bottom:2px solid var(--br);padding-bottom:6px;margin-top:32px}
+h3{color:var(--c1);margin-top:22px}
+pre{background:#1c2128;border:1px solid var(--br);border-radius:8px;padding:14px;overflow-x:auto;font-size:.84em}
+code{font-family:'Cascadia Code',Consolas,monospace}
+:not(pre)>code{background:var(--bg3);padding:2px 6px;border-radius:4px;color:var(--c1)}
+table{width:100%;border-collapse:collapse;margin:12px 0}
+th{background:var(--bg3);color:var(--a);padding:8px 12px;border:1px solid var(--br);text-align:left}
+td{padding:8px 12px;border:1px solid var(--br)}
+.note{background:rgba(88,166,255,.08);border-left:3px solid var(--a);border-radius:8px;padding:12px 16px;margin:12px 0}
+.warn{background:rgba(248,81,73,.08);border-left:3px solid var(--r);border-radius:8px;padding:12px 16px;margin:12px 0}
+.tip{background:rgba(63,185,80,.08);border-left:3px solid var(--g);border-radius:8px;padding:12px 16px;margin:12px 0}
+</style>
+</head>
+<body>
+
+<h1>📡 STM32 串口打印Hello World</h1>
+
+<div class="note">
+<strong>📋 学习目标：</strong>掌握USART串口配置、重定向printf、中断接收、DMA接收，学会用串口调试和命令控制。
+</div>
+
+<h2>一、硬件接线图</h2>
+
+<h3>1.1 元器件清单</h3>
+<table>
+<tr><th>元器件</th><th>数量</th><th>备注</th></tr>
+<tr><td>STM32F103C8T6最小系统板</td><td>1块</td><td>蓝色小板</td></tr>
+<tr><td>CH340G USB-TTL模块</td><td>1个</td><td>USB转串口</td></tr>
+<tr><td>杜邦线</td><td>3根</td><td>TX/RX/GND</td></tr>
+<tr><td>USB线</td><td>1根</td><td>Type-A to Mini-B</td></tr>
+</table>
+
+<h3>1.2 接线示意</h3>
+<pre>
+        STM32F103C8T6              CH340G USB-TTL
+        ┌─────────────┐           ┌─────────────┐
+        │             │           │             │
+        │  PA9 (TX) ──┼───►───────┼─── RX      │
+        │             │           │             │
+        │  PA10(RX) ◄─┼───────◄───┼─── TX      │
+        │             │           │             │
+        │  GND    ────┼───────────┼─── GND     │
+        │             │           │             │
+        │  3.3V/5V ───┴─── VCC    │             │
+        └─────────────┘           └─────────────┘
+              │                         │
+              │     USB线               │
+              └────────┴─────────────────┘
+                        │
+                    电脑USB口
+
+【接线要点】
+1. STM32的TX接CH340的RX（TX→RX）
+2. STM32的RX接CH340的TX（RX→TX）
+3. GND必须连接（共地！）
+4. CH340的VCC接3.3V或5V（根据模块选择）
+
+【CH340G模块电压选择】
+- 如果模块有电压选择跳针：
+  · 3.3V侧短路 → 输出3.3V
+  · 5V侧短路   → 输出5V
+- STM32F103使用3.3V电平，直接接3.3V
+</pre>
+
+<div class="warn">
+<strong>⚠️ 注意</strong>：STM32的PA9/PA10是TTL电平（0-3.3V），不是RS232（±12V）！不要直接接RS232串口。
+</div>
+
+<h3>1.3 串口参数</h3>
+<table>
+<tr><th>参数</th><th>值</th><th>说明</th></tr>
+<tr><td>波特率</td><td>115200</td><td>常用波特率，速度快且稳定</td></tr>
+<tr><td>数据位</td><td>8位</td><td>标准配置</td></tr>
+<tr><td>停止位</td><td>1位</td><td>标准配置</td></tr>
+<tr><td>校验位</td><td>无</td><td>不使用校验</td></tr>
+<tr><td>流控制</td><td>无</td><td>不使用RTS/CTS</td></tr>
+</table>
+
+<h2>二、CubeMX配置步骤</h2>
+
+<h3>2.1 新建工程</h3>
+<ol>
+<li>打开STM32CubeMX，点击 <strong>File → New Project</strong></li>
+<li>搜索 <code>STM32F103C8T6</code>，选择芯片</li>
+<li>点击<strong>Start Project</strong></li>
+</ol>
+
+<h3>2.2 配置时钟（RCC）</h3>
+<ol>
+<li>点击 <strong>RCC</strong></li>
+<li>HSE 选择 <strong>Crystal/Ceramic Resonator</strong></li>
+</ol>
+
+<h3>2.3 配置USART1（异步模式）</h3>
+<ol>
+<li>点击芯片上的 <strong>PA9</strong> 引脚 → 选择 <code>USART1_TX</code></li>
+<li>点击芯片上的 <strong>PA10</strong> 引脚 → 选择 <code>USART1_RX</code></li>
+<li>左侧 <strong>Connectivity → USART1</strong>：
+<pre>
+Mode = Asynchronous (异步模式)
+Hardware Flow Control = Disable
+(其他保持默认)
+</pre>
+</li>
+</ol>
+
+<h3>2.4 配置USART参数</h3>
+<ol>
+<li>在USART1的<strong>Configuration → Parameter Settings</strong>：
+<pre>
+Baud Rate = 115200
+Word Length = 8 Bits
+Parity = None
+Stop Bits = 1
+Data Direction = Receive and Transmit
+Over Sampling = 16 Samples
+</pre>
+</li>
+</ol>
+
+<h3>2.5 配置NVIC中断（中断接收用）</h3>
+<ol>
+<li>点击USART1的<strong>NVIC Settings</strong></li>
+<li>勾选 <strong>USART1 global interrupt</strong></li>
+<li>优先级设置为较低值（如1,0）</li>
+</ol>
+
+<h3>2.6 （可选）配置DMA用于高速接收</h3>
+<ol>
+<li>左侧 <strong>Connectivity → USART1 → DMA Settings</strong></li>
+<li>点击 <strong>Add</strong> 添加DMA通道</li>
+<li>选择 <strong>USART1_RX</strong>：
+<pre>
+Mode = Circular (循环模式)
+Priority = Low
+Memory Size = Byte
+Peripheral Size = Byte
+</pre>
+</li>
+</ol>
+
+<h3>2.7 配置时钟树</h3>
+<ol>
+<li>点击左侧<strong>Clock Configuration</strong></li>
+<li>HSE = 8MHz</li>
+<li>PLL配置：HSE × 9 = 72MHz</li>
+<li>APB2 USART1 = 72MHz（可分频但一般不分）</li>
+</ol>
+
+<h3>2.8 生成代码</h3>
+<ol>
+<li><strong>Project Manager</strong> → 项目名 <code>uart_hello</code></li>
+<li>Toolchain/IDE 选择 <strong>MDK-ARM</strong></li>
+<li>点击<strong>GENERATE CODE</strong></li>
+</ol>
+
+<h2>三、完整代码（main.c）</h2>
+
+<pre>
+/* USER CODE BEGIN Header */
+/**
+  ******************************************************************************
+  * @file           : main.c
+  * @brief          : 串口打印Hello World + 中断接收 + DMA接收
+  ******************************************************************************
+  * @attention
+  *
+  * 功能说明：
+  * 1. printf重定向到USART1（发送）
+  * 2. 中断方式接收数据
+  * 3. DMA高速接收数据
+  * 4. 命令解析（ON/OFF控制LED）
+  *
+  ******************************************************************************
+  */
+/* USER CODE END Header */
+
+/* Includes ------------------------------------------------------------------*/
+#include "main.h"
+#include "usart.h"
+#include "gpio.h"
+
+/* Private includes ----------------------------------------------------------*/
+/* USER CODE BEGIN Includes */
+#include &lt;stdio.h&gt;
+#include &lt;string.h&gt;
+
+/* USER CODE END Includes */
+
+/* Private typedef -----------------------------------------------------------*/
+/* USER CODE BEGIN PTD */
+
+/* USER CODE END PTD */
+
+/* Private define ------------------------------------------------------------*/
+/* USER CODE BEGIN PD */
+/* 这个宏使能了MicroLib，才可以使用printf */
+#define USE_MICROLIB    1
+
+/* 接收缓冲区大小 */
+#define RX_BUFFER_SIZE  64
+#define TX_BUFFER_SIZE  128
+
+/* LED引脚定义 */
+#define LED_PIN         GPIO_PIN_13
+#define LED_PORT        GPIOC
+
+/* USER CODE END PD */
+
+/* Private variables ---------------------------------------------------------*/
+/* USER CODE BEGIN PV */
+
+/* 中断接收缓冲区 */
+uint8_t rx_buffer[RX_BUFFER_SIZE];
+uint8_t rx_index = 0;
+uint8_t rx_complete = 0;
+
+/* DMA接收缓冲区 */
+uint8_t dma_rx_buffer[RX_BUFFER_SIZE];
+
+/* 发送缓冲区 */
+uint8_t tx_buffer[TX_BUFFER_SIZE];
+
+/* USER CODE END PV */
+
+/* Private function prototypes -----------------------------------------------*/
+void SystemClock_Config(void);
+void Error_Handler(void);
+
+/* USER CODE BEGIN PFP */
+void LED_Control(uint8_t state);
+int command_parser(uint8_t *cmd, uint16_t len);
+
+/* USER CODE END PFP */
+
+/**
+  * @brief  主函数
+  * @param  None
+  * @retval None
+  */
+int main(void)
+{
+  /* 初始化HAL库 */
+  HAL_Init();
+
+  /* 配置系统时钟 */
+  SystemClock_Config();
+
+  /* 初始化外设 */
+  MX_GPIO_Init();
+  MX_USART1_UART_Init();
+  /* DMA初始化（可选） */
+  MX_USART1_UART_DMA_Init();
+
+  /* 启动DMA接收 */
+  HAL_UART_Receive_DMA(&amp;huart1, dma_rx_buffer, RX_BUFFER_SIZE);
+
+  /* 打印启动信息 */
+  printf("\r\n");
+  printf("========================================\r\n");
+  printf("  STM32 UART Demo v1.0\r\n");
+  printf("  System Clock: %lu Hz\r\n", HAL_RCC_GetHCLKFreq());
+  printf("========================================\r\n");
+  printf("\r\n");
+
+  /* 打印帮助信息 */
+  printf("可用命令:\r\n");
+  printf("  ON   - 点亮PC13 LED\r\n");
+  printf("  OFF  - 熄灭PC13 LED\r\n");
+  printf("  HELP - 显示帮助信息\r\n");
+  printf("  INFO - 显示系统信息\r\n");
+  printf("\r\n&gt; ");
+
+  /* 启动中断接收 */
+  HAL_UART_Receive_IT(&amp;huart1, &amp;rx_buffer[rx_index], 1);
+
+  /* 主循环 */
+  while (1)
+  {
+    /* 方法1：中断接收处理（单字符接收） */
+    if (rx_complete == 1)
+    {
+      rx_complete = 0;
+
+      /* 打印收到的命令回显 */
+      printf("收到: %s\r\n", rx_buffer);
+
+      /* 命令解析 */
+      if (command_parser(rx_buffer, rx_index) == 0)
+      {
+        printf("未知命令: %s\r\n", rx_buffer);
+        printf("输入 HELP 查看可用命令\r\n");
+      }
+
+      /* 清空缓冲区 */
+      memset(rx_buffer, 0, RX_BUFFER_SIZE);
+      rx_index = 0;
+
+      printf("\r\n&gt; ");
+    }
+
+    /* 方法2：DMA接收处理（循环模式） */
+    static uint32_t last_dma_check = 0;
+    if (HAL_GetTick() - last_dma_check &gt; 100)  // 每100ms检查一次
+    {
+      last_dma_check = HAL_GetTick();
+
+      /* DMA循环接收，自动检测新数据 */
+      /* 注意：DMA模式下需要手动判断数据有效性 */
+    }
+
+    /* 方法3：定时打印温湿度（模拟数据） */
+    static uint32_t last_sensor_print = 0;
+    if (HAL_GetTick() - last_sensor_print &gt; 2000)  // 每2秒打印一次
+    {
+      last_sensor_print = HAL_GetTick();
+
+      /* 模拟传感器数据 */
+      static float temp = 25.0f;
+      static float humi = 60.0f;
+
+      temp += 0.5f;
+      humi -= 0.3f;
+      if (temp &gt; 40.0f) temp = 20.0f;
+      if (humi &lt; 30.0f) humi = 80.0f;
+
+      printf("[传感器] 温度: %.1f°C  湿度: %.1f%%\r\n", temp, humi);
+    }
+
+    /* 正常非阻塞运行 */
+    HAL_Delay(10);
+  }
+}
+
+/**
+  * @brief  命令解析函数
+  * @param  cmd: 命令字符串
+  * @param  len: 命令长度
+  * @retval 0=未识别命令, 1=已处理
+  */
+int command_parser(uint8_t *cmd, uint16_t len)
+{
+  /* 去除尾部换行符 */
+  while (len &gt; 0 &amp;&amp; (cmd[len-1] == '\r' || cmd[len-1] == '\n' || cmd[len-1] == ' '))
+  {
+    cmd[len-1] = '\0';
+    len--;
+  }
+
+  if (len == 0) return 1;
+
+  /* ON命令 - 点亮LED */
+  if (strcmp((char*)cmd, "ON") == 0 || strcmp((char*)cmd, "on") == 0 || strcmp((char*)cmd, "On") == 0)
+  {
+    LED_Control(1);
+    printf("LED 已点亮\r\n");
+    return 1;
+  }
+
+  /* OFF命令 - 熄灭LED */
+  if (strcmp((char*)cmd, "OFF") == 0 || strcmp((char*)cmd, "off") == 0 || strcmp((char*)cmd, "Off") == 0)
+  {
+    LED_Control(0);
+    printf("LED 已熄灭\r\n");
+    return 1;
+  }
+
+  /* HELP命令 */
+  if (strcmp((char*)cmd, "HELP") == 0 || strcmp((char*)cmd, "help") == 0 || strcmp((char*)cmd, "?") == 0)
+  {
+    printf("\r\n========== 帮助 ==========\r\n");
+    printf("ON   - 点亮PC13 LED\r\n");
+    printf("OFF  - 熄灭PC13 LED\r\n");
+    printf("TOGGLE - 翻转LED状态\r\n");
+    printf("INFO - 显示系统信息\r\n");
+    printf("RESET - 软件复位\r\n");
+    printf("========================\r\n");
+    return 1;
+  }
+
+  /* INFO命令 */
+  if (strcmp((char*)cmd, "INFO") == 0 || strcmp((char*)cmd, "info") == 0)
+  {
+    printf("\r\n========== 系统信息 ==========\r\n");
+    printf("芯片: STM32F103C8T6\r\n");
+    printf("主频: %lu MHz\r\n", HAL_RCC_GetHCLKFreq() / 1000000);
+    printf("UART: 115200-8-N-1\r\n");
+    printf("编译时间: %s %s\r\n", __DATE__, __TIME__);
+    printf("================================\r\n");
+    return 1;
+  }
+
+  /* TOGGLE命令 */
+  if (strcmp((char*)cmd, "TOGGLE") == 0 || strcmp((char*)cmd, "toggle") == 0)
+  {
+    HAL_GPIO_TogglePin(LED_PORT, LED_PIN);
+    GPIO_PinState state = HAL_GPIO_ReadPin(LED_PORT, LED_PIN);
+    printf("LED状态: %s\r\n", state == GPIO_PIN_SET ? "熄灭" : "点亮");
+    return 1;
+  }
+
+  /* RESET命令 */
+  if (strcmp((char*)cmd, "RESET") == 0 || strcmp((char*)cmd, "reset") == 0)
+  {
+    printf("系统将在3秒后复位...\r\n");
+    HAL_Delay(3000);
+    HAL_NVIC_SystemReset();
+  }
+
+  return 0;
+}
+
+/**
+  * @brief  LED控制函数
+  * @param  state: 1=点亮, 0=熄灭
+  * @retval None
+  */
+void LED_Control(uint8_t state)
+{
+  if (state == 1)
+  {
+    HAL_GPIO_WritePin(LED_PORT, LED_PIN, GPIO_PIN_RESET);  // 低电平点亮
+  }
+  else
+  {
+    HAL_GPIO_WritePin(LED_PORT, LED_PIN, GPIO_PIN_SET);    // 高电平熄灭
+  }
+}
+
+/**
+  * @brief  系统时钟配置
+  * @param  None
+  * @retval None
+  */
+void SystemClock_Config(void)
+{
+  RCC_OscInitTypeDef RCC_OscInitStruct = {0};
+  RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
+
+  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSE;
+  RCC_OscInitStruct.HSEState = RCC_HSE_ON;
+  RCC_OscInitStruct.HSEPredivValue = RCC_HSE_PREDIV_DIV1;
+  RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
+  RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
+  RCC_OscInitStruct.PLL.PLLMUL = RCC_PLL_MUL9;
+  if (HAL_RCC_OscConfig(&amp;RCC_OscInitStruct) != HAL_OK)
+  {
+    Error_Handler();
+  }
+
+  RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK | RCC_CLOCKTYPE_SYSCLK
+                              | RCC_CLOCKTYPE_PCLK1 | RCC_CLOCKTYPE_PCLK2;
+  RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
+  RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
+  RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV2;
+  RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1;
+
+  if (HAL_RCC_ClockConfig(&amp;RCC_ClkInitStruct, FLASH_LATENCY_2) != HAL_OK)
+  {
+    Error_Handler();
+  }
+}
+
+/**
+  * @brief  错误处理函数
+  * @param  None
+  * @retval None
+  */
+void Error_Handler(void)
+{
+  while(1)
+  {
+    HAL_GPIO_TogglePin(LED_PORT, LED_PIN);
+    HAL_Delay(200);
+  }
+}
+
+/* USER CODE BEGIN 4 */
+
+/**
+  * @brief  串口接收完成回调函数（中断方式）
+  * @param  UartHandle: 串口句柄
+  * @retval None
+  *
+  * @note   每接收到1个字节触发一次
+  */
+void HAL_UART_RxCpltCallback(UART_HandleTypeDef *UartHandle)
+{
+  if (UartHandle == &amp;huart1)
+  {
+    /* 处理接收到的字符 */
+    uint8_t ch = rx_buffer[rx_index];
+
+    /* 回显字符 */
+    HAL_UART_Transmit(&amp;huart1, &amp;ch, 1, 100);
+
+    /* 判断是否结束（回车或换行） */
+    if (ch == '\r' || ch == '\n')
+    {
+      /* 命令结束，设置完成标志 */
+      rx_complete = 1;
+
+      /* 发送换行 */
+      uint8_t crlf[2] = {'\r', '\n'};
+      HAL_UART_Transmit(&amp;huart1, crlf, 2, 100);
+    }
+    else
+    {
+      /* 继续接收下一个字符 */
+      rx_index++;
+
+      /* 缓冲区溢出保护 */
+      if (rx_index &gt;= RX_BUFFER_SIZE - 1)
+      {
+        rx_index = 0;
+        rx_complete = 1;
+      }
+    }
+
+    /* 继续启动下一次接收中断 */
+    HAL_UART_Receive_IT(&amp;huart1, &amp;rx_buffer[rx_index], 1);
+  }
+}
+
+/**
+  * @brief  串口发送完成回调函数
+  * @param  UartHandle: 串口句柄
+  * @retval None
+  */
+void HAL_UART_TxCpltCallback(UART_HandleTypeDef *UartHandle)
+{
+  if (UartHandle == &amp;huart1)
+  {
+    /* 发送完成回调，可用于DMA模式 */
+  }
+}
+
+/* USER CODE END 4 */
+
+/* 串口初始化代码（CubeMX生成） */
+/**
+  * @brief  USART1初始化 - CubeMX自动生成
+  * @param  None
+  * @retval None
+  */
+void MX_USART1_UART_Init(void)
+{
+  huart1.Instance = USART1;
+  huart1.Init.BaudRate = 115200;
+  huart1.Init.WordLength = UART_WORDLENGTH_8B;
+  huart1.Init.StopBits = UART_STOPBITS_1;
+  huart1.Init.Parity = UART_PARITY_NONE;
+  huart1.Init.Mode = UART_MODE_TX_RX;
+  huart1.Init.HwFlowCtl = UART_HWCONTROL_NONE;
+  huart1.Init.OverSampling = UART_OVERSAMPLING_16;
+  if (HAL_UART_Init(&amp;huart1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+}
+
+/* printf重定向代码 */
+/**
+  * @brief  重定向_write函数（用于printf）
+  * @param  fd: 文件描述符
+  * @param  data: 数据指针
+  * @param  size: 数据大小
+  * @retval 发送的字节数
+  *
+  * @note   在不使用MicroLib时使用
+  */
+#if !defined(USE_MICROLIB)
+struct __FILE {
+  int handle;
+};
+FILE __stdin, __stdout, __stderr;
+
+int _write(int fd, char *pdata, int len)
+{
+  /* 发送数据 */
+  HAL_UART_Transmit(&amp;huart1, (uint8_t*)pdata, len, HAL_MAX_DELAY);
+  return len;
+}
+
+int _read(int fd, char *pdata, int len)
+{
+  /* 接收数据 */
+  HAL_UART_Receive(&amp;huart1, (uint8_t*)pdata, len, HAL_MAX_DELAY);
+  return len;
+}
+#else
+/* 使用MicroLib时只需要重定向fputc/fgetc */
+/**
+  * @brief  重定向fputc（printf输出）
+  * @param  ch: 要发送的字符
+  * @param  f: 文件指针
+  * @retval 发送的字符
+  */
+int fputc(int ch, FILE *f)
+{
+  HAL_UART_Transmit(&amp;huart1, (uint8_t*)&amp;ch, 1, HAL_MAX_DELAY);
+  return ch;
+}
+
+/**
+  * @brief  重定向fgetc（scanf输入）
+  * @param  f: 文件指针
+  * @retval 接收的字符
+  */
+int fgetc(FILE *f)
+{
+  uint8_t ch;
+  HAL_UART_Receive(&amp;huart1, &amp;ch, 1, HAL_MAX_DELAY);
+  return ch;
+}
+#endif
+
+/* GPIO初始化 - CubeMX自动生成 */
+/**
+  * @brief  GPIO初始化
+  * @param  None
+  * @retval None
+  */
+void MX_GPIO_Init(void)
+{
+  GPIO_InitTypeDef GPIO_InitStruct = {0};
+
+  /* GPIO时钟使能 */
+  __HAL_RCC_GPIOC_CLK_ENABLE();
+  __HAL_RCC_GPIOA_CLK_ENABLE();
+
+  /* PC13 LED配置（STM32蓝色小板自带LED） */
+  GPIO_InitStruct.Pin = GPIO_PIN_13;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(GPIOC, &amp;GPIO_InitStruct);
+
+  /* 初始熄灭LED */
+  HAL_GPIO_WritePin(GPIOC, GPIO_PIN_13, GPIO_PIN_SET);
+}
+</pre>
+
+<h2>四、关键函数解析</h2>
+
+<h3>4.1 printf重定向原理</h3>
+<pre>
+┌─────────────────────────────────────────────────────────────┐
+│                    printf 数据流                            │
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│  printf("Hello")                                           │
+│      │                                                     │
+│      ▼                                                     │
+│  _write() 或 fputc()                                        │
+│      │                                                     │
+│      ▼                                                     │
+│  HAL_UART_Transmit()                                        │
+│      │                                                     │
+│      ▼                                                     │
+│  USART1 TX 引脚 ──► CH340G RX ──► USB ──► 电脑串口         │
+│                                                             │
+└─────────────────────────────────────────────────────────────┘
+</pre>
+
+<h3>4.2 阻塞发送 vs 中断发送 vs DMA发送</h3>
+
+<table>
+<tr><th>方式</th><th>函数</th><th>特点</th><th>适用场景</th></tr>
+<tr><td>阻塞</td><td>HAL_UART_Transmit()</td><td>等待发送完成</td><td>简单场景，小数据量</td></tr>
+<tr><td>中断</td><td>HAL_UART_Transmit_IT()</td><td>发送时CPU可做其他事</td><td>中等数据量</td></tr>
+<tr><td>DMA</td><td>HAL_UART_Transmit_DMA()</td><td>几乎不占用CPU</td><td>大数据量，高速传输</td></tr>
+</table>
+
+<h3>4.3 中断接收流程</h3>
+<pre>
+┌─────────────────────────────────────────────────────┐
+│              中断接收工作流程                         │
+├─────────────────────────────────────────────────────┤
+│                                                     │
+│  USART收到数据 ──► 触发USART1_IRQHandler           │
+│                        │                            │
+│                        ▼                            │
+│              调用HAL_UART_IRQHandler               │
+│                        │                            │
+│                        ▼                            │
+│            调用HAL_UART_RxCpltCallback             │
+│                        │                            │
+│                        ▼                            │
+│         在回调中处理数据 + 启动下次接收              │
+│                                                     │
+└─────────────────────────────────────────────────────┘
+</pre>
+
+<h2>五、常见问题排查</h2>
+
+<h3>5.1 乱码问题</h3>
+<div class="warn">
+<strong>可能原因1：波特率不匹配</strong>
+</div>
+<pre>
+检查项：
+1. 电脑串口软件波特率 = 115200
+2. CubeMX配置波特率 = 115200
+3. 确保两端完全一致！
+
+常见波特率：9600, 19200, 38400, 57600, 115200, 230400, 460800
+</pre>
+
+<div class="warn">
+<strong>可能原因2：时钟频率不对</strong>
+</div>
+<pre>
+如果时钟配置错误，实际波特率会偏差：
+  期望波特率 = 115200
+  实际波特率 = 115200 × (实际时钟 / 期望时钟)
+
+解决：确保PLL配置正确，系统时钟 = 72MHz
+</pre>
+
+<div class="warn">
+<strong>可能原因3：电平不匹配</strong>
+</div>
+<pre>
+STM32F103使用3.3V TTL电平
+CH340G支持3.3V和5V（通过跳针选择）
+
+❌ 不要用RS232电平（±12V）直接连接！
+✅ 确保使用USB-TTL模块，且电压匹配
+</pre>
+
+<h3>5.2 printf无输出</h3>
+<div class="warn">
+<strong>原因：未勾选Use MicroLib</strong>
+</div>
+<ol>
+<li>打开Keil工程选项 <strong>Options for Target</strong></li>
+<li>点击 <strong>Target</strong> 标签页</li>
+<li>勾选 <strong>Use MicroLib</strong></li>
+<li>重新编译下载</li>
+</ol>
+
+<pre>
+┌─────────────────────────────────────────────────┐
+│     Options for Target - Target配置            │
+├─────────────────────────────────────────────────┤
+│                                                 │
+│  Code Generation:                              │
+│    ☑ Use MicroLib                              │
+│                                                 │
+│  (勾选此选项后，printf才能正常工作)             │
+│                                                 │
+└─────────────────────────────────────────────────┘
+</pre>
+
+<div class="warn">
+<strong>原因：重定向函数写错</strong>
+</div>
+<pre>
+❌ 错误：函数名拼写错误
+int _write(int fd, char *pdata, int len)  // 正确
+int _write(int fd, uint8_t *pdata, int len)  // 错误：类型不匹配
+
+❌ 错误：忘记启用MicroLib
+需要同时：1. 勾选Use MicroLib 2. 重定向fputc
+</pre>
+
+<h3>5.3 DMA接收丢数据</h3>
+<pre>
+DMA循环模式工作原理：
+
+┌──────────────────────────────────────────────────┐
+│                                                  │
+│  DMA循环接收缓冲区 (假设16字节)                  │
+│  ┌──┬──┬──┬──┬──┬──┬──┬──┬──┬──┬──┬──┬──┬──┬──┬──┐ │
+│  │  │  │  │  │  │  │  │  │  │  │  │  │  │  │  │  │
+│  └──┴──┴──┴──┴──┴──┴──┴──┴──┴──┴──┴──┴──┴──┴──┴──┘ │
+│    ▲                                              │
+│    │  DMA自动循环写入，永不停止                   │
+│    │  旧数据会被新数据覆盖                         │
+│    │                                              │
+│    读取位置需要自己记录！                        │
+│                                                  │
+└──────────────────────────────────────────────────┘
+
+解决方案：
+1. 记录上次读取位置
+2. 定时检测缓冲区变化
+3. 使用带IDLE中断+DMA的方案（推荐）
+</pre>
+
+<h3>5.4 DMA + IDLE中断完美方案</h3>
+<pre>
+/* 最佳接收方案：DMA + IDLE中断 */
+void USART1_IRQHandler(void)
+{
+  if (__HAL_UART_GET_FLAG(&amp;huart1, UART_FLAG_IDLE))
+  {
+    __HAL_UART_CLEAR_IDLEFLAG(&amp;huart1);
+
+    /* 计算接收长度 */
+    uint16_t len = RX_BUFFER_SIZE - __HAL_DMA_GET_COUNTER(huart1.hdmarx);
+
+    /* 处理数据 */
+    if (len &gt; 0)
+    {
+      memcpy(rx_buffer, dma_rx_buffer, len);
+      rx_buffer[len] = '\0';
+      rx_complete = 1;
+    }
+  }
+  HAL_UART_IRQHandler(&amp;huart1);
+}
+</pre>
+
+<h2>六、串口软件推荐</h2>
+
+<table>
+<tr><th>软件</th><th>平台</th><th>特点</th><th>下载</th></tr>
+<tr><td>SSCOM</td><td>Windows</td><td>功能丰富，支持HEX发送</td><td>免费</td></tr>
+<tr><td>SecureCRT</td><td>Windows/Mac</td><td>专业级，功能强大</td><td>付费</td></tr>
+<tr><td>Serial</td><td>macOS</td><td>简洁美观</td><td>免费</td></tr>
+<tr><td>PuTTY</td><td>Windows/Linux</td><td>轻量级</td><td>免费</td></tr>
+<tr><td>VOFA+</td><td>Windows</td><td>支持数据可视化</td><td>免费</td></tr>
+</table>
+
+<div class="tip">
+💡 <strong>推荐SSCOM</strong>：国产串口工具，支持HEX/字符串发送、文件发送、自动发送、协议分析等功能。
+</div>
+
+<h2>七、Keil配置要点</h2>
+
+<h3>7.1 勾选Use MicroLib</h3>
+<ol>
+<li><strong>Options → Target</strong></li>
+<li>勾选 <code>Use MicroLib</code></li>
+</ol>
+
+<h3>7.2 配置ST-Link调试</h3>
+<ol>
+<li><strong>Options → Debug</strong></li>
+<li>选择 <strong>ST-Link Debugger</strong></li>
+<li>点击 <strong>Settings</strong></li>
+<li>确认SWD接口已选择</li>
+</ol>
+
+<h2>八、扩展练习</h2>
+
+<ol>
+<li><strong>数据传输协议</strong>：实现简单的帧格式（帧头+数据+校验+帧尾）</li>
+<li><strong>JSON通信</strong>：解析和发送JSON格式数据</li>
+<li><strong>图形界面</strong>：使用VOFA+实现数据波形显示</li>
+<li><strong>多串口</strong>：配置USART2/3，实现串口透传</li>
+<li><strong>蓝牙模块</strong>：连接HC-05蓝牙模块，实现无线串口</li>
+</ol>
+
+<div class="note">
+<strong>📚 进阶学习</strong>：学习RS485/RS232协议，使用MAX3232/MAX485芯片实现远距离通信。
+</div>
+
+
+<hr><h2>❓ 常见问题 FAQ</h2>
+
+<div style="margin:12px 0;padding:12px 16px;background:var(--bg2);border-left:3px solid var(--a);border-radius:0 8px 8px 0">
+  <p style="font-weight:600;color:var(--c1);margin-bottom:4px">Q: 中文乱码？</p>
+  <p style="color:var(--t)">A: 确保发送端和接收端编码都是UTF-8。PuTTY设置Window→Translation→UTF-8。代码中字符串加u8前缀。</p>
+</div>
+
+<div style="margin:12px 0;padding:12px 16px;background:var(--bg2);border-left:3px solid var(--a);border-radius:0 8px 8px 0">
+  <p style="font-weight:600;color:var(--c1);margin-bottom:4px">Q: DMA接收丢数据？</p>
+  <p style="color:var(--t)">A: 1)DMA缓冲区要4字节对齐 2)用空闲中断(IDLE)处理不定长数据 3)双缓冲防数据覆盖</p>
+</div>
+
+<hr><h2>🔗 相关教程</h2>
+<div style="display:flex;flex-wrap:wrap;gap:8px;margin:12px 0">
+<a href="#" onclick="parent.loadPage && parent.loadPage('serial')" style="display:inline-block;padding:6px 14px;background:var(--bg3);border:1px solid var(--br);border-radius:6px;color:var(--a);text-decoration:none;font-size:.85em">串口通信 →</a>
+<a href="#" onclick="parent.loadPage && parent.loadPage('proj-oled-display')" style="display:inline-block;padding:6px 14px;background:var(--bg3);border:1px solid var(--br);border-radius:6px;color:var(--a);text-decoration:none;font-size:.85em">OLED显示 →</a>
+<a href="#" onclick="parent.loadPage && parent.loadPage('proj-dht11-monitor')" style="display:inline-block;padding:6px 14px;background:var(--bg3);border:1px solid var(--br);border-radius:6px;color:var(--a);text-decoration:none;font-size:.85em">温湿度 →</a>
+</div>
+
+</body>
+</html>

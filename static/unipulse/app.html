@@ -1,0 +1,612 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>UniPulse - 高校风向标</title>
+<style>
+:root{--navy:#0f1b2d;--gold:#c9a84c;--cream:#faf6ed;--card:#fff;--muted:#6b7280;--border:#e5e7eb;--accent:#2563eb;--success:#16a34a;--danger:#dc2626;--radius:12px;--shadow:0 2px 12px rgba(0,0,0,.08)}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,'Segoe UI',sans-serif;background:var(--cream);color:#1f2937;line-height:1.6}
+a{color:var(--accent);text-decoration:none}
+button{cursor:pointer;border:none;border-radius:8px;padding:8px 18px;font-size:.9rem;font-weight:600}
+input,select,textarea{border:1px solid var(--border);border-radius:8px;padding:10px 14px;font-size:.9rem;width:100%}
+nav{background:var(--navy);padding:0 24px;display:flex;align-items:center;height:56px;position:sticky;top:0;z-index:100}
+nav .logo{color:var(--gold);font-size:1.2rem;font-weight:800;margin-right:28px;white-space:nowrap}
+nav .nav-links{display:flex;gap:2px;flex:1;flex-wrap:wrap}
+nav .nav-links a{color:rgba(255,255,255,.7);padding:6px 14px;border-radius:8px;font-size:.85rem;cursor:pointer}
+nav .nav-links a:hover,nav .nav-links a.active{color:#fff;background:rgba(255,255,255,.12)}
+nav .user-area{display:flex;align-items:center;gap:10px}
+nav .user-area .username{color:var(--gold);font-weight:600;font-size:.85rem}
+main{max-width:1100px;margin:0 auto;padding:20px}
+.page{display:none}.page.active{display:block}
+.card-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px;margin-top:16px}
+.card{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);padding:16px;cursor:pointer;transition:transform .15s}
+.card:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(0,0,0,.1)}
+.card h3{font-size:1rem;margin-bottom:6px}
+.card .tag{display:inline-block;background:#f0f4ff;color:var(--accent);padding:2px 8px;border-radius:20px;font-size:.7rem;margin:2px 4px 2px 0}
+.card .meta{color:var(--muted);font-size:.8rem;margin-top:6px}
+.score-bar{height:5px;background:#e5e7eb;border-radius:3px;margin-top:8px;overflow:hidden}
+.score-bar .fill{height:100%;border-radius:3px;background:linear-gradient(90deg,var(--gold),#f0c040)}
+.post-item{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);padding:16px;margin-bottom:12px;cursor:pointer;transition:transform .15s}
+.post-item:hover{transform:translateY(-1px)}
+.post-item h3{font-size:1rem;margin-bottom:4px}
+.post-meta{color:var(--muted);font-size:.8rem;display:flex;gap:14px}
+.metric-card{background:#f9fafb;border-radius:10px;padding:14px;text-align:center}
+.metric-card .label{font-size:.75rem;color:var(--muted);margin-bottom:2px}
+.metric-card .value{font-size:1.3rem;font-weight:700;color:var(--navy)}
+.back-btn{background:#f3f4f6;color:#374151;margin-bottom:12px;font-size:.85rem}
+.back-btn:hover{background:#e5e7eb}
+.uni-rec{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);padding:16px;margin-bottom:12px;display:flex;gap:16px;align-items:center;cursor:pointer}
+.rank-badge{width:42px;height:42px;border-radius:50%;background:var(--navy);color:var(--gold);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:1rem;flex-shrink:0}
+.score-ring{width:50px;height:50px;border-radius:50%;border:3px solid var(--gold);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.9rem;color:var(--navy);flex-shrink:0}
+.auth-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.5);z-index:200;display:flex;align-items:center;justify-content:center}
+.auth-box{background:#fff;border-radius:16px;padding:28px;width:380px;max-width:90vw;box-shadow:0 20px 60px rgba(0,0,0,.2);position:relative}
+.auth-box h2{margin-bottom:16px;color:var(--navy)}
+.auth-box .form-group{margin-bottom:12px}
+.auth-box .switch-link{color:var(--accent);cursor:pointer;font-size:.85rem}
+.error{color:var(--danger);font-size:.85rem;margin-top:6px}
+.form-group{margin-bottom:14px}
+.form-group label{display:block;font-weight:600;font-size:.85rem;margin-bottom:4px}
+.submit-btn{width:100%;background:var(--navy);color:var(--gold);padding:12px;font-size:1rem;border-radius:10px;margin-top:6px}
+.submit-btn:hover{background:#1a2b42}
+.submit-btn:disabled{opacity:.6;cursor:not-allowed}
+.load-more{display:block;margin:16px auto;padding:10px 24px;background:var(--accent);color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:.9rem}
+.comment-box{background:#f9fafb;border-radius:10px;padding:14px;margin-top:10px}
+.comment-box .author{font-weight:600;font-size:.85rem;color:var(--navy)}
+.comment-box .text{font-size:.85rem;margin-top:3px}
+.reply-form{margin-top:16px;display:flex;gap:8px}
+.reply-form textarea{flex:1;resize:vertical;min-height:50px}
+.metrics-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:12px;margin:16px 0}
+@media(max-width:768px){nav{padding:0 10px}nav .nav-links a{padding:5px 8px;font-size:.75rem}main{padding:12px}.card-grid{grid-template-columns:1fr}.uni-rec{flex-direction:column;text-align:center}}
+</style>
+</head>
+<body>
+<nav>
+  <div class="logo">UniPulse</div>
+  <div class="nav-links">
+    <a id="nav-discover" class="active">发现</a>
+    <a id="nav-rankings">排名</a>
+    <a id="nav-forum">论坛</a>
+    <a id="nav-report">AI选校</a>
+  </div>
+  <div class="user-area" id="user-area"><button id="login-btn">登录</button></div>
+</nav>
+
+<main>
+  <!-- Discover -->
+  <div class="page active" id="page-discover">
+    <h2>探索全球高校</h2>
+    <div style="margin-top:12px;display:flex;gap:10px;flex-wrap:wrap">
+      <input type="text" id="search-input" placeholder="搜索大学..." style="max-width:360px">
+      <select id="region-filter" style="max-width:180px"><option value="">全部国家</option></select>
+    </div>
+    <div class="card-grid" id="uni-grid"></div>
+  </div>
+
+  <!-- Rankings -->
+  <div class="page" id="page-rankings">
+    <h2>综合排名</h2>
+    <p style="color:var(--muted);font-size:.85rem;margin-top:4px">覆盖63个国家，基于八维评分</p>
+    <div id="ranking-list" style="margin-top:16px"></div>
+  </div>
+
+  <!-- Detail -->
+  <div class="page" id="page-detail">
+    <div id="detail-content" style="max-width:780px;margin:0 auto"></div>
+  </div>
+
+  <!-- Forum -->
+  <div class="page" id="page-forum">
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <h2>校园论坛</h2>
+      <button id="new-post-btn" style="background:var(--accent);color:#fff">✏️ 发帖</button>
+    </div>
+    <div id="forum-list" style="margin-top:16px"></div>
+    <div id="new-post-form" style="display:none;max-width:560px;margin:16px auto;background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);padding:20px">
+      <h3 style="margin-bottom:12px">发布新帖</h3>
+      <div class="form-group"><label>标题</label><input id="post-title" placeholder="帖子标题"></div>
+      <div class="form-group"><label>内容</label><textarea id="post-content" rows="4" placeholder="分享你的看法..."></textarea></div>
+      <div style="display:flex;gap:8px">
+        <button id="submit-post-btn" style="background:var(--accent);color:#fff">发布</button>
+        <button id="cancel-post-btn" style="background:#f3f4f6;color:#374151">取消</button>
+      </div>
+      <div id="post-error" class="error" style="display:none"></div>
+    </div>
+  </div>
+
+  <!-- Forum Post Detail -->
+  <div class="page" id="page-forum-detail">
+    <div id="forum-detail-content" style="max-width:780px;margin:0 auto"></div>
+  </div>
+
+  <!-- AI Report -->
+  <div class="page" id="page-report">
+    <div id="report-form-container">
+      <div style="max-width:560px;margin:0 auto;background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);padding:28px">
+        <h2>🎯 AI 智能选校报告</h2>
+        <p style="color:var(--muted);font-size:.85rem;margin-bottom:16px">输入条件，免费获取推荐</p>
+        <div class="form-group"><label>GPA（满分5.0）</label><input type="number" id="r-gpa" min="0" max="5" step="0.1" value="3.5"></div>
+        <div class="form-group"><label>意向专业</label><input type="text" id="r-major" placeholder="如：计算机科学、商科..."></div>
+        <div class="form-group"><label>偏好地区</label><input type="text" id="r-regions" placeholder="如：美国,英国，留空不限"></div>
+        <div class="form-group"><label>预算范围</label>
+          <select id="r-budget"><option value="不限">不限</option><option value="0-20万">0-20万/年</option><option value="20-50万">20-50万/年</option><option value="50万以上">50万以上/年</option></select>
+        </div>
+        <div class="form-group"><label>语言成绩</label><input type="text" id="r-language" placeholder="如：托福100、雅思7"></div>
+        <button class="submit-btn" id="report-btn">🚀 生成选校报告</button>
+        <div style="text-align:center;margin-top:8px;color:var(--muted);font-size:.8rem">免费 · 即时生成</div>
+      </div>
+    </div>
+    <div id="report-result-container" style="display:none"></div>
+  </div>
+</main>
+
+<!-- Auth Modal -->
+<div class="auth-overlay" id="auth-overlay" style="display:none">
+  <div class="auth-box">
+    <div id="auth-login">
+      <h2>登录 UniPulse</h2>
+      <div class="form-group"><label>邮箱</label><input type="email" id="login-email"></div>
+      <div class="form-group"><label>密码</label><input type="password" id="login-password"></div>
+      <button id="do-login-btn" style="width:100%;background:var(--navy);color:var(--gold);padding:10px">登录</button>
+      <p style="text-align:center;margin-top:10px;font-size:.85rem">没有账号？<span class="switch-link" id="to-register-link">注册</span></p>
+      <div id="login-error" class="error" style="display:none"></div>
+    </div>
+    <div id="auth-register" style="display:none">
+      <h2>注册 UniPulse</h2>
+      <div class="form-group"><label>用户名</label><input id="reg-username"></div>
+      <div class="form-group"><label>邮箱</label><input type="email" id="reg-email"></div>
+      <div class="form-group"><label>密码</label><input type="password" id="reg-password"></div>
+      <button id="do-register-btn" style="width:100%;background:var(--navy);color:var(--gold);padding:10px">注册</button>
+      <p style="text-align:center;margin-top:10px;font-size:.85rem">已有账号？<span class="switch-link" id="to-login-link">登录</span></p>
+      <div id="reg-error" class="error" style="display:none"></div>
+    </div>
+    <button id="close-auth-btn" style="position:absolute;top:10px;right:14px;background:none;color:var(--muted);font-size:1.2rem">✕</button>
+  </div>
+</div>
+
+<script>
+function showToast(msg, type='info'){const t=document.createElement('div');t.className='toast toast-'+type;t.textContent=msg;document.body.appendChild(t);setTimeout(()=>t.remove(),3000);}
+
+(function(){
+  "use strict";
+  var API = '/api/v1/unipulse';
+  var token = localStorage.getItem('unipulse_token');
+  var currentUser = null;
+  try { currentUser = JSON.parse(localStorage.getItem('unipulse_user') || 'null'); } catch(e) {}
+  var universities = [];
+  var forumPosts = [];
+  var _gridAll = [], _gridPage = 0, _rankAll = [], _rankPage = 0;
+  var PAGE = 30;
+
+  // ── Helpers ──
+  function $(id) { return document.getElementById(id); }
+  function esc(s) { return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+  async function api(method, path, body) {
+    var h = {'Content-Type': 'application/json'};
+    if (token) h['Authorization'] = 'Bearer ' + token;
+    var opt = {method: method, headers: h};
+    if (body) opt.body = JSON.stringify(body);
+    var r = await fetch(API + path, opt);
+    var d = await r.json();
+    if (!r.ok) throw new Error(d.detail || r.statusText);
+    return d;
+  }
+
+  function showErr(id, msg) {
+    var e = $(id);
+    if (!e) return;
+    e.textContent = msg; e.style.display = 'block';
+    setTimeout(function(){ e.style.display = 'none'; }, 4000);
+  }
+
+  // ── Auth ──
+  function showAuth() { $('auth-overlay').style.display = 'flex'; }
+  function hideAuth() { $('auth-overlay').style.display = 'none'; }
+  function toggleAuth() {
+    var l = $('auth-login'), r = $('auth-register');
+    l.style.display = l.style.display === 'none' ? 'block' : 'none';
+    r.style.display = r.style.display === 'none' ? 'block' : 'none';
+  }
+
+  async function doLogin() {
+    try {
+      var d = await api('POST', API + '/auth/login', {
+        email: $('login-email').value,
+        password: $('login-password').value
+      });
+      token = d.token; currentUser = d.user;
+      localStorage.setItem('unipulse_token', token);
+      localStorage.setItem('unipulse_user', JSON.stringify(currentUser));
+      hideAuth(); updateUserUI();
+    } catch(e) { showErr('login-error', e.message); }
+  }
+
+  async function doRegister() {
+    try {
+      var d = await api('POST', API + '/auth/register', {
+        username: $('reg-username').value,
+        email: $('reg-email').value,
+        password: $('reg-password').value
+      });
+      token = d.token; currentUser = d.user;
+      localStorage.setItem('unipulse_token', token);
+      localStorage.setItem('unipulse_user', JSON.stringify(currentUser));
+      hideAuth(); updateUserUI();
+    } catch(e) { showErr('reg-error', e.message); }
+  }
+
+  function doLogout() {
+    token = null; currentUser = null;
+    localStorage.removeItem('unipulse_token');
+    localStorage.removeItem('unipulse_user');
+    updateUserUI();
+  }
+
+  function updateUserUI() {
+    var a = $('user-area');
+    if (currentUser) {
+      a.innerHTML = '<span class="username">\uD83D\uDC4B ' + esc(currentUser.username) + '</span><button id="logout-btn" style="background:rgba(255,255,255,.1);color:#fff;font-size:.8rem;padding:5px 12px">退出</button>';
+      $('logout-btn').addEventListener('click', doLogout);
+    } else {
+      a.innerHTML = '<button id="login-btn2" style="background:rgba(255,255,255,.1);color:#fff;font-size:.8rem;padding:5px 12px">登录</button>';
+      $('login-btn2').addEventListener('click', showAuth);
+    }
+  }
+
+  // ── Navigation ──
+  function showPage(name) {
+    document.querySelectorAll('.page').forEach(function(p) { p.classList.remove('active'); });
+    document.querySelectorAll('.nav-links a').forEach(function(a) { a.classList.remove('active'); });
+    var pg = $('page-' + name);
+    if (pg) pg.classList.add('active');
+    var nv = $('nav-' + name);
+    if (nv) nv.classList.add('active');
+    if (name === 'forum') loadForum();
+    if (name === 'rankings') renderRankings();
+  }
+
+  // ── Universities ──
+  async function loadUniversities() {
+    try {
+      var data = await api('GET', API + '/universities');
+      universities = data;
+      // Fill country dropdown
+      var sel = $('region-filter');
+      var countries = [];
+      data.forEach(function(u) {
+        if (u.country && countries.indexOf(u.country) === -1) countries.push(u.country);
+      });
+      countries.sort();
+      countries.forEach(function(c) {
+        var o = document.createElement('option');
+        o.value = c; o.textContent = c; sel.appendChild(o);
+      });
+      filterUniversities();
+    } catch(e) { console.error('loadUniversities failed:', e); }
+  }
+
+  function filterUniversities() {
+    var q = $('search-input').value.toLowerCase();
+    var rg = $('region-filter').value;
+    var f = universities;
+    if (q) f = f.filter(function(u) {
+      return (u.cn || u.name).toLowerCase().indexOf(q) >= 0 || (u.country || '').toLowerCase().indexOf(q) >= 0;
+    });
+    if (rg) f = f.filter(function(u) {
+      return (u.country || '') === rg || (u.region || '') === rg;
+    });
+    renderGrid(f);
+  }
+
+  function renderGrid(list) {
+    var grid = $('uni-grid');
+    _gridAll = list; _gridPage = 0;
+    grid.innerHTML = '';
+    appendGrid();
+  }
+
+  function appendGrid() {
+    var grid = $('uni-grid');
+    var start = _gridPage * PAGE, end = start + PAGE;
+    var slice = _gridAll.slice(start, end);
+    _gridPage++;
+    var frag = document.createDocumentFragment();
+    slice.forEach(function(u) {
+      var vals = u.metrics ? Object.values(u.metrics) : [];
+      var avg = vals.length ? vals.reduce(function(a,b){return a+b;},0) / vals.length : 0;
+      var d = document.createElement('div');
+      d.className = 'card';
+      var tagsHtml = '';
+      if (u.tags && u.tags.length) {
+        u.tags.forEach(function(t) { tagsHtml += '<span class="tag">' + esc(t) + '</span>'; });
+      }
+      d.innerHTML = '<h3>' + esc(u.cn || u.name) + '</h3>' +
+        '<div>' + tagsHtml + '</div>' +
+        '<div class="meta">' + esc(u.country || '') + ' · QS #' + (u.rank || '—') + '</div>' +
+        '<div class="score-bar"><div class="fill" style="width:' + avg.toFixed(0) + '%"></div></div>';
+      (function(uid) {
+        d.addEventListener('click', function() { showDetail(uid); });
+      })(u.id);
+      frag.appendChild(d);
+    });
+    grid.appendChild(frag);
+
+    var more = $('load-more');
+    if (more) more.remove();
+    if (_gridPage * PAGE < _gridAll.length) {
+      var b = document.createElement('button');
+      b.id = 'load-more'; b.className = 'load-more';
+      b.textContent = '加载更多 (' + (_gridAll.length - _gridPage * PAGE) + ' 所)';
+      b.addEventListener('click', appendGrid);
+      grid.parentElement.appendChild(b);
+    }
+  }
+
+  // ── Rankings ──
+  function renderRankings() {
+    _rankAll = universities.slice().sort(function(a,b) { return (a.rank||999) - (b.rank||999); });
+    _rankPage = 0;
+    $('ranking-list').innerHTML = '';
+    appendRank();
+  }
+
+  function appendRank() {
+    var el = $('ranking-list');
+    var start = _rankPage * PAGE, end = start + PAGE;
+    var slice = _rankAll.slice(start, end);
+    _rankPage++;
+    var frag = document.createDocumentFragment();
+    slice.forEach(function(u, i) {
+      var idx = start + i;
+      var vals = u.metrics ? Object.values(u.metrics) : [];
+      var avg = vals.length ? vals.reduce(function(a,b){return a+b;},0) / vals.length : 0;
+      var medal = idx < 3 ? ['🥇','🥈','🥉'][idx] : '' + (idx + 1);
+      var d = document.createElement('div');
+      d.className = 'post-item';
+      d.innerHTML = '<div style="display:flex;justify-content:space-between;align-items:center">' +
+        '<div><span style="font-size:1.1rem;margin-right:10px">' + medal + '</span>' +
+        '<strong>' + esc(u.cn || u.name) + '</strong>' +
+        '<span style="color:var(--muted);font-size:.8rem;margin-left:6px">' + esc(u.country || '') + '</span></div>' +
+        '<div style="text-align:right"><div style="font-weight:700;color:var(--navy)">' + avg.toFixed(1) + '</div>' +
+        '<div style="font-size:.75rem;color:var(--muted)">QS #' + (u.rank || '—') + '</div></div></div>';
+      (function(uid) {
+        d.addEventListener('click', function() { showDetail(uid); });
+      })(u.id);
+      frag.appendChild(d);
+    });
+    el.appendChild(frag);
+
+    var more = $('rank-more');
+    if (more) more.remove();
+    if (_rankPage * PAGE < _rankAll.length) {
+      var b = document.createElement('button');
+      b.id = 'rank-more'; b.className = 'load-more';
+      b.textContent = '加载更多排名 (' + (_rankAll.length - _rankPage * PAGE) + ' 所)';
+      b.addEventListener('click', appendRank);
+      el.parentElement.appendChild(b);
+    }
+  }
+
+  // ── Detail ──
+  async function showDetail(id) {
+    try {
+      var u = await api('GET', API + '/universities/' + id);
+      document.querySelectorAll('.page').forEach(function(p) { p.classList.remove('active'); });
+      $('page-detail').classList.add('active');
+      var dims = ['学术声誉','雇主声誉','师生比','国际化','论文引用','研究成果','教学水平','就业率'];
+      var keys = ['academic','employer','ratio','international','citations','research','teaching','employment'];
+      var tagsHtml = '';
+      if (u.tags && u.tags.length) {
+        u.tags.forEach(function(t) { tagsHtml += '<span class="tag">' + esc(t) + '</span>'; });
+      }
+      var metricsHtml = '';
+      keys.forEach(function(k, i) {
+        var v = (u.metrics && u.metrics[k] != null) ? u.metrics[k] : '—';
+        metricsHtml += '<div class="metric-card"><div class="label">' + dims[i] + '</div><div class="value">' + v + '</div></div>';
+      });
+      $('detail-content').innerHTML =
+        '<button class="back-btn" id="detail-back-btn">← 返回</button>' +
+        '<h1>' + esc(u.cn || u.name) + '</h1>' +
+        '<div style="color:var(--muted);font-size:.95rem;margin-bottom:20px">' + esc(u.name) + ' · ' + esc(u.country || '') + ' · QS #' + (u.rank || '—') + '</div>' +
+        '<p style="margin-bottom:20px">' + esc(u.description || '') + '</p>' +
+        tagsHtml +
+        '<h3 style="margin-top:20px;margin-bottom:10px">八维评分</h3>' +
+        '<div class="metrics-grid">' + metricsHtml + '</div>';
+      $('detail-back-btn').addEventListener('click', function() { showPage('discover'); });
+    } catch(e) { alert('加载失败: ' + e.message); }
+  }
+
+  // ── Forum ──
+  async function loadForum() {
+    try {
+      forumPosts = await api('GET', API + '/forum/posts');
+      var html = '';
+      forumPosts.forEach(function(p) {
+        html += '<div class="post-item" data-post-id="' + p.id + '">' +
+          '<h3>' + esc(p.title) + '</h3>' +
+          '<div class="post-meta"><span>✍️ ' + esc(p.author || '匿名') + '</span>' +
+          '<span>💬 ' + (p.comments_count || p.comment_count || 0) + '</span></div></div>';
+      });
+      $('forum-list').innerHTML = html;
+      // Bind click events
+      $('forum-list').querySelectorAll('.post-item').forEach(function(el) {
+        el.addEventListener('click', function() {
+          var pid = parseInt(el.getAttribute('data-post-id'));
+          showForumPost(pid);
+        });
+      });
+    } catch(e) { console.error('loadForum failed:', e); }
+  }
+
+  async function showForumPost(id) {
+    try {
+      var p = await api('GET', API + '/forum/posts/' + id);
+      document.querySelectorAll('.page').forEach(function(pg) { pg.classList.remove('active'); });
+      $('page-forum-detail').classList.add('active');
+      var commentsHtml = '';
+      if (p.comments && p.comments.length) {
+        p.comments.forEach(function(c) {
+          commentsHtml += '<div class="comment-box"><div class="author">' + esc(c.author || '匿名') + '</div>' +
+            '<div class="text">' + esc(c.content || c.text || '') + '</div></div>';
+        });
+      }
+      $('forum-detail-content').innerHTML =
+        '<button class="back-btn" id="forum-back-btn">← 返回论坛</button>' +
+        '<h1>' + esc(p.title) + '</h1>' +
+        '<div style="color:var(--muted);font-size:.85rem;margin-bottom:16px">✍️ ' + esc(p.author || '匿名') + ' · 👀 ' + (p.views || 0) + '</div>' +
+        '<p style="white-space:pre-line">' + esc(p.content || '') + '</p>' +
+        '<h3 style="margin-top:20px">评论 (' + (p.comments ? p.comments.length : 0) + ')</h3>' +
+        commentsHtml +
+        '<div class="reply-form">' +
+        '<textarea id="reply-content" placeholder="' + (currentUser ? '写下评论...' : '请先登录') + '" ' + (currentUser ? '' : 'disabled') + '></textarea>' +
+        '<button id="submit-reply-btn" ' + (currentUser ? '' : 'disabled') + ' style="background:var(--accent);color:#fff">发送</button></div>';
+      $('forum-back-btn').addEventListener('click', function() { showPage('forum'); });
+      $('submit-reply-btn').addEventListener('click', function() { submitComment(id); });
+    } catch(e) { alert('加载失败: ' + e.message); }
+  }
+
+  function showNewPost() {
+    if (!currentUser) { showAuth(); return; }
+    $('new-post-form').style.display = 'block';
+  }
+  function hideNewPost() { $('new-post-form').style.display = 'none'; }
+
+  async function submitPost() {
+    try {
+      await api('POST', API + '/forum/posts', {
+        title: $('post-title').value,
+        content: $('post-content').value,
+        category: '校园生活'
+      });
+      hideNewPost(); loadForum();
+    } catch(e) { showErr('post-error', e.message); }
+  }
+
+  async function submitComment(postId) {
+    var c = $('reply-content').value;
+    if (!c.trim()) return;
+    try {
+      await api('POST', API + '/forum/posts/' + postId + '/comments', {content: c});
+      showForumPost(postId);
+    } catch(e) { alert('评论失败: ' + e.message); }
+  }
+
+  // ── AI Report ──
+  async function generateReport() {
+    var major = $('r-major').value;
+    if (!major.trim()) { showToast('请填写意向专业','error'); return; }
+    var btn = $('report-btn');
+    btn.disabled = true; btn.textContent = '⏳ 生成中...';
+    var params = new URLSearchParams({
+      gpa: $('r-gpa').value, major: major,
+      regions: $('r-regions').value || '不限',
+      budget: $('r-budget').value,
+      language: $('r-language').value || '待定'
+    });
+    try {
+      var resp = await api('POST', API + '/ai/report?' + params.toString());
+      var result = null;
+      for (var i = 0; i < 30; i++) {
+        await new Promise(function(r) { setTimeout(r, 1000); });
+        var d = await api('GET', API + '/ai/report/' + resp.report_id);
+        if (d.status === 'done') { result = d.result; break; }
+      }
+      if (!result) { showToast('生成超时','error'); return; }
+      renderReport(result);
+    } catch(e) { alert('生成失败: ' + e.message); }
+    finally { btn.disabled = false; btn.textContent = '🚀 生成选校报告'; }
+  }
+
+  function renderReport(r) {
+    $('report-form-container').style.display = 'none';
+    var c = $('report-result-container');
+    c.style.display = 'block';
+
+    var topHtml = '';
+    if (r.top_recommendations) {
+      r.top_recommendations.forEach(function(u, i) {
+        var reasons = (u.match_reasons || []).join(' · ');
+        topHtml += '<div class="uni-rec" data-uni-id="' + u.id + '">' +
+          '<div class="rank-badge">' + (i+1) + '</div>' +
+          '<div style="flex:1"><h3>' + esc(u.cn) + ' <span style="color:var(--muted);font-weight:400;font-size:.85rem">' + esc(u.name) + '</span></h3>' +
+          '<div style="font-size:.85rem;color:var(--success);font-weight:600">匹配度 ' + u.score + '%</div>' +
+          '<div style="font-size:.8rem;color:var(--muted)">' + esc(reasons) + '</div></div>' +
+          '<div class="score-ring">' + u.score + '</div></div>';
+      });
+    }
+
+    var otherHtml = '';
+    if (r.other_options && r.other_options.length) {
+      otherHtml = '<h3 style="margin-top:20px">📋 其他可选</h3>';
+      r.other_options.forEach(function(u) {
+        otherHtml += '<div class="post-item" data-uni-id="' + u.id + '">' +
+          '<div style="display:flex;justify-content:space-between;align-items:center">' +
+          '<div><strong>' + esc(u.cn) + '</strong> <span style="color:var(--muted);font-size:.8rem">' + esc(u.country || '') + '</span></div>' +
+          '<div style="color:var(--success);font-weight:600">' + u.score + '%</div></div></div>';
+      });
+    }
+
+    c.innerHTML =
+      '<div style="max-width:760px;margin:0 auto">' +
+      '<button class="back-btn" id="report-back-btn">← 重新选校</button>' +
+      '<h2>🎯 你的选校报告</h2>' +
+      '<p style="color:var(--muted);margin-bottom:20px">' + esc(r.summary) + '</p>' +
+      '<div style="background:var(--card);border-radius:var(--radius);padding:14px;margin-bottom:20px;border-left:4px solid var(--gold)">' +
+      '<div style="font-weight:600;margin-bottom:4px">你的条件</div>' +
+      '<div style="font-size:.85rem;color:var(--muted)">GPA:' + r.input.gpa + ' · 专业:' + esc(r.input.major) + ' · 预算:' + esc(r.input.budget) + '</div></div>' +
+      '<h3>🏆 推荐 TOP3</h3>' + topHtml + otherHtml +
+      '<div style="margin-top:20px;padding:14px;background:#fef3c7;border-radius:10px;font-size:.8rem;color:#92400e">' +
+      '⚠️ ' + esc(r.ai_notice || '本报告基于公开数据分析，仅供参考。') + '</div></div>';
+
+    // Bind click events for university items
+    c.querySelectorAll('[data-uni-id]').forEach(function(el) {
+      el.addEventListener('click', function() {
+        var uid = parseInt(el.getAttribute('data-uni-id'));
+        if (uid) showDetail(uid);
+      });
+    });
+    $('report-back-btn').addEventListener('click', function() {
+      $('report-form-container').style.display = 'block';
+      c.style.display = 'none';
+    });
+  }
+
+  // ── Bind All Events ──
+  function bindEvents() {
+    // Nav
+    $('nav-discover').addEventListener('click', function() { showPage('discover'); });
+    $('nav-rankings').addEventListener('click', function() { showPage('rankings'); });
+    $('nav-forum').addEventListener('click', function() { showPage('forum'); });
+    $('nav-report').addEventListener('click', function() { showPage('report'); });
+
+    // Search & filter
+    $('search-input').addEventListener('input', filterUniversities);
+    $('region-filter').addEventListener('change', filterUniversities);
+
+    // Auth
+    $('login-btn').addEventListener('click', showAuth);
+    $('close-auth-btn').addEventListener('click', hideAuth);
+    $('to-register-link').addEventListener('click', toggleAuth);
+    $('to-login-link').addEventListener('click', toggleAuth);
+    $('do-login-btn').addEventListener('click', doLogin);
+    $('do-register-btn').addEventListener('click', doRegister);
+
+    // Forum
+    $('new-post-btn').addEventListener('click', showNewPost);
+    $('cancel-post-btn').addEventListener('click', hideNewPost);
+    $('submit-post-btn').addEventListener('click', submitPost);
+
+    // Report
+    $('report-btn').addEventListener('click', generateReport);
+  }
+
+  // ── Init ──
+  updateUserUI();
+  bindEvents();
+  loadUniversities();
+})();
+</script>
+</body>
+</html>

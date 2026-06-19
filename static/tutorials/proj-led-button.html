@@ -1,0 +1,840 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>STM32 LED跑马灯 + 按键控制入门教程</title>
+<style>
+:root{--bg:#0d1117;--bg2:#161b22;--bg3:#21262d;--br:#30363d;--t:#c9d1d9;--t2:#8b949e;--a:#58a6ff;--g:#3fb950;--o:#d2991d;--r:#f85149;--p:#a371f7;--c1:#39c5cf}
+body{background:var(--bg);color:var(--t);font-family:system-ui,sans-serif;line-height:1.8;max-width:900px;margin:0 auto;padding:20px}
+h1{text-align:center;background:linear-gradient(135deg,var(--a),var(--p));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+h2{color:var(--a);border-bottom:2px solid var(--br);padding-bottom:6px;margin-top:32px}
+h3{color:var(--c1);margin-top:22px}
+pre{background:#1c2128;border:1px solid var(--br);border-radius:8px;padding:14px;overflow-x:auto;font-size:.84em}
+code{font-family:'Cascadia Code',Consolas,monospace}
+:not(pre)>code{background:var(--bg3);padding:2px 6px;border-radius:4px;color:var(--c1)}
+table{width:100%;border-collapse:collapse;margin:12px 0}
+th{background:var(--bg3);color:var(--a);padding:8px 12px;border:1px solid var(--br);text-align:left}
+td{padding:8px 12px;border:1px solid var(--br)}
+.note{background:rgba(88,166,255,.08);border-left:3px solid var(--a);border-radius:8px;padding:12px 16px;margin:12px 0}
+.warn{background:rgba(248,81,73,.08);border-left:3px solid var(--r);border-radius:8px;padding:12px 16px;margin:12px 0}
+.tip{background:rgba(63,185,80,.08);border-left:3px solid var(--g);border-radius:8px;padding:12px 16px;margin:12px 0}
+</style>
+</head>
+<body>
+
+<h1>🌟 STM32 LED跑马灯 + 按键控制</h1>
+
+<div class="note">
+<strong>📋 学习目标：</strong>掌握GPIO输出控制LED、GPIO输入读取按键、外部中断的使用，以及软件/硬件两种消抖方法。
+</div>
+
+<h2>一、硬件接线图</h2>
+
+<h3>1.1 元器件清单</h3>
+<table>
+<tr><th>元器件</th><th>数量</th><th>备注</th></tr>
+<tr><td>STM32F103C8T6最小系统板</td><td>1块</td><td>蓝色小板</td></tr>
+<tr><td>LED（红色/绿色）</td><td>4个</td><td>3mm或5mm均可</td></tr>
+<tr><td>轻触按键</td><td>1个</td><td>4脚带弹簧</td></tr>
+<tr><td>限流电阻</td><td>4个</td><td>330Ω~1kΩ，建议470Ω</td></tr>
+<tr><td>上拉电阻</td><td>1个</td><td>10kΩ（外接）</td></tr>
+<tr><td>面包板+跳线</td><td>若干</td><td>方便接线</td></tr>
+</table>
+
+<h3>1.2 接线示意</h3>
+<pre>
+        STM32F103C8T6 最小系统板
+        ┌─────────────────────┐
+        │                     │
+        │   ┌─────────────┐   │
+        │   │   MCU芯片   │   │
+        │   └─────────────┘   │
+        │                     │
+        │  PA0 ──────► LED1  │  (通过470Ω限流电阻)
+        │  PA1 ──────► LED2  │  (通过470Ω限流电阻)
+        │  PA2 ──────► LED3  │  (通过470Ω限流电阻)
+        │  PA3 ──────► LED4  │  (通过470Ω限流电阻)
+        │                     │
+        │  PA8 ◄─── 按键 ─┤  │  (按键另一端接地GND)
+        │           └──10kΩ─┘  │  (PA8内置上拉，或外接10kΩ到3.3V)
+        │                     │
+        │  3.3V ───► VCC      │  (所有LED和上拉电阻共正极)
+        │  GND  ───► GND      │  (共地)
+        └─────────────────────┘
+
+【灌电流接法说明】
+  MCU输出高电平"1"时 → LED熄灭
+  MCU输出低电平"0"时 → LED点亮（电流从VCC→LED→MCU流入地）
+
+【按键接线】
+  按键未按下 → PA8检测到高电平(3.3V，经上拉)
+  按键按下   → PA8检测到低电平(0V，对地短路)
+</pre>
+
+<div class="tip">
+💡 <strong>灌电流接法</strong>：LED正极接VCC，负极通过限流电阻接MCU引脚。MCU引脚输出低电平时电流从VCC流入MCU，这种方式比"拉电流"更稳定，是推荐接法。
+</div>
+
+<h2>二、CubeMX配置步骤</h2>
+
+<h3>2.1 新建工程</h3>
+<ol>
+<li>打开STM32CubeMX，点击 <strong>File → New Project</strong></li>
+<li>在搜索框输入 <code>STM32F103C8T6</code>，选择对应芯片</li>
+<li>点击<strong>Start Project</strong>开始配置</li>
+</ol>
+
+<h3>2.2 配置时钟（RCC）</h3>
+<ol>
+<li>在<strong>Pinout view</strong>左侧，点击 <code>RCC</code></li>
+<li>High Speed Clock (HSE) 选择 <strong>Crystal/Ceramic Resonator</strong></li>
+<li>Low Speed Clock (LSE) 选择 <strong>Crystal/Ceramic Resonator</strong>（可选）</li>
+</ol>
+
+<h3>2.3 配置GPIO输出（LED）</h3>
+<ol>
+<li>点击芯片上的 <strong>PA0</strong> 引脚</li>
+<li>选择 <code>GPIO_Output</code></li>
+<li>同样方式配置 <strong>PA1、PA2、PA3</strong></li>
+<li>在左侧<strong>GPIO</strong>标签页中：
+<pre>
+PA0 → Output Push Pull, High (初始高电平-灯灭)
+PA1 → Output Push Pull, High
+PA2 → Output Push Pull, High
+PA3 → Output Push Pull, High
+</pre>
+</li>
+</ol>
+
+<h3>2.4 配置GPIO输入（按键）</h3>
+<ol>
+<li>点击芯片上的 <strong>PA8</strong> 引脚</li>
+<li>选择 <code>GPIO_Input</code></li>
+<li>在左侧<strong>GPIO</strong>标签页中：
+<pre>
+PA8 → GPIO Pull-up (上拉电阻启用)
+</pre>
+</li>
+</ol>
+
+<h3>2.5 配置外部中断</h3>
+<ol>
+<li>点击芯片上的 <strong>PA8</strong> 引脚</li>
+<li>选择 <code>GPIO_EXTI8</code></li>
+<li>在左侧<strong>GPIO</strong>标签页中配置：
+<pre>
+PA8 → GPIO_EXTI8
+       → Trigger: Both Edges (上升沿和下降沿都触发)
+               或: Falling Edge (仅下降沿)
+</pre>
+</li>
+</ol>
+
+<h3>2.6 配置定时器TIM2（用于硬件消抖）</h3>
+<ol>
+<li>在左侧<strong>Timers → TIM2</strong></li>
+<li>勾选 <strong>Activated</strong></li>
+<li>Configuration标签：
+<pre>
+Prescaler = 72-1    (72MHz / 72 = 1MHz，计数一次=1us)
+Counter Period = 10000-1  (10ms定时)
+Trigger Output: None
+</pre>
+</li>
+<li>点击<strong>NVIC Settings</strong>，勾选<strong>TIM2 interrupt</strong></li>
+</ol>
+
+<h3>2.7 配置时钟树</h3>
+<ol>
+<li>点击左侧<strong>Clock Configuration</strong></li>
+<li>HSE = 8MHz（根据你的晶振）</li>
+<li>PLL锁相环配置：HSE × 9 = 72MHz</li>
+<li>APB1 = 36MHz，APB2 = 72MHz</li>
+</ol>
+
+<h3>2.8 生成代码</h3>
+<ol>
+<li>点击<strong>Project Manager</strong></li>
+<li>填写项目名称：<code>led_button_demo</code></li>
+<li>选择保存路径</li>
+<li>Toolchain/IDE 选择 <strong>MDK-ARM</strong>（Keil）</li>
+<li>点击<strong> GENERATE CODE</strong>生成代码</li>
+</ol>
+
+<h2>三、完整代码（main.c）</h2>
+
+<pre>
+/* USER CODE BEGIN Header */
+/**
+  ******************************************************************************
+  * @file           : main.c
+  * @brief          : LED跑马灯 + 按键控制（外部中断+消抖）
+  ******************************************************************************
+  * @attention
+  *
+  * 本教程实现功能：
+  * 1. GPIO输出控制4个LED实现流水灯效果
+  * 2. 外部中断检测按键按下
+  * 3. 软件消抖（延时法）
+  * 4. 硬件定时器消抖（TIM2中断法）
+  *
+  ******************************************************************************
+  */
+/* USER CODE END Header */
+
+/* Includes ------------------------------------------------------------------*/
+#include "main.h"
+#include "tim.h"
+#include "gpio.h"
+
+/* Private includes ----------------------------------------------------------*/
+/* USER CODE BEGIN Includes */
+#include &lt;stdio.h&gt;  // 用于串口打印（如果配置了USART）
+
+/* USER CODE END Includes */
+
+/* Private typedef -----------------------------------------------------------*/
+/* USER CODE BEGIN PTD */
+
+/* USER CODE END PTD */
+
+/* Private define ------------------------------------------------------------*/
+/* USER CODE BEGIN PD */
+#define LED1_Pin GPIO_PIN_0
+#define LED2_Pin GPIO_PIN_1
+#define LED3_Pin GPIO_PIN_2
+#define LED4_Pin GPIO_PIN_3
+#define LED1_GPIO_Port GPIOA
+#define LED2_GPIO_Port GPIOA
+#define LED3_GPIO_Port GPIOA
+#define LED4_GPIO_Port GPIOA
+
+#define KEY_Pin GPIO_PIN_8
+#define KEY_GPIO_Port GPIOA
+
+/* 消抖相关定义 */
+#define DEBOUNCE_TIME_MS    50      // 软件消抖时间（毫秒）
+#define HARDWARE_DEBOUNCE_MS 50     // 硬件定时器消抖时间（毫秒）
+
+/* USER CODE END PD */
+
+/* Private variables ---------------------------------------------------------*/
+/* USER CODE BEGIN PV */
+uint8_t key_pressed_flag = 0;       // 按键按下标志
+uint8_t led_pattern = 0;            // 当前流水灯模式
+uint32_t last_key_press_time = 0;   // 上次按键时间（用于软件消抖）
+
+/* USER CODE END PV */
+
+/* Private function prototypes -----------------------------------------------*/
+void SystemClock_Config(void);
+void Error_Handler(void);
+
+/* USER CODE BEGIN PFP */
+void LED_Set_State(uint16_t led_pin, GPIO_PinState state);
+void LED_Chase(uint8_t direction);
+void Key_Software_Debounce(void);
+void LED_All_Off(void);
+void LED_All_On(void);
+void TIM2_Delay_us(uint32_t us);
+
+/* USER CODE END PFP */
+
+/**
+  * @brief  主函数
+  * @param  None
+  * @retval None
+  */
+int main(void)
+{
+  /* 初始化HAL库 */
+  HAL_Init();
+
+  /* 配置系统时钟 */
+  SystemClock_Config();
+
+  /* 初始化所有外设 */
+  MX_GPIO_Init();
+  MX_TIM2_Init();
+
+  /* 启动TIM2用于硬件消抖定时 */
+  HAL_TIM_Base_Start_IT(&htim2);
+
+  /* 初始化所有LED为熄灭状态 */
+  LED_All_Off();
+
+  /* 无限循环主程序 */
+  while (1)
+  {
+    /* 方法1：软件延时跑马灯（CPU空转方式） */
+    static uint32_t last_led_time = 0;
+    static uint8_t current_led = 0;
+
+    if (HAL_GetTick() - last_led_time &gt;= 200)  // 200ms切换一次
+    {
+      last_led_time = HAL_GetTick();
+
+      /* 熄灭所有LED */
+      LED_All_Off();
+
+      /* 点亮当前LED */
+      switch (current_led)
+      {
+        case 0: HAL_GPIO_WritePin(LED1_GPIO_Port, LED1_Pin, GPIO_PIN_RESET); break;  // 低电平点亮
+        case 1: HAL_GPIO_WritePin(LED2_GPIO_Port, LED2_Pin, GPIO_PIN_RESET); break;
+        case 2: HAL_GPIO_WritePin(LED3_GPIO_Port, LED3_Pin, GPIO_PIN_RESET); break;
+        case 3: HAL_GPIO_WritePin(LED4_GPIO_Port, LED4_Pin, GPIO_PIN_RESET); break;
+        default: break;
+      }
+
+      /* 移动到下一个LED */
+      current_led++;
+      if (current_led &gt;= 4)
+      {
+        current_led = 0;
+      }
+    }
+
+    /* 方法2：如果按键被按下，执行相应操作 */
+    if (key_pressed_flag == 1)
+    {
+      key_pressed_flag = 0;  // 清除标志
+
+      /* 按键按下后，所有灯闪烁3次 */
+      for (int i = 0; i &lt; 3; i++)
+      {
+        LED_All_On();
+        HAL_Delay(200);
+        LED_All_Off();
+        HAL_Delay(200);
+      }
+    }
+
+    /* 方法3：查询方式读取按键（带软件消抖） */
+    static uint8_t key_state = 1;      // 1=未按下, 0=按下
+    static uint8_t last_key_state = 1;
+    static uint32_t key_last_change_time = 0;
+
+    uint8_t current_key = HAL_GPIO_ReadPin(KEY_GPIO_Port, KEY_Pin);
+
+    if (current_key != last_key_state)
+    {
+      /* 按键状态发生变化，记录时间 */
+      key_last_change_time = HAL_GetTick();
+      last_key_state = current_key;
+    }
+
+    /* 等待消抖时间后，确认按键状态 */
+    if ((HAL_GetTick() - key_last_change_time) &gt; DEBOUNCE_TIME_MS)
+    {
+      if (current_key != key_state)
+      {
+        key_state = current_key;
+
+        /* 按键释放时（从按下变为未按下）执行操作 */
+        if (key_state == 1)  // 释放
+        {
+          /* 反向流水灯方向 */
+          led_pattern = !led_pattern;
+        }
+      }
+    }
+
+    /* 正常情况下不做任何阻塞操作，让CPU处理其他事务 */
+  }
+}
+
+/**
+  * @brief  系统时钟配置
+  * @param  None
+  * @retval None
+  */
+void SystemClock_Config(void)
+{
+  RCC_OscInitTypeDef RCC_OscInitStruct = {0};
+  RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
+
+  /* 初始化RCC振荡器 */
+  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSE;
+  RCC_OscInitStruct.HSEState = RCC_HSE_ON;
+  RCC_OscInitStruct.HSEPredivValue = RCC_HSE_PREDIV_DIV1;
+  RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
+  RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
+  RCC_OscInitStruct.PLL.PLLMUL = RCC_PLL_MUL9;
+  if (HAL_RCC_OscConfig(&amp;RCC_OscInitStruct) != HAL_OK)
+  {
+    Error_Handler();
+  }
+
+  /* 初始化CPU、AHB和APB时钟 */
+  RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK | RCC_CLOCKTYPE_SYSCLK
+                              | RCC_CLOCKTYPE_PCLK1 | RCC_CLOCKTYPE_PCLK2;
+  RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
+  RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
+  RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV2;
+  RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1;
+
+  if (HAL_RCC_ClockConfig(&amp;RCC_ClkInitStruct, FLASH_LATENCY_2) != HAL_OK)
+  {
+    Error_Handler();
+  }
+}
+
+/**
+  * @brief  设置单个LED状态
+  * @param  led_pin: LED引脚
+  * @param  state: GPIO状态（SET=灭，RESET=亮）
+  * @retval None
+  */
+void LED_Set_State(uint16_t led_pin, GPIO_PinState state)
+{
+  HAL_GPIO_WritePin(GPIOA, led_pin, state);
+}
+
+/**
+  * @brief  熄灭所有LED
+  * @param  None
+  * @retval None
+  */
+void LED_All_Off(void)
+{
+  HAL_GPIO_WritePin(LED1_GPIO_Port, LED1_Pin, GPIO_PIN_SET);
+  HAL_GPIO_WritePin(LED2_GPIO_Port, LED2_Pin, GPIO_PIN_SET);
+  HAL_GPIO_WritePin(LED3_GPIO_Port, LED3_Pin, GPIO_PIN_SET);
+  HAL_GPIO_WritePin(LED4_GPIO_Port, LED4_Pin, GPIO_PIN_SET);
+}
+
+/**
+  * @brief  点亮所有LED
+  * @param  None
+  * @retval None
+  */
+void LED_All_On(void)
+{
+  HAL_GPIO_WritePin(LED1_GPIO_Port, LED1_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(LED2_GPIO_Port, LED2_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(LED3_GPIO_Port, LED3_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(LED4_GPIO_Port, LED4_Pin, GPIO_PIN_RESET);
+}
+
+/**
+  * @brief  TIM2中断回调函数（硬件消抖用）
+  * @param  htim: 定时器句柄
+  * @retval None
+  */
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
+{
+  if (htim-&gt;Instance == TIM2)
+  {
+    /* 硬件定时器消抖处理 - 可以在这里检查按键状态 */
+    /* 注意：由于TIM2中断频率较高，这里只设置一个标志 */
+    /* 实际的消抖逻辑可以在主循环中处理 */
+
+    /* 示例：读取按键并更新状态（带硬件定时器消抖） */
+    static uint8_t debounce_counter = 0;
+    static uint8_t stable_key_state = 1;
+
+    uint8_t raw_key = HAL_GPIO_ReadPin(KEY_GPIO_Port, KEY_Pin);
+
+    if (raw_key != stable_key_state)
+    {
+      debounce_counter++;
+      if (debounce_counter &gt;= (HARDWARE_DEBOUNCE_MS))  // 约50ms消抖
+      {
+        stable_key_state = raw_key;
+        debounce_counter = 0;
+
+        /* 按键按下（下降沿） */
+        if (stable_key_state == 0)
+        {
+          key_pressed_flag = 1;
+        }
+      }
+    }
+    else
+    {
+      debounce_counter = 0;
+    }
+  }
+}
+
+/**
+  * @brief  软件消抖函数（延时法）
+  * @param  None
+  * @retval None
+  */
+void Key_Software_Debounce(void)
+{
+  /* 读取按键状态 */
+  uint8_t key_value = HAL_GPIO_ReadPin(KEY_GPIO_Port, KEY_Pin);
+
+  if (key_value == 0)  // 按键按下
+  {
+    HAL_Delay(DEBOUNCE_TIME_MS);  // 延时50ms消抖
+
+    /* 再次读取确认 */
+    if (HAL_GPIO_ReadPin(KEY_GPIO_Port, KEY_Pin) == 0)
+    {
+      /* 确认按键确实按下 */
+      key_pressed_flag = 1;
+    }
+  }
+}
+
+/**
+  * @brief  TIM2微秒延时（使用定时器实现精确延时）
+  * @param  us: 延时微秒数
+  * @retval None
+  */
+void TIM2_Delay_us(uint32_t us)
+{
+  /* TIM2配置：72分频，计数频率1MHz */
+  /* 每次计数 = 1us */
+  htim2.Instance-&gt;CNT = 0;
+  htim2.Instance-&gt;ARR = us;
+  htim2.Instance-&gt;EGR = 0x0001;  // 产生更新事件，重置计数器
+
+  /* 启动定时器 */
+  __HAL_TIM_ENABLE(&amp;htim2);
+
+  /* 等待计数完成 */
+  while (__HAL_TIM_GET_FLAG(&amp;htim2, TIM_FLAG_UPDATE) == RESET);
+
+  /* 清除标志 */
+  __HAL_TIM_CLEAR_FLAG(&amp;htim2, TIM_FLAG_UPDATE);
+
+  /* 停止定时器 */
+  __HAL_TIM_DISABLE(&amp;htim2);
+}
+
+/**
+  * @brief  错误处理函数
+  * @param  None
+  * @retval None
+  */
+void Error_Handler(void)
+{
+  /* 用户可以添加自己的错误处理代码 */
+  while(1)
+  {
+    /* 如果出错，LED快速闪烁 */
+    HAL_GPIO_TogglePin(LED1_GPIO_Port, LED1_Pin);
+    HAL_Delay(100);
+  }
+}
+
+/* USER CODE BEGIN 4 */
+
+/**
+  * @brief  外部中断回调函数（EXTI Line 8）
+  * @param  GPIO_Pin: 触发中断的引脚
+  * @retval None
+  *
+  * @note   这个函数名不能写错！
+  *         CubeMX会自动生成GPIO_EXTI_callback
+  *         用户需要覆盖这个弱定义函数
+  */
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
+{
+  /* 防止编译器未使用参数警告 */
+  UNUSED(GPIO_Pin);
+
+  /* 检查是否是PA8触发的中断 */
+  if (GPIO_Pin == KEY_Pin)
+  {
+    /* 方法A：软件延时消抖（在中断中尽量避免） */
+    /*
+    HAL_Delay(50);  // 不推荐在中断中延时，会阻塞其他中断
+    if (HAL_GPIO_ReadPin(KEY_GPIO_Port, KEY_Pin) == 0)
+    {
+      key_pressed_flag = 1;
+    }
+    */
+
+    /* 方法B：设置标志，在主循环中处理（推荐） */
+    key_pressed_flag = 1;
+
+    /* 方法C：记录时间戳，在主循环中进行消抖判断（最佳） */
+    last_key_press_time = HAL_GetTick();
+  }
+}
+
+/* USER CODE END 4 */
+
+/* 辅助GPIO初始化代码（由CubeMX生成） */
+/**
+  * @brief  GPIO初始化 - 由CubeMX自动生成
+  * @param  None
+  * @retval None
+  * @note   用户代码不要修改此函数中的外设初始化部分
+  */
+void MX_GPIO_Init(void)
+{
+  GPIO_InitTypeDef GPIO_InitStruct = {0};
+
+  /* GPIO时钟使能 */
+  __HAL_RCC_GPIOA_CLK_ENABLE();
+
+  /* 配置LED引脚为推挽输出 */
+  GPIO_InitStruct.Pin = LED1_Pin | LED2_Pin | LED3_Pin | LED4_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(GPIOA, &amp;GPIO_InitStruct);
+
+  /* 配置按键引脚为输入（上拉） */
+  GPIO_InitStruct.Pin = KEY_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_IT_FALLING;  // 下降沿中断
+  GPIO_InitStruct.Pull = GPIO_PULLUP;
+  HAL_GPIO_Init(GPIOA, &amp;GPIO_InitStruct);
+
+  /* 配置EXTI中断优先级 */
+  HAL_NVIC_SetPriority(EXTI9_5_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(EXTI9_5_IRQn);
+}
+</pre>
+
+<h2>四、关键函数解析</h2>
+
+<h3>4.1 HAL_GPIO_WritePin - 控制LED</h3>
+<pre>
+/* 点亮LED（输出低电平，灌电流） */
+HAL_GPIO_WritePin(GPIOA, GPIO_PIN_0, GPIO_PIN_RESET);
+
+/* 熄灭LED（输出高电平） */
+HAL_GPIO_WritePin(GPIOA, GPIO_PIN_0, GPIO_PIN_SET);
+
+/* 翻转LED状态 */
+HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_0);
+</pre>
+
+<h3>4.2 HAL_GPIO_ReadPin - 读取按键</h3>
+<pre>
+/* 读取PA8引脚状态 */
+GPIO_PinState key_state = HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_8);
+
+/* key_state = GPIO_PIN_SET   → 按键未按下（高电平）
+ * key_state = GPIO_PIN_RESET → 按键按下（低电平） */
+</pre>
+
+<h3>4.3 外部中断回调函数</h3>
+<pre>
+/**
+ * @brief  EXTI中断回调函数
+ * @param  GPIO_Pin: 触发中断的引脚
+ * @note   函数名必须是 HAL_GPIO_EXTI_Callback
+ *         不能写成 HAL_GPIO_EXTI8_Callback
+ */
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
+{
+  if (GPIO_Pin == GPIO_PIN_8)
+  {
+    /* 处理按键按下事件 */
+    key_pressed_flag = 1;
+  }
+}
+</pre>
+
+<h3>4.4 软件消抖 vs 硬件消抖</h3>
+
+<table>
+<tr><th>消抖方法</th><th>原理</th><th>优点</th><th>缺点</th></tr>
+<tr><td>软件延时消抖</td><td>检测到变化后延时50ms再确认</td><td>简单直接</td><td>阻塞CPU，响应慢</td></tr>
+<tr><td>时间戳消抖</td><td>记录变化时间，主循环判断时间差</td><td>不阻塞</td><td>需要在主循环处理</td></tr>
+<tr><td>定时器消抖</td><td>定时器周期性检查，稳定后才确认</td><td>精确，非阻塞</td><td>占用定时器资源</td></tr>
+</table>
+
+<h2>五、常见问题排查</h2>
+
+<h3>5.1 LED不亮</h3>
+<div class="warn">
+<strong>可能原因1：GPIO模式配置错误</strong>
+</div>
+<pre>
+❌ 错误配置（GPIO_MODE_INPUT 输入模式）
+GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+
+✅ 正确配置（推挽输出）
+GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+</pre>
+
+<div class="warn">
+<strong>可能原因2：使用了开漏模式</strong>
+</div>
+<pre>
+❌ 开漏模式无法输出高电平点亮LED
+GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_OD;  // 开漏
+
+✅ 推挽模式可以输出高低电平
+GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;   // 推挽
+</pre>
+
+<div class="warn">
+<strong>可能原因3：限流电阻太小导致引脚损坏</strong>
+</div>
+<pre>
+正确阻值选择（LED压降约2V，电流5-10mA）：
+  I = (3.3V - 2V) / R
+  R = 1.3V / 0.01A = 130Ω  （最小值）
+
+推荐：
+  330Ω → 4mA（较暗但安全）
+  470Ω → 2.8mA（推荐亮度）
+  1kΩ  → 1.3mA（较暗）
+</pre>
+
+<h3>5.2 按键抖动波形分析</h3>
+<pre>
+示波器观察到的按键抖动示意图：
+
+按下去时:     释放时:
+      ___           ___
+     /   \         /   \
+____/     \_______/     \____
+   10-20ms抖动   10-20ms抖动
+
+消抖策略：
+1. 检测到下降沿后，等待 T = 50ms
+2. 如果仍然是低电平 → 确认按下
+3. 如果变成高电平   → 认为是抖动，忽略
+</pre>
+
+<h3>5.3 中断回调函数名拼写错误</h3>
+<div class="warn">
+<strong>常见错误：函数名写错导致中断不响应</strong>
+</div>
+<pre>
+❌ 错误写法（中断不会触发）
+void EXTI9_5_IRQHandler(void)
+{
+    My_Own_Callback();  // 这个函数名不会被自动调用
+}
+
+❌ 错误写法（函数名拼写错误）
+void HAL_GPIO_EXTI8_Callback(uint16_t GPIO_Pin)  // 多了数字8
+
+❌ 错误写法（漏掉了HAL_前缀）
+void GPIO_EXTI_Callback(uint16_t GPIO_Pin)
+
+✅ 正确写法
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
+{
+    if (GPIO_Pin == GPIO_PIN_8)
+    {
+        // 处理中断
+    }
+}
+</pre>
+
+<h3>5.4 中断服务函数与回调函数的区别</h3>
+<pre>
+┌─────────────────────────────────────────────────────────┐
+│                    中断处理流程                          │
+├─────────────────────────────────────────────────────────┤
+│                                                         │
+│  硬件触发中断 ──► ISR函数 ──► 调用回调函数              │
+│                                                         │
+│  EXTI9_5_IRQHandler() ──► HAL_GPIO_EXTI_Callback()     │
+│  (汇编入口，固定名称)      (HAL库标准回调)              │
+│                                                         │
+│  用户只修改回调函数！ISR由HAL库处理！                   │
+│                                                         │
+└─────────────────────────────────────────────────────────┘
+</pre>
+
+<h3>5.5 按键按下/松开判断</h3>
+<pre>
+/* 场景：检测按键按下（下降沿） */
+if (HAL_GPIO_ReadPin(KEY_GPIO_Port, KEY_Pin) == GPIO_PIN_RESET)
+{
+    // 按键按下
+}
+
+/* 场景：检测按键松开（上升沿） */
+if (HAL_GPIO_ReadPin(KEY_GPIO_Port, KEY_Pin) == GPIO_PIN_SET)
+{
+    // 按键松开
+}
+
+/* 场景：在中断中判断是按下还是松开 */
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
+{
+    uint8_t level = HAL_GPIO_ReadPin(KEY_GPIO_Port, GPIO_Pin);
+
+    if (level == GPIO_PIN_RESET)
+    {
+        /* 下降沿 - 按下 */
+    }
+    else
+    {
+        /* 上升沿 - 松开 */
+    }
+}
+</pre>
+
+<h2>六、Keil编译与下载</h2>
+
+<h3>6.1 编译项目</h3>
+<ol>
+<li>打开Keil工程文件 <code>.uvprojx</code></li>
+<li>点击 <strong>Build (F7)</strong> 编译项目</li>
+<li>确认编译输出窗口显示 <code>0 Error(s)</code></li>
+</ol>
+
+<h3>6.2 下载程序</h3>
+<ol>
+<li>连接ST-Link调试器</li>
+<li>点击 <strong>Download (F8)</strong> 下载程序</li>
+<li>或点击 <strong>Debug</strong> 进入调试模式</li>
+</ol>
+
+<h3>6.3 调试技巧</h3>
+<pre>
+在Keil调试模式下：
+1. 打开 Registers 窗口：View → Registers
+2. 打开 Watch 窗口：View → Watch Windows → Watch 1
+3. 监视变量：输入 key_pressed_flag, led_pattern 等
+4. 单步执行：F10(Step Over), F11(Step Into)
+5. 查看GPIO状态：Peripherals → GPIO → GPIOA
+</pre>
+
+<div class="tip">
+💡 <strong>调试建议</strong>：先用万用表测量LED两端电压，正常应接近0V（亮）或3.3V（灭）。
+</div>
+
+<h2>七、扩展练习</h2>
+
+<ol>
+<li><strong>呼吸灯效果</strong>：使用PWM让LED渐变亮灭</li>
+<li><strong>按键组合</strong>：使用两个按键分别控制流水灯方向和速度</li>
+<li><strong>状态机</strong>：用状态机实现按键的多击检测（双击、三击）</li>
+<li><strong>中断优先级</strong>：配置多个GPIO中断，体验优先级效果</li>
+</ol>
+
+<div class="note">
+<strong>📚 进阶学习</strong>：学习定时器PWM模式，用硬件方式实现呼吸灯，比软件延时更平滑。
+</div>
+
+
+<hr><h2>❓ 常见问题 FAQ</h2>
+
+<div style="margin:12px 0;padding:12px 16px;background:var(--bg2);border-left:3px solid var(--a);border-radius:0 8px 8px 0">
+  <p style="font-weight:600;color:var(--c1);margin-bottom:4px">Q: LED亮度不一样？</p>
+  <p style="color:var(--t)">A: 不同颜色LED正向压降不同（红2V/蓝3V），需要不同限流电阻。简单做法：统一用1kΩ电阻。</p>
+</div>
+
+<div style="margin:12px 0;padding:12px 16px;background:var(--bg2);border-left:3px solid var(--a);border-radius:0 8px 8px 0">
+  <p style="font-weight:600;color:var(--c1);margin-bottom:4px">Q: 按键抖动怎么办？</p>
+  <p style="color:var(--t)">A: 硬件：0.1μF电容滤波。软件：延时10~20ms消抖。推荐：定时器扫描+状态机消抖（不阻塞）。</p>
+</div>
+
+<hr><h2>🔗 相关教程</h2>
+<div style="display:flex;flex-wrap:wrap;gap:8px;margin:12px 0">
+<a href="#" onclick="parent.loadPage && parent.loadPage('stm32')" style="display:inline-block;padding:6px 14px;background:var(--bg3);border:1px solid var(--br);border-radius:6px;color:var(--a);text-decoration:none;font-size:.85em">STM32开发 →</a>
+<a href="#" onclick="parent.loadPage && parent.loadPage('proj-uart-hello')" style="display:inline-block;padding:6px 14px;background:var(--bg3);border:1px solid var(--br);border-radius:6px;color:var(--a);text-decoration:none;font-size:.85em">串口Hello →</a>
+<a href="#" onclick="parent.loadPage && parent.loadPage('proj-oled-display')" style="display:inline-block;padding:6px 14px;background:var(--bg3);border:1px solid var(--br);border-radius:6px;color:var(--a);text-decoration:none;font-size:.85em">OLED显示 →</a>
+</div>
+
+</body>
+</html>

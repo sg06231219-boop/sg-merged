@@ -1,0 +1,91 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI短剧工坊 - SG智能建站</title>
+<link rel="stylesheet" href="/static/tool-shared/style.css">
+<style>:root{--accent1:#4facfe;--accent2:#00f2fe}</style>
+</head>
+<body>
+<div class="container">
+<a href="/" class="back">← 返回首页</a>
+<div class="header"><h1>🎭 AI短剧工坊</h1><p>输入创意，AI一键生成完整短剧剧本</p></div>
+
+<div class="quota"><span>今日免费额度</span><span class="rem" id="quotaText">加载中...</span></div>
+
+<div class="glass">
+<h2>📝 剧本创意</h2>
+<div class="field"><label class="fl">故事主题/创意</label><textarea id="theme" placeholder="如：实习生发现公司总裁的惊天秘密...&#10;如：穿越回古代当了皇帝的贴身侍卫..."></textarea></div>
+<div class="chips" id="styleChips"><span class="chip active" data-val="urban_romance">💕 都市情感</span><span class="chip" data-val="mystery">🔍 悬疑推理</span><span class="chip" data-val="ancient_fantasy">⚔️ 古风仙侠</span><span class="chip" data-val="workplace">💼 职场励志</span><span class="chip" data-val="campus">🎓 校园青春</span><span class="chip" data-val="comedy">😂 搞笑日常</span></div>
+<div class="row">
+<div class="field"><label class="fl">集数</label><select id="episodes"><option value="1">1集（试播）</option><option value="2">2集</option><option value="3">3集</option></select></div>
+<div class="field"><label class="fl">每集时长</label><select id="duration"><option value="1">1分钟</option><option value="2" selected>2分钟</option><option value="3">3分钟</option></select></div>
+</div>
+<button class="btn btn-primary" id="genBtn" data-action="generate">🎭 开始创作</button>
+</div>
+
+<div id="progressArea" class="glass hidden"><h2>⏳ 创作进度</h2><div id="steps" class="steps"></div></div>
+<div id="resultArea" class="glass hidden"><h2>🎉 剧本生成</h2><div id="resultContent"></div><div class="export-bar"><button class="btn-sm" data-action="copyAll">📋 复制文本</button><button class="btn-sm" data-action="exportJSON">💾 导出JSON</button></div></div>
+<div id="errorArea" class="glass hidden"><div class="error" id="errorMsg"></div></div>
+
+<div class="glass"><h2>📖 短剧创作Tips</h2><div class="steps"><div class="step"><div class="dot">1</div><div class="txt">输入你想要的剧情创意或主题</div></div><div class="step"><div class="dot">2</div><div class="txt">选择风格、集数和时长</div></div><div class="step"><div class="dot">3</div><div class="txt">AI生成完整剧本（含场景、台词、镜头语言）</div></div></div></div>
+</div>
+
+<script src="/static/tool-shared/base.js"></script>
+<script>
+var tool = new SG.ToolBase({apiBase:'/api/v1/drama', stepTexts:['提交任务...','AI构思剧情中...','编写剧本中...'], timeout:180000});
+tool.getButtonLabel = function(){ return '🎭 开始创作'; };
+tool.onResult = function(r) {
+  tool._lastResult = r;
+  SG.$('errorArea').classList.add('hidden');
+  SG.$('progressArea').classList.add('hidden');
+  SG.$('resultArea').classList.remove('hidden');
+  if(!r) return;
+  var h = '';
+  if(r.title) h += '<div class="result-card" style="border-color:var(--accent1);background:rgba(79,172,254,.06)"><h3 style="font-size:1.2rem">🎬 '+SG.escHtml(r.title)+'</h3>'+(r.total_duration?'<p style="color:var(--text2);font-size:.8rem">总时长：'+SG.escHtml(r.total_duration)+'</p>':'')+'</div>';
+  if(r.episodes && r.episodes.length) {
+    r.episodes.forEach(function(ep) {
+      h += '<div class="result-card"><h3>📺 第'+ep.ep+'集：'+SG.escHtml(ep.title||'')+'</h3>';
+      if(ep.scenes && ep.scenes.length) {
+        ep.scenes.forEach(function(sc) {
+          h += '<div style="padding:8px 0;border-bottom:1px solid var(--border)">';
+          h += '<div style="display:flex;justify-content:space-between;font-size:.8rem;color:var(--text2);margin-bottom:4px"><span>场景'+sc.scene+' · '+SG.escHtml(sc.location||'')+'</span><span>'+SG.escHtml(sc.duration||'')+'</span></div>';
+          if(sc.characters) h += '<p style="font-size:.8rem;color:var(--accent2)">👤 '+SG.escHtml(sc.characters)+'</p>';
+          if(sc.action) h += '<p style="font-size:.85rem">🎬 '+SG.escHtml(sc.action)+'</p>';
+          if(sc.dialogue) h += '<p style="font-size:.85rem;white-space:pre-wrap;padding:6px 8px;background:rgba(255,255,255,.03);border-radius:4px;margin:4px 0">💬 '+SG.escHtml(sc.dialogue)+'</p>';
+          if(sc.camera) h += '<p style="font-size:.75rem;color:var(--text2)">📷 '+SG.escHtml(sc.camera)+'</p>';
+          h += '</div>';
+        });
+      }
+      if(ep.bgm) h += '<p style="font-size:.8rem;color:var(--text2);margin-top:8px">🎵 '+SG.escHtml(ep.bgm)+'</p>';
+      if(ep.cliffhanger) h += '<p style="font-size:.85rem;color:var(--accent1);margin-top:4px">🪝 本集钩子：'+SG.escHtml(ep.cliffhanger)+'</p>';
+      h += '</div>';
+    });
+  }
+  if(r.tags && r.tags.length) {
+    h += '<div class="result-card"><h3>🏷️ 标签</h3>';
+    r.tags.forEach(function(t){ h += '<span class="tag tag-info" style="margin-right:6px;margin-bottom:4px;display:inline-block;font-size:.85rem;padding:4px 10px">'+SG.escHtml(t)+'</span>'; });
+    h += '</div>';
+  }
+  SG.$('resultContent').innerHTML = h;
+};
+
+SG.initChips('styleChips');
+
+document.addEventListener('click', function(e) {
+  if(e.target.closest('[data-action="generate"]') && !tool.generating) {
+    var theme = SG.$('theme').value.trim();
+    if(!theme) { SG.showToast('请输入故事主题','error'); return; }
+    var style = SG.getActiveChip('styleChips') || 'urban_romance';
+    var episodes = parseInt(SG.$('episodes').value);
+    var duration = parseInt(SG.$('duration').value);
+    tool.submit('/generate', {theme:theme, style:style, episodes:episodes, duration:duration}, '创作中...');
+  }
+  if(e.target.closest('[data-action="copyAll"]')) tool.copyResult();
+  if(e.target.closest('[data-action="exportJSON"]')) tool.exportJSON();
+});
+tool.syncQuota();
+</script>
+</body>
+</html>

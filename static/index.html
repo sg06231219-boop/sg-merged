@@ -1,0 +1,1683 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="SG智能建站 — AI一键生成高转化独立站。输入一句话，AI自动生成SEO优化、响应式设计的专业网站。DTC品牌、B2B外贸、Affiliate内容站、本地服务，一键搞定。">
+<meta name="keywords" content="独立站,AI建站,SEO优化,DTC品牌,外贸询盘,Affiliate,响应式设计">
+<meta property="og:title" content="SG智能建站 — AI一键生成高转化独立站">
+<meta property="og:description" content="输入一句话，AI自动生成SEO优化、响应式设计的专业网站。">
+<meta property="og:type" content="website">
+<meta property="og:image" content="https://auto-site-builder.onrender.com/static/og-image.png">
+<meta property="og:url" content="https://auto-site-builder.onrender.com">
+<link rel="canonical" href="https://auto-site-builder.onrender.com">
+<title>SG智能建站 — AI一键生成高转化独立站</title>
+
+<script>
+function showToast(msg,isError){
+  var t=document.createElement('div');t.className='toast-msg'+(isError?' error':'');t.textContent=msg;
+  document.body.appendChild(t);setTimeout(function(){t.classList.add('show')},10);
+  setTimeout(function(){t.classList.remove('show');setTimeout(function(){t.remove()},300)},3000);
+}
+</script>
+
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"SG智能建站","description":"AI一键生成SEO优化、响应式设计的专业独立站。DTC品牌、B2B外贸、Affiliate内容站、本地服务一键搞定。","url":"https://auto-site-builder.onrender.com","applicationCategory":"DeveloperApplication","operatingSystem":"Web","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"},"aggregateRating":{"@type":"AggregateRating","ratingValue":"4.8","reviewCount":"120"}}</script>
+<link rel="icon" href="/static/favicon.ico" type="image/x-icon">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Noto Sans SC",sans-serif;color:#1a1a2e;line-height:1.6;background:#fff;overflow-x:hidden}
+a{text-decoration:none;color:inherit}
+
+/* ── 导航 ── */
+.navbar{position:fixed;top:0;left:0;right:0;z-index:1000;background:rgba(255,255,255,.95);backdrop-filter:blur(12px);border-bottom:1px solid rgba(0,0,0,.06);transition:all .3s}
+.navbar.scrolled{box-shadow:0 2px 20px rgba(0,0,0,.08)}
+.nav-inner{max-width:1200px;margin:0 auto;padding:0 24px;height:64px;display:flex;align-items:center;justify-content:space-between}
+.nav-logo{font-size:22px;font-weight:800;background:linear-gradient(135deg,#6c5ce7,#a29bfe);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.nav-links{display:flex;gap:32px;align-items:center}
+.nav-links a{font-size:14px;color:#555;transition:color .2s;font-weight:500}
+.nav-links a:hover{color:#6c5ce7}
+.nav-cta{padding:8px 20px;border-radius:8px;background:linear-gradient(135deg,#6c5ce7,#a29bfe);color:#fff;font-size:14px;font-weight:600;border:none;cursor:pointer;transition:all .2s}
+.nav-cta:hover{transform:translateY(-1px);box-shadow:0 4px 16px rgba(108,92,231,.3)}
+
+/* ── Hero ── */
+.hero{background:linear-gradient(160deg,#0f0c29 0%,#1a1a3e 40%,#2d1b69 100%);color:#fff;padding:140px 24px 100px;text-align:center;position:relative;overflow:hidden}
+.hero::before{content:'';position:absolute;top:-50%;left:-50%;width:200%;height:200%;background:radial-gradient(ellipse at 30% 50%,rgba(108,92,231,.15) 0%,transparent 60%);pointer-events:none}
+.hero-badge{display:inline-block;padding:6px 16px;border-radius:20px;background:rgba(108,92,231,.2);border:1px solid rgba(108,92,231,.3);color:#a29bfe;font-size:13px;font-weight:600;margin-bottom:24px;animation:fadeInDown .8s ease}
+.hero h1{font-size:clamp(28px,5vw,56px);font-weight:800;line-height:1.2;margin-bottom:20px;animation:fadeInUp .8s ease .1s both}
+.hero h1 .gradient{background:linear-gradient(90deg,#6c5ce7,#a29bfe,#fd79a8);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.hero-subtitle{font-size:clamp(15px,2vw,20px);color:rgba(255,255,255,.7);max-width:680px;margin:0 auto 40px;animation:fadeInUp .8s ease .2s both}
+.hero-actions{display:flex;gap:16px;justify-content:center;flex-wrap:wrap;animation:fadeInUp .8s ease .3s both}
+.btn-hero-primary{padding:16px 40px;border-radius:12px;background:linear-gradient(135deg,#6c5ce7,#a29bfe);color:#fff;font-size:16px;font-weight:700;border:none;cursor:pointer;transition:all .3s;box-shadow:0 4px 24px rgba(108,92,231,.4)}
+.btn-hero-primary:hover{transform:translateY(-3px);box-shadow:0 8px 32px rgba(108,92,231,.5)}
+.btn-hero-secondary{padding:16px 40px;border-radius:12px;background:rgba(255,255,255,.1);color:#fff;border:1px solid rgba(255,255,255,.2);font-size:16px;font-weight:600;cursor:pointer;transition:all .3s}
+.btn-hero-secondary:hover{background:rgba(255,255,255,.15);transform:translateY(-2px)}
+.hero-tech{display:flex;gap:24px;justify-content:center;margin-top:48px;animation:fadeInUp .8s ease .4s both;flex-wrap:wrap}
+.hero-tech-item{display:flex;align-items:center;gap:8px;font-size:14px;color:rgba(255,255,255,.6)}
+.hero-tech-item .icon{font-size:18px}
+
+@keyframes fadeInUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+@keyframes fadeInDown{from{opacity:0;transform:translateY(-10px)}to{opacity:1;transform:translateY(0)}}
+
+/* ── 信任徽章条 ── */
+.trust-bar{background:#f8f9ff;padding:20px 24px;border-bottom:1px solid rgba(0,0,0,.04)}
+.trust-inner{max-width:1200px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px}
+.trust-item{display:flex;align-items:center;gap:8px;font-size:13px;color:#666}
+.trust-item .icon{font-size:18px}
+
+/* ── 区块通用 ── */
+.section{padding:100px 24px}
+.section-header{text-align:center;margin-bottom:64px}
+.section-tag{display:inline-block;padding:4px 14px;border-radius:12px;background:rgba(108,92,231,.1);color:#6c5ce7;font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:12px}
+.section-title{font-size:clamp(24px,4vw,40px);font-weight:800;color:#1a1a2e;margin-bottom:16px;line-height:1.3}
+.section-subtitle{font-size:16px;color:#666;max-width:600px;margin:0 auto}
+
+/* ── 终端演示区 ── */
+.demo-section{background:#0d1117;padding:80px 24px}
+.terminal-window{max-width:900px;margin:0 auto;background:#161b22;border-radius:12px;overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,.4)}
+.terminal-header{background:#21262d;padding:12px 16px;display:flex;align-items:center;gap:8px}
+.terminal-dot{width:12px;height:12px;border-radius:50%}
+.terminal-dot.red{background:#f85149}
+.terminal-dot.yellow{background:#faa307}
+.terminal-dot.green{background:#3fb950}
+.terminal-title{margin-left:12px;font-size:13px;color:#8b949e;font-family:monospace}
+.terminal-body{padding:24px;font-family:'SF Mono',Consolas,monospace;font-size:14px;color:#c9d1d9;line-height:1.8}
+.terminal-line{margin-bottom:8px;white-space:nowrap;overflow:hidden}
+.terminal-prompt{color:#58a6ff}
+.terminal-cmd{color:#79c0ff}
+.terminal-output{color:#8b949e}
+.terminal-success{color:#3fb950}
+.terminal-highlight{color:#ffa657}
+.typing-cursor{display:inline-block;width:10px;height:18px;background:#58a6ff;animation:blink 1s infinite;vertical-align:middle;margin-left:4px}
+@keyframes blink{0%,50%{opacity:1}51%,100%{opacity:0}}
+.terminal-result{margin-top:16px;padding:16px;background:#0d1117;border-radius:8px;border:1px solid #30363d}
+.terminal-result-title{color:#58a6ff;font-size:13px;margin-bottom:12px;font-weight:600}
+.terminal-result-item{display:flex;align-items:center;gap:8px;margin-bottom:8px;font-size:13px}
+.terminal-result-item .check{color:#3fb950}
+.terminal-result-item .label{color:#8b949e}
+
+/* ── 工作流程区 ── */
+.workflow-section{background:#f8f9ff}
+.workflow-steps{display:flex;gap:0;justify-content:center;align-items:flex-start;max-width:1000px;margin:0 auto 48px;flex-wrap:wrap}
+.workflow-step{flex:1;min-width:200px;text-align:center;position:relative;padding:0 16px}
+.workflow-step:not(:last-child)::after{content:'';position:absolute;top:32px;right:-24px;width:48px;height:2px;background:linear-gradient(90deg,#6c5ce7,#a29bfe)}
+.workflow-step .step-num{width:64px;height:64px;border-radius:50%;background:linear-gradient(135deg,#6c5ce7,#a29bfe);display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:800;margin:0 auto 16px;color:#fff}
+.workflow-step h4{font-size:16px;font-weight:700;margin-bottom:8px;color:#1a1a2e}
+.workflow-step p{font-size:13px;color:#666;line-height:1.5}
+.workflow-tech{max-width:800px;margin:0 auto;background:#fff;border-radius:16px;padding:32px;border:1px solid rgba(0,0,0,.06);box-shadow:0 4px 24px rgba(0,0,0,.04)}
+.workflow-tech-title{font-size:14px;color:#888;margin-bottom:16px;text-align:center}
+.workflow-tech-flow{display:flex;align-items:center;justify-content:center;gap:12px;flex-wrap:wrap}
+.workflow-tech-item{padding:10px 16px;border-radius:8px;background:rgba(108,92,231,.08);color:#6c5ce7;font-size:13px;font-weight:600}
+.workflow-tech-arrow{color:#ccc;font-size:18px}
+
+/* ── 行业模板 ── */
+.templates-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:24px;max-width:1100px;margin:0 auto}
+.template-card{background:#fff;border:1px solid rgba(0,0,0,.06);border-radius:16px;padding:32px 28px;transition:all .3s;position:relative;overflow:hidden}
+.template-card:hover{transform:translateY(-6px);box-shadow:0 12px 40px rgba(108,92,231,.12);border-color:rgba(108,92,231,.2)}
+.template-card .tpl-icon{font-size:40px;margin-bottom:16px}
+.template-card h3{font-size:20px;font-weight:700;color:#1a1a2e;margin-bottom:8px}
+.template-card .tpl-desc{font-size:14px;color:#666;line-height:1.7;margin-bottom:20px}
+.template-card .tpl-features{list-style:none;margin-bottom:24px}
+.template-card .tpl-features li{font-size:13px;color:#555;padding:4px 0;padding-left:20px;position:relative}
+.template-card .tpl-features li::before{content:"✓";position:absolute;left:0;color:#6c5ce7;font-weight:700}
+.template-card .tpl-btn{display:inline-block;padding:10px 24px;border-radius:8px;background:rgba(108,92,231,.08);color:#6c5ce7;font-size:14px;font-weight:600;transition:all .2s;cursor:pointer;border:none}
+.template-card:hover .tpl-btn{background:#6c5ce7;color:#fff}
+.template-badge{position:absolute;top:16px;right:16px;padding:3px 10px;border-radius:10px;font-size:11px;font-weight:700;background:linear-gradient(135deg,#ffd700,#ff9800);color:#1a1a2e}
+
+/* ── 功能清单区 ── */
+.features-section{background:#fff}
+.features-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:24px;max-width:1100px;margin:0 auto}
+.feature-group{background:#f8f9ff;border-radius:16px;padding:28px;border:1px solid rgba(0,0,0,.04)}
+.feature-group-title{font-size:16px;font-weight:700;color:#1a1a2e;margin-bottom:16px;display:flex;align-items:center;gap:8px}
+.feature-group-title .icon{font-size:20px}
+.feature-list{list-style:none}
+.feature-list li{font-size:14px;color:#555;padding:6px 0;padding-left:24px;position:relative}
+.feature-list li::before{content:"✓";position:absolute;left:0;color:#6c5ce7;font-weight:700;font-size:12px}
+
+/* ── 技术架构区 ── */
+.arch-section{background:#1a1a2e;color:#fff}
+.arch-diagram{max-width:900px;margin:0 auto}
+.arch-layer{display:flex;align-items:center;gap:16px;margin-bottom:24px;padding:20px;background:rgba(255,255,255,.05);border-radius:12px;border:1px solid rgba(255,255,255,.08)}
+.arch-layer-icon{width:48px;height:48px;border-radius:10px;background:linear-gradient(135deg,#6c5ce7,#a29bfe);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
+.arch-layer-content{flex:1}
+.arch-layer-title{font-size:16px;font-weight:700;margin-bottom:4px}
+.arch-layer-desc{font-size:13px;color:rgba(255,255,255,.6)}
+.arch-layer-tags{display:flex;gap:8px;flex-wrap:wrap}
+.arch-tag{padding:4px 10px;border-radius:6px;background:rgba(108,92,231,.2);color:#a29bfe;font-size:11px;font-weight:600}
+.arch-stack{display:flex;gap:16px;justify-content:center;margin-top:32px;flex-wrap:wrap}
+.arch-stack-item{padding:12px 20px;border-radius:10px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.1);font-size:14px;color:rgba(255,255,255,.8);display:flex;align-items:center;gap:8px}
+
+/* ── 开发者友好区 ── */
+.dev-section{background:#f8f9ff}
+.dev-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:24px;max-width:1000px;margin:0 auto}
+.dev-card{background:#fff;border-radius:16px;padding:28px;border:1px solid rgba(0,0,0,.06);transition:all .3s}
+.dev-card:hover{transform:translateY(-4px);box-shadow:0 8px 24px rgba(0,0,0,.06)}
+.dev-card-icon{font-size:32px;margin-bottom:16px}
+.dev-card h4{font-size:18px;font-weight:700;color:#1a1a2e;margin-bottom:8px}
+.dev-card p{font-size:14px;color:#666;line-height:1.6;margin-bottom:16px}
+.dev-card-link{display:inline-flex;align-items:center;gap:6px;color:#6c5ce7;font-size:14px;font-weight:600}
+.dev-card-link:hover{gap:10px}
+
+/* ── 定价表 ── */
+.pricing-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:24px;max-width:1000px;margin:0 auto}
+.price-card{background:#fff;border:2px solid rgba(0,0,0,.06);border-radius:20px;padding:40px 32px;transition:all .3s;position:relative;text-align:center}
+.price-card:hover{transform:translateY(-6px);box-shadow:0 12px 40px rgba(108,92,231,.1)}
+.price-card.recommend{border-color:#6c5ce7;background:linear-gradient(180deg,#f8f7ff 0%,#fff 40%)}
+.price-card.recommend::before{content:'推荐';position:absolute;top:-14px;left:50%;transform:translateX(-50%);padding:5px 18px;border-radius:12px;background:linear-gradient(135deg,#6c5ce7,#a29bfe);color:#fff;font-size:12px;font-weight:700}
+.price-card .plan-name{font-size:18px;font-weight:700;color:#333;margin-bottom:8px}
+.price-card .plan-price{font-size:48px;font-weight:900;color:#1a1a2e;margin:16px 0 4px}
+.price-card .plan-price small{font-size:16px;font-weight:400;color:#888}
+.price-card .plan-desc{font-size:13px;color:#888;margin-bottom:24px}
+.price-card .plan-features{list-style:none;text-align:left;margin-bottom:32px}
+.price-card .plan-features li{font-size:14px;color:#555;padding:8px 0;border-bottom:1px solid #f5f5f5;padding-left:24px;position:relative}
+.price-card .plan-features li::before{content:"✓";position:absolute;left:0;color:#6c5ce7;font-weight:700}
+.price-card .plan-btn{display:block;width:100%;padding:14px;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer;transition:all .2s;border:none}
+.price-card:not(.recommend) .plan-btn{background:#f5f5f5;color:#333}
+.price-card:not(.recommend) .plan-btn:hover{background:#eee}
+.price-card.recommend .plan-btn{background:linear-gradient(135deg,#6c5ce7,#a29bfe);color:#fff;box-shadow:0 4px 16px rgba(108,92,231,.3)}
+.price-card.recommend .plan-btn:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(108,92,231,.4)}
+
+/* ── CTA ── */
+.cta-section{background:linear-gradient(160deg,#6c5ce7,#a29bfe);color:#fff;text-align:center;padding:100px 24px}
+.cta-section h2{font-size:clamp(24px,4vw,40px);font-weight:800;margin-bottom:16px}
+.cta-section p{font-size:17px;opacity:.85;margin-bottom:40px;max-width:500px;margin-left:auto;margin-right:auto}
+.cta-form{max-width:480px;margin:0 auto;display:flex;gap:12px;flex-wrap:wrap;justify-content:center}
+.cta-form input{flex:1;min-width:200px;padding:14px 18px;border-radius:10px;border:none;font-size:15px;outline:none}
+.cta-form button{padding:14px 32px;border-radius:10px;border:none;background:#1a1a2e;color:#fff;font-size:15px;font-weight:700;cursor:pointer;transition:all .2s;white-space:nowrap}
+.cta-form button:hover{transform:translateY(-2px);box-shadow:0 4px 16px rgba(0,0,0,.3)}
+.cta-note{margin-top:16px;font-size:13px;opacity:.6}
+
+/* ── Footer ── */
+.footer{background:#0f0c29;color:rgba(255,255,255,.4);padding:48px 24px;text-align:center;font-size:13px}
+.footer a{color:rgba(255,255,255,.5)}
+.footer-links{display:flex;gap:24px;justify-content:center;margin-bottom:16px;flex-wrap:wrap}
+.footer-powered{margin-top:16px;font-size:12px}
+.footer-powered a{color:#6c5ce7;font-weight:600}
+
+/* ── 移动端 ── */
+@media(max-width:768px){
+  .nav-links{display:none}
+  .hero{padding:120px 16px 60px}
+  .hero-tech{flex-direction:column;gap:16px}
+  .workflow-steps{flex-direction:column;align-items:center}
+  .workflow-step:not(:last-child)::after{display:none}
+  .pricing-grid{grid-template-columns:1fr}
+  .section{padding:60px 16px}
+  .price-card.recommend{padding-top:48px}
+  .arch-layer{flex-direction:column;text-align:center}
+}
+
+/* ── 程序化SEO引擎样式 ── */
+.seo-section{background:#0f172a;color:#fff;padding:80px 24px}
+.seo-panel{max-width:1000px;margin:0 auto;background:#1e293b;border-radius:16px;padding:32px;box-shadow:0 8px 32px rgba(0,0,0,.3)}
+.seo-input-row{display:flex;gap:16px;flex-wrap:wrap;align-items:flex-end;margin-bottom:32px}
+.seo-input-group{flex:1;min-width:180px}
+.seo-input-group label{display:block;font-size:13px;color:#94a3b8;margin-bottom:6px;font-weight:600}
+.seo-input-group select,.seo-input-group input{width:100%;padding:12px 16px;border-radius:10px;border:1px solid #334155;background:#0f172a;color:#fff;font-size:14px;outline:none;transition:border-color .2s}
+.seo-input-group select:focus,.seo-input-group input:focus{border-color:#6c5ce7}
+.seo-launch-btn{padding:14px 32px;border-radius:10px;background:linear-gradient(135deg,#ff6b6b,#ee5a5a);color:#fff;font-size:15px;font-weight:700;border:none;cursor:pointer;transition:all .3s;box-shadow:0 4px 16px rgba(255,107,107,.3)}
+.seo-launch-btn:hover{transform:translateY(-2px);box-shadow:0 6px 24px rgba(255,107,107,.4)}
+.seo-stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:32px}
+.seo-stat-card{background:#0f172a;border-radius:12px;padding:20px;text-align:center}
+.seo-stat-num{font-size:32px;font-weight:800;color:#ff6b6b;margin-bottom:4px}
+.seo-stat-label{font-size:13px;color:#94a3b8}
+.seo-matrix,.seo-top-kw{background:#0f172a;border-radius:12px;padding:24px;margin-bottom:24px}
+.seo-intent-bar{display:flex;height:24px;border-radius:12px;overflow:hidden;margin-bottom:20px}
+.seo-intent-bar span{flex:1;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;color:#fff}
+.seo-keyword-cloud{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px}
+.seo-kw-tag{padding:6px 14px;border-radius:20px;font-size:13px;background:rgba(108,92,231,.2);color:#a29bfe;transition:transform .2s;cursor:default}
+.seo-kw-tag:hover{transform:scale(1.05)}
+.seo-kw-tag.info{background:rgba(59,130,246,.2);color:#60a5fa}
+.seo-kw-tag.trans{background:rgba(34,197,94,.2);color:#4ade80}
+.seo-kw-tag.comp{background:rgba(251,191,36,.2);color:#fbbf24}
+.seo-table{width:100%;border-collapse:collapse;font-size:14px}
+.seo-table th{text-align:left;padding:12px;border-bottom:1px solid #334155;color:#94a3b8;font-weight:600}
+.seo-table td{padding:12px;border-bottom:1px solid #1e293b}
+.seo-task-info{text-align:center;color:#94a3b8;font-size:14px;padding:16px;background:#0f172a;border-radius:8px}
+@media(max-width:768px){
+  .seo-stats-row{grid-template-columns:repeat(2,1fr)}
+  .seo-input-row{flex-direction:column}
+  .seo-input-group{width:100%}
+}
+</style>
+
+<style>
+.toast-msg{position:fixed;top:24px;right:24px;padding:14px 24px;border-radius:12px;background:rgba(30,30,46,0.95);color:#fff;font-size:14px;z-index:99999;transform:translateX(120%);transition:transform .3s cubic-bezier(.4,0,.2,1);box-shadow:0 8px 32px rgba(0,0,0,.3);max-width:360px}
+.toast-msg.show{transform:translateX(0)}
+.toast-msg.error{background:rgba(231,76,60,0.95)}
+</style>
+
+</head>
+<body>
+
+<!-- 导航 -->
+<nav class="navbar" id="navbar">
+  <div class="nav-inner">
+    <a href="javascript:void(0)" class="nav-logo">⚡ SG智能建站</a>
+    <div class="nav-links">
+      <a href="#demo">生成演示</a>
+      <a href="#workflow">工作流程</a>
+      <a href="#templates">行业模板</a>
+      <a href="#features">功能清单</a>
+      <a href="#pricing">定价</a>
+      <a href="#seo-engine" style="color:#ff6b6b;font-weight:700">SEO引擎</a>
+      <a href="/tools/unipulse" style="color:#6c5ce7;font-weight:700">🎓 选校报告</a>
+      <a href="/tools/watermark" style="color:#f093fb;font-weight:700">🎬 去水印</a>
+      <a href="/tools/drama" style="color:#4facfe;font-weight:700">🎭 AI短剧</a>
+      <a href="/tools/seo-keyword" style="color:#4facfe;font-weight:700">🔍 SEO分析</a>
+      <a href="/tools/copywrite" style="color:#f5576c;font-weight:700">✍️ AI文案</a>
+      <a href="/tools/competitor" style="color:#6c5ce7;font-weight:700">📊 竞品分析</a>
+      <a href="/tools/naming" style="color:#e17055;font-weight:700">💡 品牌命名</a>
+      <button class="nav-cta" data-action="openModal" data-args="register-modal">免费开始</button>
+    </div>
+  </div>
+</nav>
+
+<!-- Hero -->
+<section class="hero">
+  <div class="hero-badge">🤖 AI驱动 · 一键生成 · SEO优化</div>
+  <h1>输入一句话<br><span class="gradient">AI生成专业网站</span></h1>
+  <p class="hero-subtitle">无需编程基础，AI自动生成SEO优化、响应式设计的专业独立站。支持DTC品牌、B2B外贸、Affiliate内容站、本地服务预约等多种场景。</p>
+  <div class="hero-actions">
+    <button class="btn-hero-primary" data-action="scrollToGenerator">✨ 免费生成我的第一个站</button>
+    <button class="btn-hero-secondary" data-action="scrollToDemo">▶ 查看生成演示</button>
+    <a href="/shop" style="display:inline-flex;align-items:center;gap:8px;padding:14px 28px;border:2px solid rgba(255,255,255,.3);border-radius:12px;color:#fff;background:transparent;font-size:16px;font-weight:600;cursor:pointer;text-decoration:none;transition:all .2s">🛒 体验商城演示</a>
+  </div>
+  <div class="hero-tech">
+    <div class="hero-tech-item"><span class="icon">⚡</span> FastAPI 后端</div>
+    <div class="hero-tech-item"><span class="icon">🎨</span> Jinja2 模板</div>
+    <div class="hero-tech-item"><span class="icon">🤖</span> GLM-4 AI</div>
+    <div class="hero-tech-item"><span class="icon">📱</span> 响应式设计</div>
+    <div class="hero-tech-item"><span class="icon">🔍</span> SEO优化</div>
+  </div>
+</section>
+
+<!-- 信任徽章条 -->
+<div class="trust-bar">
+  <div class="trust-inner">
+    <div class="trust-item"><span class="icon">✅</span> 免费版永久可用</div>
+    <div class="trust-item"><span class="icon">✅</span> 无需绑卡验证</div>
+    <div class="trust-item"><span class="icon">✅</span> 国内网络直连</div>
+    <div class="trust-item"><span class="icon">✅</span> 数据不存储不上传</div>
+    <div class="trust-item"><span class="icon">✅</span> 30天无理由退款</div>
+  </div>
+</div>
+
+<!-- 终端演示区 -->
+<section class="demo-section section" id="demo">
+  <div class="section-header" style="color:#fff">
+    <div class="section-tag" style="color:#a29bfe;background:rgba(162,155,254,.15)">实时生成演示</div>
+    <h2 class="section-title" style="color:#fff">看看AI如何生成你的网站</h2>
+    <p class="section-subtitle" style="color:rgba(255,255,255,.6)">输入一句话，AI自动完成需求分析、页面设计、HTML生成、SEO优化全流程</p>
+  </div>
+  <div class="terminal-window">
+    <div class="terminal-header">
+      <div class="terminal-dot red"></div>
+      <div class="terminal-dot yellow"></div>
+      <div class="terminal-dot green"></div>
+      <span class="terminal-title">SG Site Generator - AI Engine</span>
+    </div>
+    <div class="terminal-body">
+      <div class="terminal-line"><span class="terminal-prompt">$</span> <span class="terminal-cmd">sg generate</span> --template=dtc --text="手工皂品牌'皂物集'，主打天然冷制皂"</div>
+      <div class="terminal-line"><span class="terminal-output">→ 正在分析需求...</span></div>
+      <div class="terminal-line"><span class="terminal-output">→ 识别行业: <span class="terminal-highlight">美妆/手工制品</span></span></div>
+      <div class="terminal-line"><span class="terminal-output">→ 生成页面结构: 首页 + 产品页 + 关于页 + 联系页</span></div>
+      <div class="terminal-line"><span class="terminal-output">→ AI生成HTML内容...</span></div>
+      <div class="terminal-line"><span class="terminal-output">→ 优化SEO元数据...</span></div>
+      <div class="terminal-line"><span class="terminal-success">✓ 生成完成！</span></div>
+      <div class="terminal-result">
+        <div class="terminal-result-title">📊 生成结果</div>
+        <div class="terminal-result-item"><span class="check">✓</span> <span class="label">HTML文件:</span> index.html (42KB)</div>
+        <div class="terminal-result-item"><span class="check">✓</span> <span class="label">页面数量:</span> 4个页面</div>
+        <div class="terminal-result-item"><span class="check">✓</span> <span class="label">SEO组件:</span> Meta标签 + Schema结构化数据 + Open Graph</div>
+        <div class="terminal-result-item"><span class="check">✓</span> <span class="label">响应式:</span> 移动端/平板/桌面端适配</div>
+        <div class="terminal-result-item"><span class="check">✓</span> <span class="label">AI引擎:</span> GLM-4</div>
+      </div>
+      <div class="terminal-line" style="margin-top:16px"><span class="terminal-prompt">$</span> <span class="typing-cursor"></span></div>
+    </div>
+  </div>
+</section>
+
+<!-- 工作流程区 -->
+<section class="workflow-section section" id="workflow">
+  <div class="section-header">
+    <div class="section-tag">工作流程</div>
+    <h2 class="section-title">从输入到上线，4步完成</h2>
+    <p class="section-subtitle">AI自动处理每个环节，你只需要描述你的需求</p>
+  </div>
+  <div class="workflow-steps">
+    <div class="workflow-step">
+      <div class="step-num">1</div>
+      <h4>输入需求</h4>
+      <p>一句话描述你的生意，选择行业模板</p>
+    </div>
+    <div class="workflow-step">
+      <div class="step-num">2</div>
+      <h4>AI生成</h4>
+      <p>GLM-4分析需求，生成专业HTML页面</p>
+    </div>
+    <div class="workflow-step">
+      <div class="step-num">3</div>
+      <h4>SEO优化</h4>
+      <p>自动添加Meta标签、Schema数据、内链网络</p>
+    </div>
+    <div class="workflow-step">
+      <div class="step-num">4</div>
+      <h4>部署上线</h4>
+      <p>下载HTML文件，部署到任意服务器</p>
+    </div>
+  </div>
+  <div class="workflow-tech">
+    <div class="workflow-tech-title">🔧 技术处理流程</div>
+    <div class="workflow-tech-flow">
+      <div class="workflow-tech-item">需求解析</div>
+      <span class="workflow-tech-arrow">→</span>
+      <div class="workflow-tech-item">Prompt构建</div>
+      <span class="workflow-tech-arrow">→</span>
+      <div class="workflow-tech-item">AI生成</div>
+      <span class="workflow-tech-arrow">→</span>
+      <div class="workflow-tech-item">模板渲染</div>
+      <span class="workflow-tech-arrow">→</span>
+      <div class="workflow-tech-item">SEO注入</div>
+      <span class="workflow-tech-arrow">→</span>
+      <div class="workflow-tech-item">HTML输出</div>
+    </div>
+  </div>
+</section>
+
+<!-- ★ 程序化SEO引擎演示区 — 核心差异化 ★ -->
+<section class="seo-section section" id="seo-engine">
+  <div class="section-header">
+    <div class="section-tag" style="color:#ff6b6b;background:rgba(255,107,107,.12)">核心差异化</div>
+    <h2 class="section-title">程序化SEO引擎</h2>
+    <p class="section-subtitle">输入行业+种子词，5分钟生成数百个SEO优化页面，自动构建内链网络</p>
+  </div>
+
+  <!-- SEO引擎交互面板 -->
+  <div class="seo-panel">
+    <!-- 输入区 -->
+    <div class="seo-input-row">
+      <div class="seo-input-group">
+        <label>行业</label>
+        <select id="seo-industry">
+          <option value="科技">科技 / SaaS</option>
+          <option value="教育">教育培训</option>
+          <option value="医疗">医疗健康</option>
+          <option value="法律">法律服务</option>
+          <option value="装修">装修建材</option>
+          <option value="餐饮">餐饮美食</option>
+          <option value="物流">物流仓储</option>
+          <option value="金融">金融保险</option>
+        </select>
+      </div>
+      <div class="seo-input-group">
+        <label>种子关键词</label>
+        <input id="seo-keywords" placeholder="逗号分隔，如：软件开发,APP开发" />
+      </div>
+      <div class="seo-input-group">
+        <label>城市</label>
+        <input id="seo-city" placeholder="如：杭州" />
+      </div>
+      <button class="seo-launch-btn" id="seo-launch">启动SEO引擎</button>
+    </div>
+
+    <!-- 结果区 -->
+    <div id="seo-result" style="display:none">
+      <!-- 统计卡片 -->
+      <div class="seo-stats-row">
+        <div class="seo-stat-card">
+          <div class="seo-stat-num" id="seo-kw-count">0</div>
+          <div class="seo-stat-label">关键词挖掘</div>
+        </div>
+        <div class="seo-stat-card">
+          <div class="seo-stat-num" id="seo-page-count">0</div>
+          <div class="seo-stat-label">页面生成</div>
+        </div>
+        <div class="seo-stat-card">
+          <div class="seo-stat-num" id="seo-link-count">0</div>
+          <div class="seo-stat-label">内链构建</div>
+        </div>
+        <div class="seo-stat-card">
+          <div class="seo-stat-num" id="seo-time">0s</div>
+          <div class="seo-stat-label">耗时</div>
+        </div>
+      </div>
+
+      <!-- 关键词矩阵可视化 -->
+      <div class="seo-matrix">
+        <h3 style="margin-bottom:16px;font-size:18px;font-weight:700">关键词矩阵</h3>
+        <div class="seo-intent-bar" id="seo-intent-bar"></div>
+        <div class="seo-keyword-cloud" id="seo-keyword-cloud"></div>
+      </div>
+
+      <!-- TOP关键词表 -->
+      <div class="seo-top-kw">
+        <h3 style="margin-bottom:16px;font-size:18px;font-weight:700">搜索量 TOP 15</h3>
+        <table class="seo-table">
+          <thead><tr><th>关键词</th><th>搜索量</th><th>难度</th><th>意图</th></tr></thead>
+          <tbody id="seo-top-tbody"></tbody>
+        </table>
+      </div>
+
+      <!-- 任务状态 -->
+      <div class="seo-task-info" id="seo-task-info"></div>
+    </div>
+  </div>
+</section>
+
+
+
+<!-- 行业模板 -->
+<section class="section" id="templates">
+  <div class="section-header">
+    <div class="section-tag">行业模板</div>
+    <h2 class="section-title">针对不同场景优化的模板</h2>
+    <p class="section-subtitle">每个模板都内置SEO最佳实践和转化优化设计</p>
+  </div>
+  <div class="templates-grid">
+    <div class="template-card">
+      <div class="template-badge">🔥 热门</div>
+      <div class="tpl-icon">🛒</div>
+      <h3>DTC品牌出海站</h3>
+      <p class="tpl-desc">适合DTC品牌出海，产品展示、评价系统、信任徽章、加购引导</p>
+      <ul class="tpl-features">
+        <li>首页+产品页+购物车+结账页</li>
+        <li>评价组件+信任徽章</li>
+        <li>Stripe/PayPal支付集成</li>
+        <li>移动端购物体验优化</li>
+      </ul>
+      <button class="tpl-btn" data-action="selectTemplate" data-args="dtc">选择此模板 →</button>
+    </div>
+    <div class="template-card">
+      <div class="tpl-icon">🏭</div>
+      <h3>B2B外贸询盘站</h3>
+      <p class="tpl-desc">面向海外B2B买家，展示工厂实力、认证资质、获取询盘</p>
+      <ul class="tpl-features">
+        <li>工厂展示+认证徽章</li>
+        <li>RFQ询盘表单</li>
+        <li>多语言支持(EN/ES/FR/DE)</li>
+        <li>WhatsApp/邮件联系</li>
+      </ul>
+      <button class="tpl-btn" data-action="selectTemplate" data-args="b2b">选择此模板 →</button>
+    </div>
+    <div class="template-card">
+      <div class="tpl-icon">🔗</div>
+      <h3>Affiliate内容站</h3>
+      <p class="tpl-desc">为Affiliate营销优化，SEO内容引擎，联盟链接管理</p>
+      <ul class="tpl-features">
+        <li>程序化SEO内容生成</li>
+        <li>自动内链+结构化数据</li>
+        <li>Amazon联盟链接管理</li>
+        <li>内容自动更新机制</li>
+      </ul>
+      <button class="tpl-btn" data-action="selectTemplate" data-args="affiliate">选择此模板 →</button>
+    </div>
+    <div class="template-card">
+      <div class="tpl-icon">📅</div>
+      <h3>本地服务预约站</h3>
+      <p class="tpl-desc">适用于咨询、家政、维修等本地服务，在线预约管理</p>
+      <ul class="tpl-features">
+        <li>服务展示+预约系统</li>
+        <li>微信/支付宝收款</li>
+        <li>自动确认短信/邮件</li>
+        <li>客户管理功能</li>
+      </ul>
+      <button class="tpl-btn" data-action="selectTemplate" data-args="local">选择此模板 →</button>
+    </div>
+  </div>
+</section>
+
+<!-- 功能清单区 -->
+<section class="features-section section" id="features">
+  <div class="section-header">
+    <div class="section-tag">功能清单</div>
+    <h2 class="section-title">完整的网站生成能力</h2>
+    <p class="section-subtitle">从SEO到支付，从设计到部署，一站式解决</p>
+  </div>
+  <div class="features-grid">
+    <div class="feature-group">
+      <div class="feature-group-title"><span class="icon">🔍</span> SEO优化</div>
+      <ul class="feature-list">
+        <li>50+ SEO组件自动注入</li>
+        <li>Meta标签自动生成</li>
+        <li>JSON-LD结构化数据</li>
+        <li>Open Graph社交分享</li>
+        <li>自动内链网络构建</li>
+        <li>语义化HTML结构</li>
+      </ul>
+    </div>
+    <div class="feature-group">
+      <div class="feature-group-title"><span class="icon">📱</span> 响应式设计</div>
+      <ul class="feature-list">
+        <li>移动端优先设计</li>
+        <li>平板/桌面端自适应</li>
+        <li>触摸友好的交互</li>
+        <li>图片懒加载优化</li>
+        <li>CSS动画流畅</li>
+        <li>无外部依赖</li>
+      </ul>
+    </div>
+    <div class="feature-group">
+      <div class="feature-group-title"><span class="icon">🎨</span> 页面组件</div>
+      <ul class="feature-list">
+        <li>Hero区价值主张</li>
+        <li>产品/服务展示卡片</li>
+        <li>信任徽章组件</li>
+        <li>客户评价展示</li>
+        <li>CTA行动召唤</li>
+        <li>联系表单</li>
+      </ul>
+    </div>
+    <div class="feature-group">
+      <div class="feature-group-title"><span class="icon">💳</span> 支付集成</div>
+      <ul class="feature-list">
+        <li>Stripe支付接入</li>
+        <li>PayPal支付接入</li>
+        <li>微信支付(国内)</li>
+        <li>支付宝(国内)</li>
+        <li>订单管理后台</li>
+        <li>弃单追回邮件</li>
+      </ul>
+    </div>
+    <div class="feature-group">
+      <div class="feature-group-title"><span class="icon">🤖</span> AI能力</div>
+      <ul class="feature-list">
+        <li>GLM-4智能生成</li>
+        <li>自然语言需求理解</li>
+        <li>行业智能识别</li>
+        <li>内容自动生成</li>
+        <li>多语言内容生成</li>
+        <li>图片Alt自动生成</li>
+      </ul>
+    </div>
+    <div class="feature-group">
+      <div class="feature-group-title"><span class="icon">🚀</span> 部署支持</div>
+      <ul class="feature-list">
+        <li>纯HTML文件输出</li>
+        <li>无服务器端依赖</li>
+        <li>支持任意静态托管</li>
+        <li>Vercel/Netlify一键部署</li>
+        <li>GitHub Pages支持</li>
+        <li>自定义域名绑定</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+
+<!-- AI工具箱 -->
+<section class="section" id="toolbox" style="background:linear-gradient(135deg,#0f0c29,#302b63,#24243e);color:#fff;padding:100px 0">
+  <div style="max-width:1200px;margin:0 auto;padding:0 24px">
+    <div style="text-align:center;margin-bottom:60px">
+      <div style="display:inline-block;background:rgba(162,155,254,.2);color:#a29bfe;padding:6px 18px;border-radius:20px;font-size:13px;font-weight:600;margin-bottom:16px">AI 工具箱</div>
+      <h2 style="font-size:clamp(28px,4vw,42px);font-weight:800;margin-bottom:12px;background:linear-gradient(135deg,#fff,#a29bfe);-webkit-background-clip:text;-webkit-text-fill-color:transparent">不止建站，更懂你的业务</h2>
+      <p style="color:rgba(255,255,255,.6);font-size:18px;max-width:600px;margin:0 auto">每个工具都是独立运行的AI助手，精准解决特定场景问题</p>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:24px">
+      <!-- UniPulse -->
+      <a href="/tools/unipulse" style="display:block;background:rgba(255,255,255,.06);backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,.1);border-radius:16px;padding:32px 28px;transition:all .3s;text-decoration:none;color:inherit" onmouseover="this.style.transform='translateY(-6px)';this.style.borderColor='rgba(162,155,254,.5)';this.style.boxShadow='0 20px 48px rgba(108,92,231,.2)'" onmouseout="this.style.transform='';this.style.borderColor='rgba(255,255,255,.1)';this.style.boxShadow=''">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">
+          <div style="width:48px;height:48px;border-radius:12px;background:linear-gradient(135deg,#667eea,#764ba2);display:flex;align-items:center;justify-content:center;font-size:24px">🎓</div>
+          <div>
+            <h3 style="font-size:20px;font-weight:700;margin:0">UniPulse</h3>
+            <span style="font-size:12px;color:rgba(255,255,255,.4);background:rgba(76,175,80,.2);color:#81c784;padding:2px 8px;border-radius:4px">在线运行</span>
+          </div>
+        </div>
+        <p style="color:rgba(255,255,255,.65);font-size:15px;line-height:1.7;margin-bottom:16px">AI选校报告工具 — 120所全球高校数据，智能匹配你的背景与目标，生成个性化选校方案</p>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <span style="background:rgba(255,255,255,.08);padding:4px 10px;border-radius:6px;font-size:12px;color:rgba(255,255,255,.5)">🌍 23个国家</span>
+          <span style="background:rgba(255,255,255,.08);padding:4px 10px;border-radius:6px;font-size:12px;color:rgba(255,255,255,.5)">📊 智能排名</span>
+          <span style="background:rgba(255,255,255,.08);padding:4px 10px;border-radius:6px;font-size:12px;color:rgba(255,255,255,.5)">💬 高校论坛</span>
+        </div>
+      </a>
+      <!-- 短视频去水印 -->
+      <a href="/tools/watermark" style="display:block;background:rgba(255,255,255,.06);backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,.1);border-radius:16px;padding:32px 28px;transition:all .3s;text-decoration:none;color:inherit" onmouseover="this.style.transform='translateY(-6px)';this.style.borderColor='rgba(245,87,108,.5)';this.style.boxShadow='0 20px 48px rgba(245,87,108,.2)';this.style.background='rgba(255,255,255,.08)'" onmouseout="this.style.transform='';this.style.borderColor='rgba(255,255,255,.1)';this.style.boxShadow='';this.style.background='rgba(255,255,255,.06)'">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">
+          <div style="width:48px;height:48px;border-radius:12px;background:linear-gradient(135deg,#f093fb,#f5576c);display:flex;align-items:center;justify-content:center;font-size:24px">🎬</div>
+          <div>
+            <h3 style="font-size:20px;font-weight:700;margin:0">短视频去水印</h3>
+            <span style="font-size:12px;background:rgba(76,175,80,.2);color:#81c784;padding:2px 8px;border-radius:4px">在线运行</span>
+          </div>
+        </div>
+        <p style="color:rgba(255,255,255,.65);font-size:15px;line-height:1.7;margin-bottom:16px">支持抖音/快手/小红书/B站/微博5大平台，一键提取无水印原视频</p>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <span style="background:rgba(255,255,255,.08);padding:4px 10px;border-radius:6px;font-size:12px;color:rgba(255,255,255,.5)">🔗 链接解析</span>
+          <span style="background:rgba(255,255,255,.08);padding:4px 10px;border-radius:6px;font-size:12px;color:rgba(255,255,255,.5)">🎨 5大平台</span>
+          <span style="background:rgba(255,255,255,.08);padding:4px 10px;border-radius:6px;font-size:12px;color:rgba(255,255,255,.5)">⚡ 秒级解析</span>
+        </div>
+      </a>
+      <!-- AI短剧生成 -->
+      <a href="/tools/drama" style="display:block;background:rgba(255,255,255,.06);backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,.1);border-radius:16px;padding:32px 28px;transition:all .3s;text-decoration:none;color:inherit" onmouseover="this.style.transform='translateY(-6px)';this.style.borderColor='rgba(79,172,254,.5)';this.style.boxShadow='0 20px 48px rgba(79,172,254,.2)';this.style.background='rgba(255,255,255,.08)'" onmouseout="this.style.transform='';this.style.borderColor='rgba(255,255,255,.1)';this.style.boxShadow='';this.style.background='rgba(255,255,255,.06)'">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">
+          <div style="width:48px;height:48px;border-radius:12px;background:linear-gradient(135deg,#4facfe,#00f2fe);display:flex;align-items:center;justify-content:center;font-size:24px">🎭</div>
+          <div>
+            <h3 style="font-size:20px;font-weight:700;margin:0">AI短剧生成</h3>
+            <span style="font-size:12px;background:rgba(76,175,80,.2);color:#81c784;padding:2px 8px;border-radius:4px">在线运行</span>
+          </div>
+        </div>
+        <p style="color:rgba(255,255,255,.65);font-size:15px;line-height:1.7;margin-bottom:16px">输入主题，AI自动生成剧本、分镜、配乐方案，一键导出拍摄脚本</p>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <span style="background:rgba(255,255,255,.08);padding:4px 10px;border-radius:6px;font-size:12px;color:rgba(255,255,255,.5)">📝 剧本创作</span>
+          <span style="background:rgba(255,255,255,.08);padding:4px 10px;border-radius:6px;font-size:12px;color:rgba(255,255,255,.5)">🎬 分镜方案</span>
+          <span style="background:rgba(255,255,255,.08);padding:4px 10px;border-radius:6px;font-size:12px;color:rgba(255,255,255,.5)">🎵 配乐建议</span>
+        </div>
+      </a>
+    </div>
+  </div>
+</section>
+
+
+
+<!-- AI工具箱 -->
+<section class="section" id="ai-tools" style="background:linear-gradient(160deg,#1a1a3e 0%,#2d1b69 100%);color:#fff">
+  <div class="section-header">
+    <div class="section-tag" style="color:#a29bfe;background:rgba(162,155,254,.15)">AI工具箱</div>
+    <h2 class="section-title" style="color:#fff">不只是建站，更多AI工具等你探索</h2>
+    <p class="section-subtitle" style="color:rgba(255,255,255,.6)">一站式AI能力，建站之外还有更多实用工具</p>
+  </div>
+  <div style="max-width:900px;margin:0 auto;display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:24px">
+    <a href="/tools/unipulse" style="text-decoration:none;color:inherit;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:16px;padding:32px 28px;transition:all .3s;display:block" onmouseover="this.style.transform='translateY(-6px)';this.style.boxShadow='0 12px 40px rgba(108,92,231,.2)';this.style.borderColor='rgba(108,92,231,.3)'" onmouseout="this.style.transform='';this.style.boxShadow='';this.style.borderColor='rgba(255,255,255,.1)'">
+      <div style="font-size:40px;margin-bottom:16px">&#x1F393;</div>
+      <h3 style="font-size:20px;font-weight:700;margin-bottom:8px">UniPulse 选校报告</h3>
+      <p style="font-size:14px;color:rgba(255,255,255,.6);line-height:1.7;margin-bottom:16px">AI驱动的智能选校工具，覆盖全球百所高校，一键生成个性化选校报告，助力留学考研决策。</p>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <span style="padding:4px 10px;border-radius:6px;background:rgba(108,92,231,.2);color:#a29bfe;font-size:12px;font-weight:600">QS排名</span>
+        <span style="padding:4px 10px;border-radius:6px;background:rgba(108,92,231,.2);color:#a29bfe;font-size:12px;font-weight:600">就业数据</span>
+        <span style="padding:4px 10px;border-radius:6px;background:rgba(108,92,231,.2);color:#a29bfe;font-size:12px;font-weight:600">AI报告</span>
+        <span style="padding:4px 10px;border-radius:6px;background:rgba(108,92,231,.2);color:#a29bfe;font-size:12px;font-weight:600">社区讨论</span>
+      </div>
+    </a>
+    <div style="background:rgba(255,255,255,.03);border:1px dashed rgba(255,255,255,.12);border-radius:16px;padding:32px 28px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center">
+      <div style="font-size:32px;margin-bottom:12px">🎬</div>
+      <h3 style="font-size:16px;font-weight:600;color:rgba(255,255,255,.5);margin-bottom:8px">短视频去水印</h3>
+      <p style="font-size:13px;color:rgba(255,255,255,.35)">支持5大平台，一键提取无水印视频</p>
+      <a href="/tools/watermark" style="margin-top:12px;color:#a29bfe;font-size:13px;font-weight:600;text-decoration:none">立即使用 →</a>
+    </div>
+    <div style="background:rgba(255,255,255,.03);border:1px dashed rgba(255,255,255,.12);border-radius:16px;padding:32px 28px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center">
+      <div style="font-size:32px;margin-bottom:12px">🎭</div>
+      <h3 style="font-size:16px;font-weight:600;color:rgba(255,255,255,.5);margin-bottom:8px">AI短剧生成</h3>
+      <p style="font-size:13px;color:rgba(255,255,255,.35)">AI一键生成剧本+分镜+配乐</p>
+      <a href="/tools/drama" style="margin-top:12px;color:#a29bfe;font-size:13px;font-weight:600;text-decoration:none">立即使用 →</a>
+      <a href="/tools/seo-keyword" style="margin-top:12px;color:#4facfe;font-size:13px;font-weight:600;text-decoration:none">🔍 SEO分析 →</a>
+      <a href="/tools/copywrite" style="margin-top:12px;color:#f5576c;font-size:13px;font-weight:600;text-decoration:none">✍️ AI文案 →</a>
+      <a href="/tools/competitor" style="margin-top:12px;color:#6c5ce7;font-size:13px;font-weight:600;text-decoration:none">📊 竞品分析 →</a>
+      <a href="/tools/naming" style="margin-top:12px;color:#e17055;font-size:13px;font-weight:600;text-decoration:none">💡 品牌命名 →</a>
+    </div>
+  </div>
+</section>
+
+<!-- 技术架构区 -->
+<section class="arch-section section" id="arch">
+  <div class="section-header">
+    <div class="section-tag" style="color:#a29bfe;background:rgba(162,155,254,.15)">技术架构</div>
+    <h2 class="section-title" style="color:#fff">透明开源的技术栈</h2>
+    <p class="section-subtitle" style="color:rgba(255,255,255,.6)">每个组件都清晰可见，你可以审查、修改、扩展</p>
+  </div>
+  <div class="arch-diagram">
+    <div class="arch-layer">
+      <div class="arch-layer-icon">🌐</div>
+      <div class="arch-layer-content">
+        <div class="arch-layer-title">前端层</div>
+        <div class="arch-layer-desc">纯HTML + 内联CSS + 原生JavaScript，无外部依赖</div>
+        <div class="arch-layer-tags">
+          <span class="arch-tag">HTML5</span>
+          <span class="arch-tag">CSS3</span>
+          <span class="arch-tag">Vanilla JS</span>
+        </div>
+      </div>
+    </div>
+    <div class="arch-layer">
+      <div class="arch-layer-icon">⚙️</div>
+      <div class="arch-layer-content">
+        <div class="arch-layer-title">后端层</div>
+        <div class="arch-layer-desc">FastAPI高性能异步框架，RESTful API设计</div>
+        <div class="arch-layer-tags">
+          <span class="arch-tag">FastAPI</span>
+          <span class="arch-tag">Python 3.10+</span>
+          <span class="arch-tag">Uvicorn</span>
+        </div>
+      </div>
+    </div>
+    <div class="arch-layer">
+      <div class="arch-layer-icon">🤖</div>
+      <div class="arch-layer-content">
+        <div class="arch-layer-title">AI引擎层</div>
+        <div class="arch-layer-desc">GLM-4大语言模型，Prompt工程优化</div>
+        <div class="arch-layer-tags">
+          <span class="arch-tag">GLM-4</span>
+          <span class="arch-tag">Prompt Engine</span>
+          <span class="arch-tag">Context Window 128K</span>
+        </div>
+      </div>
+    </div>
+    <div class="arch-layer">
+      <div class="arch-layer-icon">📄</div>
+      <div class="arch-layer-content">
+        <div class="arch-layer-title">模板渲染层</div>
+        <div class="arch-layer-desc">Jinja2模板引擎，组件化设计</div>
+        <div class="arch-layer-tags">
+          <span class="arch-tag">Jinja2</span>
+          <span class="arch-tag">组件化模板</span>
+          <span class="arch-tag">继承/复用</span>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="arch-stack">
+    <div class="arch-stack-item"><span>📦</span> 开源代码</div>
+    <div class="arch-stack-item"><span>🔒</span> 隐私优先</div>
+    <div class="arch-stack-item"><span>⚡</span> 高性能</div>
+    <div class="arch-stack-item"><span>🔧</span> 可扩展</div>
+  </div>
+</section>
+
+
+
+<!-- 开发者友好区 -->
+<section class="dev-section section" id="dev">
+  <div class="section-header">
+    <div class="section-tag">开发者友好</div>
+    <h2 class="section-title">为开发者设计的扩展能力</h2>
+    <p class="section-subtitle">不仅生成网站，更提供完整的开发工具链</p>
+  </div>
+  <div class="dev-grid">
+    <div class="dev-card">
+      <div class="dev-card-icon">📚</div>
+      <h4>API文档</h4>
+      <p>完整的REST API文档，支持所有生成功能，可接入自有系统</p>
+      <a href="/docs" class="dev-card-link">查看API文档 →</a>
+    </div>
+    <div class="dev-card">
+      <div class="dev-card-icon">🔗</div>
+      <h4>Webhook</h4>
+      <p>生成完成、支付成功等事件推送，轻松集成自动化流程</p>
+      <a href="javascript:void(0)" class="dev-card-link">了解Webhook →</a>
+    </div>
+    <div class="dev-card">
+      <div class="dev-card-icon">🎨</div>
+      <h4>自定义模板</h4>
+      <p>上传自己的Jinja2模板，生成符合品牌规范的网站</p>
+      <a href="javascript:void(0)" class="dev-card-link">模板开发指南 →</a>
+    </div>
+    <div class="dev-card">
+      <div class="dev-card-icon">📦</div>
+      <h4>GitHub仓库</h4>
+      <p>核心代码开源，欢迎Star、Fork、提交PR</p>
+      <a href="https://github.com" target="_blank" class="dev-card-link">访问GitHub →</a>
+    </div>
+  </div>
+</section>
+
+<!-- 定价 -->
+<section class="section" id="pricing">
+  <div class="section-header">
+    <div class="section-tag">简单定价</div>
+    <h2 class="section-title">免费开始，按需升级</h2>
+    <p class="section-subtitle">免费版功能完整，升级解锁更多能力</p>
+  </div>
+  <div class="pricing-grid">
+    <div class="price-card">
+      <div class="plan-name">免费体验</div>
+      <div class="plan-price">¥0<small>/永久</small></div>
+      <div class="plan-desc">适合验证想法、测试功能</div>
+      <ul class="plan-features">
+        <li>生成 1 个站点</li>
+        <li>基础SEO组件</li>
+        <li>响应式设计</li>
+        <li>页脚SG链接</li>
+        <li>有水印标识</li>
+      </ul>
+      <button class="plan-btn" data-action="openModal" data-args="register-modal">免费开始</button>
+    </div>
+    <div class="price-card recommend">
+      <div class="plan-name">专业版</div>
+      <div class="plan-price">¥29<small>/月</small></div>
+      <div class="plan-desc">适合认真做独立站的用户</div>
+      <ul class="plan-features">
+        <li>无限次生成站点</li>
+        <li>高级SEO组件</li>
+        <li>Stripe/PayPal集成</li>
+        <li>去除水印和链接</li>
+        <li>订单管理后台</li>
+        <li>弃单追回邮件</li>
+      </ul>
+      <button class="plan-btn" data-action="openModal" data-args="upgrade-modal">立即升级</button>
+    </div>
+    <div class="price-card">
+      <div class="plan-name">企业版</div>
+      <div class="plan-price">¥1,999<small>/年</small></div>
+      <div class="plan-desc">适合代理商/品牌方</div>
+      <ul class="plan-features">
+        <li>专业版全部功能</li>
+        <li>白标授权</li>
+        <li>API接口</li>
+        <li>自定义模板</li>
+        <li>优先技术支持</li>
+        <li>专属成功经理</li>
+      </ul>
+      <button class="plan-btn" data-action="openModal" data-args="contact-modal">联系销售</button>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section class="cta-section" id="cta">
+  <h2>准备好生成你的第一个网站了吗？</h2>
+  <p>免费生成，3分钟完成，无需绑卡</p>
+  <div class="cta-form">
+    <input type="email" id="hero-email" placeholder="输入你的邮箱，立即开始...">
+    <button data-action="startWithEmail">免费开始 →</button>
+  </div>
+  <div class="cta-note">无需下载安装 · 纯浏览器运行 · 数据不存储</div>
+</section>
+
+<!-- Footer -->
+<footer class="footer">
+  <div class="footer-links">
+    <a href="#templates">行业模板</a>
+    <a href="#features">功能清单</a>
+    <a href="#pricing">定价</a>
+    <a href="#arch">技术架构</a>
+    <a href="https://github.com" target="_blank">GitHub</a>
+  </div>
+  <div class="footer-powered">由 <a href="https://auto-site-builder.onrender.com" target="_blank">SG智能建站</a> 强力驱动 | FastAPI + Jinja2 + GLM-4</div>
+</footer>
+
+
+<!-- ═══════════════════════════════════════════════ -->
+<!--  生成器工具面板（点击"免费开始"或"免费生成"时显示）  -->
+<!-- ═══════════════════════════════════════════════ -->
+<div class="generator-overlay" id="generator-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:2000;backdrop-filter:blur(4px)">
+  <div class="generator-panel" style="position:relative;max-width:680px;margin:40px auto;background:#fff;border-radius:20px;padding:40px;max-height:90vh;overflow-y:auto;animation:slideUp .3s ease">
+    <button data-action="closeGenerator" style="position:absolute;top:16px;right:16px;background:none;border:none;font-size:24px;cursor:pointer;color:#999">✕</button>
+    
+    <h2 style="font-size:24px;font-weight:800;color:#1a1a2e;margin-bottom:8px">⚡ AI独立站生成器</h2>
+    <p style="font-size:14px;color:#888;margin-bottom:28px">输入一句话，AI自动生成专业网站</p>
+
+    <!-- 行业模板选择 -->
+    <div style="margin-bottom:24px">
+      <label style="font-size:13px;font-weight:600;color:#555;display:block;margin-bottom:10px">选择行业模板</label>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px">
+        <button class="tpl-sel-btn active" data-tpl="dtc" data-action="selectGenTemplate" data-args="dtc">🛒 DTC出海</button>
+        <button class="tpl-sel-btn" data-tpl="b2b" data-action="selectGenTemplate" data-args="b2b">🏭 B2B外贸</button>
+        <button class="tpl-sel-btn" data-tpl="affiliate" data-action="selectGenTemplate" data-args="affiliate">🔗 Affiliate</button>
+        <button class="tpl-sel-btn" data-tpl="local" data-action="selectGenTemplate" data-args="local">📅 本地服务</button>
+      </div>
+      <style>
+      .tpl-sel-btn{padding:10px 8px;border:2px solid #eee;border-radius:10px;background:#fff;font-size:13px;cursor:pointer;transition:all .2s;font-weight:600;color:#555}
+      .tpl-sel-btn:hover{border-color:#6c5ce7;color:#6c5ce7}
+      .tpl-sel-btn.active{border-color:#6c5ce7;background:rgba(108,92,231,.08);color:#6c5ce7}
+      </style>
+    </div>
+
+    <!-- 一句话输入 -->
+    <div style="margin-bottom:24px">
+      <label style="font-size:13px;font-weight:600;color:#555;display:block;margin-bottom:8px">描述你的生意</label>
+      <textarea id="gen-text" rows="3" placeholder="例如：我要一个卖手工皂的独立站，品牌叫'皂物集'，主打天然冷制皂" style="width:100%;padding:14px 16px;border:2px solid #eee;border-radius:12px;font-size:15px;outline:none;resize:vertical;transition:border-color .2s" onfocus="this.style.borderColor='#6c5ce7'" onblur="this.style.borderColor='#eee'"></textarea>
+    </div>
+
+    <!-- 高级设置（折叠） -->
+    <details style="margin-bottom:24px">
+      <summary style="font-size:13px;font-weight:600;color:#6c5ce7;cursor:pointer;padding:8px 0">高级设置（选填）</summary>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px">
+        <div>
+          <label style="font-size:12px;color:#888;display:block;margin-bottom:4px">品牌名</label>
+          <input id="gen-name" type="text" placeholder="如：皂物集" style="width:100%;padding:10px 12px;border:1.5px solid #eee;border-radius:8px;font-size:14px;outline:none">
+        </div>
+        <div>
+          <label style="font-size:12px;color:#888;display:block;margin-bottom:4px">行业</label>
+          <input id="gen-industry" type="text" placeholder="如：手工皂/美妆" style="width:100%;padding:10px 12px;border:1.5px solid #eee;border-radius:8px;font-size:14px;outline:none">
+        </div>
+        <div>
+          <label style="font-size:12px;color:#888;display:block;margin-bottom:4px">目标客户</label>
+          <input id="gen-audience" type="text" placeholder="如：25-40岁女性" style="width:100%;padding:10px 12px;border:1.5px solid #eee;border-radius:8px;font-size:14px;outline:none">
+        </div>
+        <div>
+          <label style="font-size:12px;color:#888;display:block;margin-bottom:4px">关键词</label>
+          <input id="gen-keywords" type="text" placeholder="如：天然,手工,冷制皂" style="width:100%;padding:10px 12px;border:1.5px solid #eee;border-radius:8px;font-size:14px;outline:none">
+        </div>
+        <div>
+          <label style="font-size:12px;color:#888;display:block;margin-bottom:4px">联系电话</label>
+          <input id="gen-phone" type="text" placeholder="选填" style="width:100%;padding:10px 12px;border:1.5px solid #eee;border-radius:8px;font-size:14px;outline:none">
+        </div>
+        <div>
+          <label style="font-size:12px;color:#888;display:block;margin-bottom:4px">联系邮箱</label>
+          <input id="gen-email" type="text" placeholder="选填" style="width:100%;padding:10px 12px;border:1.5px solid #eee;border-radius:8px;font-size:14px;outline:none">
+        </div>
+      </div>
+    
+    <!-- 专业版试用机会 -->
+    <div id="trial-option" style="margin-bottom:24px;padding:16px;background:linear-gradient(135deg,#ff6b6b20,#ee5a5a15);border-radius:12px;border:2px solid #ff6b6b40;display:none">
+      <label style="display:flex;align-items:center;gap:12px;cursor:pointer">
+        <input type="checkbox" id="use-trial" style="width:20px;height:20px;accent-color:#ff6b6b">
+        <span style="font-size:14px;color:#333">
+          <strong style="color:#ff6b6b">🎁 使用我的专业版试用机会</strong>
+          <span style="font-size:12px;color:#888;display:block;margin-top:4px">仅限一次，享受无水印、pricing/shop模式、无次数限制</span>
+        </span>
+      </label>
+    </div>
+
+    <!-- 生成按钮 -->
+    <button id="gen-btn" data-action="doGenerate" style="width:100%;padding:16px;border:none;border-radius:12px;background:linear-gradient(135deg,#6c5ce7,#a29bfe);color:#fff;font-size:16px;font-weight:700;cursor:pointer;transition:all .3s;box-shadow:0 4px 16px rgba(108,92,231,.3)">
+      🚀 立即生成我的网站
+    </button>
+    
+    <!-- 进度条 -->
+    <div id="gen-progress" style="display:none;margin-top:20px">
+      <div style="display:flex;justify-content:space-between;font-size:12px;color:#888;margin-bottom:8px">
+        <span id="gen-step-text">分析需求中...</span>
+        <span id="gen-percent">0%</span>
+      </div>
+      <div style="background:#f0f0f0;border-radius:6px;height:8px;overflow:hidden">
+        <div id="gen-bar" style="width:0%;height:100%;background:linear-gradient(90deg,#6c5ce7,#a29bfe);border-radius:6px;transition:width .5s ease"></div>
+      </div>
+      <div id="gen-steps" style="display:flex;justify-content:space-between;margin-top:12px;font-size:11px;color:#bbb">
+        <span class="step-active">分析</span><span>设计</span><span>生成</span><span>SEO</span><span>完成</span>
+      </div>
+    </div>
+
+    <!-- 生成结果 -->
+    <div id="gen-result" style="display:none;margin-top:24px;padding:24px;background:#f8f9ff;border-radius:12px;border:1px solid rgba(108,92,231,.1)">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px">
+        <span style="font-size:24px">🎉</span>
+        <span style="font-size:18px;font-weight:700;color:#1a1a2e">站点生成成功！</span>
+      </div>
+      <div id="gen-result-info" style="font-size:14px;color:#666;margin-bottom:16px"></div>
+      <div style="display:flex;gap:12px;flex-wrap:wrap">
+        <a id="gen-preview-link" href="javascript:void(0)" target="_blank" style="padding:10px 24px;border-radius:8px;background:#6c5ce7;color:#fff;font-size:14px;font-weight:600;text-decoration:none">👁 预览站点</a>
+        <a id="gen-download-link" href="javascript:void(0)" style="padding:10px 24px;border-radius:8px;border:2px solid #6c5ce7;color:#6c5ce7;font-size:14px;font-weight:600;text-decoration:none">⬇ 下载HTML</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+@keyframes slideUp{from{opacity:0;transform:translateY(30px)}to{opacity:1;transform:translateY(0)}}
+</style>
+
+<!-- ═══════════════════════════════ -->
+<!--  弹窗：登录 / 注册 / 升级 / 联系  -->
+<!-- ═══════════════════════════════ -->
+
+<!-- 登录弹窗 -->
+<div class="modal-overlay" id="login-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:3000;backdrop-filter:blur(4px)">
+  <div class="modal-box" style="max-width:400px;margin:80px auto;background:#fff;border-radius:16px;padding:36px;animation:slideUp .3s ease">
+    <button data-action="closeModal" data-args="login-modal" style="float:right;background:none;border:none;font-size:20px;cursor:pointer;color:#999">✕</button>
+    <h3 style="font-size:22px;font-weight:800;margin-bottom:4px">欢迎回来 👋</h3>
+    <p style="font-size:13px;color:#888;margin-bottom:24px">登录后可保存历史记录、解锁更多功能</p>
+    <input id="login-email" type="email" placeholder="邮箱" style="width:100%;padding:12px 16px;border:1.5px solid #eee;border-radius:10px;font-size:14px;margin-bottom:12px;outline:none">
+    <input id="login-pass" type="password" placeholder="密码" style="width:100%;padding:12px 16px;border:1.5px solid #eee;border-radius:10px;font-size:14px;margin-bottom:20px;outline:none">
+    <button data-action="doLogin" style="width:100%;padding:14px;border:none;border-radius:10px;background:linear-gradient(135deg,#6c5ce7,#a29bfe);color:#fff;font-size:15px;font-weight:700;cursor:pointer">登录</button>
+    <p style="text-align:center;margin-top:16px;font-size:13px;color:#888">没有账号？<a href="javascript:void(0)" data-action="switchToRegister" style="color:#6c5ce7;font-weight:600">免费注册</a></p>
+  </div>
+</div>
+
+<!-- 注册弹窗 -->
+<div class="modal-overlay" id="register-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:3000;backdrop-filter:blur(4px)">
+  <div class="modal-box" style="max-width:400px;margin:80px auto;background:#fff;border-radius:16px;padding:36px;animation:slideUp .3s ease">
+    <button data-action="closeModal" data-args="register-modal" style="float:right;background:none;border:none;font-size:20px;cursor:pointer;color:#999">✕</button>
+    <h3 style="font-size:22px;font-weight:800;margin-bottom:4px">创建账号 🚀</h3>
+    <p style="font-size:13px;color:#888;margin-bottom:24px">30秒注册，免费生成第一个独立站</p>
+    <input id="reg-email" type="email" placeholder="邮箱" style="width:100%;padding:12px 16px;border:1.5px solid #eee;border-radius:10px;font-size:14px;margin-bottom:12px;outline:none">
+    <input id="reg-pass" type="password" placeholder="设置密码（6位以上）" style="width:100%;padding:12px 16px;border:1.5px solid #eee;border-radius:10px;font-size:14px;margin-bottom:20px;outline:none">
+    <button data-action="doRegister" style="width:100%;padding:14px;border:none;border-radius:10px;background:linear-gradient(135deg,#6c5ce7,#a29bfe);color:#fff;font-size:15px;font-weight:700;cursor:pointer">免费注册</button>
+    <p style="text-align:center;margin-top:16px;font-size:13px;color:#888">已有账号？<a href="javascript:void(0)" data-action="switchToLogin" style="color:#6c5ce7;font-weight:600">去登录</a></p>
+  </div>
+</div>
+
+<!-- 升级弹窗 -->
+<div class="modal-overlay" id="upgrade-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:3000;backdrop-filter:blur(4px)">
+  <div class="modal-box" style="max-width:460px;margin:60px auto;background:#fff;border-radius:16px;padding:36px;animation:slideUp .3s ease">
+    <button data-action="closeModal" data-args="upgrade-modal" style="float:right;background:none;border:none;font-size:20px;cursor:pointer;color:#999">✕</button>
+    <h3 style="font-size:22px;font-weight:800;margin-bottom:4px">升级专业版 💰</h3>
+    <p style="font-size:13px;color:#888;margin-bottom:24px">解锁支付集成、高级SEO、无限生成</p>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px">
+      <div style="padding:20px;border:2px solid #eee;border-radius:12px;text-align:center;cursor:pointer" data-action="selectPlan" data-args="monthly">
+        <div style="font-size:14px;font-weight:600;color:#555">月付</div>
+        <div style="font-size:28px;font-weight:900;color:#1a1a2e;margin:8px 0">¥29</div>
+        <div style="font-size:12px;color:#888">/月</div>
+      </div>
+      <div style="padding:20px;border:2px solid #6c5ce7;border-radius:12px;text-align:center;cursor:pointer;background:rgba(108,92,231,.04)" data-action="selectPlan" data-args="yearly">
+        <div style="font-size:12px;color:#6c5ce7;font-weight:700;margin-bottom:4px">省 ¥149</div>
+        <div style="font-size:14px;font-weight:600;color:#555">年付</div>
+        <div style="font-size:28px;font-weight:900;color:#1a1a2e;margin:8px 0">¥199</div>
+        <div style="font-size:12px;color:#888">/年（¥16.6/月）</div>
+      </div>
+    </div>
+    <div style="margin-bottom:20px">
+      <label style="font-size:12px;color:#888;display:block;margin-bottom:6px">或输入激活码</label>
+      <div style="display:flex;gap:8px">
+        <input id="activate-code" type="text" placeholder="SB-XXXXXXXX-XXXXXXXX" style="flex:1;padding:10px 14px;border:1.5px solid #eee;border-radius:8px;font-size:14px;outline:none;font-family:monospace">
+        <button data-action="doActivate" style="padding:10px 20px;border:none;border-radius:8px;background:#6c5ce7;color:#fff;font-weight:600;cursor:pointer;font-size:13px">激活</button>
+      </div>
+      <p style="font-size:11px;color:#aaa;margin-top:6px">从闲鱼购买激活码，更优惠 → <a href="javascript:void(0)" style="color:#6c5ce7">去闲鱼</a></p>
+    </div>
+  </div>
+</div>
+
+<!-- 联系销售弹窗 -->
+<div class="modal-overlay" id="contact-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:3000;backdrop-filter:blur(4px)">
+  <div class="modal-box" style="max-width:400px;margin:80px auto;background:#fff;border-radius:16px;padding:36px;animation:slideUp .3s ease">
+    <button data-action="closeModal" data-args="contact-modal" style="float:right;background:none;border:none;font-size:20px;cursor:pointer;color:#999">✕</button>
+    <h3 style="font-size:22px;font-weight:800;margin-bottom:4px">联系企业销售 📞</h3>
+    <p style="font-size:13px;color:#888;margin-bottom:24px">白标授权、API对接、专属成功经理</p>
+    <input id="contact-name" type="text" placeholder="公司名称" style="width:100%;padding:12px 16px;border:1.5px solid #eee;border-radius:10px;font-size:14px;margin-bottom:12px;outline:none">
+    <input id="contact-email" type="email" placeholder="联系邮箱" style="width:100%;padding:12px 16px;border:1.5px solid #eee;border-radius:10px;font-size:14px;margin-bottom:12px;outline:none">
+    <textarea id="contact-msg" rows="3" placeholder="描述你的需求（选填）" style="width:100%;padding:12px 16px;border:1.5px solid #eee;border-radius:10px;font-size:14px;margin-bottom:20px;outline:none;resize:vertical"></textarea>
+    <button data-action="submitContact" style="width:100%;padding:14px;border:none;border-radius:10px;background:linear-gradient(135deg,#6c5ce7,#a29bfe);color:#fff;font-size:15px;font-weight:700;cursor:pointer">提交咨询</button>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════ -->
+<!--  JavaScript                     -->
+<!-- ═══════════════════════════════ -->
+<script>
+(function(){
+'use strict';
+
+var API = '/api/v1';
+var selectedTemplate = 'dtc';
+var token = localStorage.getItem('sg_token');
+
+// ── 导航滚动效果 ──
+window.addEventListener('scroll', function(){
+  document.getElementById('navbar').classList.toggle('scrolled', window.scrollY > 50);
+});
+
+// ── 弹窗控制 ──
+window.openModal = function(id){
+  document.getElementById(id).style.display = 'flex';
+  document.body.style.overflow = 'hidden';
+};
+window.closeModal = function(id){
+  document.getElementById(id).style.display = 'none';
+  document.body.style.overflow = '';
+};
+
+// ── 生成器面板 ──
+window.scrollToGenerator = function(){
+  document.getElementById('generator-overlay').style.display = 'flex';
+  document.body.style.overflow = 'hidden';
+};
+window.closeGenerator = function(){
+  document.getElementById('generator-overlay').style.display = 'none';
+  document.body.style.overflow = '';
+};
+
+// ── 行业模板选择（落地页卡片） ──
+window.selectTemplate = function(tpl){
+  selectedTemplate = tpl;
+  scrollToGenerator();
+  // 更新生成器面板中的模板选择
+  document.querySelectorAll('.tpl-sel-btn').forEach(function(btn){
+    btn.classList.toggle('active', btn.getAttribute('data-tpl') === tpl);
+  });
+};
+
+// ── 生成器面板内模板选择 ──
+window.selectGenTemplate = function(btn, tpl){
+  selectedTemplate = tpl;
+  document.querySelectorAll('.tpl-sel-btn').forEach(function(b){ b.classList.remove('active'); });
+  btn.classList.add('active');
+};
+
+// ── 邮箱开始 ──
+window.startWithEmail = function(){
+  var email = document.getElementById('hero-email').value.trim();
+  if(email) document.getElementById('reg-email').value = email;
+  openModal('register-modal');
+};
+
+// ── 注册 ──
+window.doRegister = function(){
+  var email = document.getElementById('reg-email').value.trim();
+  var pass = document.getElementById('reg-pass').value;
+  if(!email || !pass){ showToast('请填写邮箱和密码',false); return; }
+  if(pass.length < 6){ showToast('密码至少6位',false); return; }
+
+  fetch(API + '/register', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({username: email, email: email, password: pass})
+  })
+  .then(function(r){ return r.json(); })
+  .then(function(data){
+    if(data.access_token){
+      token = data.access_token;
+      localStorage.setItem('sg_token', token);
+      if(data.user && data.user.uid) localStorage.setItem('sg_uid', data.user.uid);
+      closeModal('register-modal');
+      scrollToGenerator();
+    } else {
+      showToast(data.detail || '注册失败',false);
+    }
+  })
+  .catch(function(){ showToast('网络错误，请重试',false); });
+};
+
+// ── 登录 ──
+window.doLogin = function(){
+  var email = document.getElementById('login-email').value.trim();
+  var pass = document.getElementById('login-pass').value;
+
+  fetch(API + '/login', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({username: email, email: email, password: pass})
+  })
+  .then(function(r){ return r.json(); })
+  .then(function(data){
+    if(data.access_token){
+      token = data.access_token;
+      localStorage.setItem('sg_token', token);
+      if(data.user && data.user.uid) localStorage.setItem('sg_uid', data.user.uid);
+      closeModal('login-modal');
+      scrollToGenerator();
+    } else {
+      showToast(data.detail || '登录失败',false);
+    }
+  })
+  .catch(function(){ showToast('网络错误，请重试',false); });
+};
+
+// ── 激活码 ──
+window.doActivate = function(){
+  var code = document.getElementById('activate-code').value.trim();
+  if(!code){ showToast('请输入激活码',false); return; }
+
+  fetch(API + '/activate', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token},
+    body: JSON.stringify({code: code})
+  })
+  .then(function(r){ return r.json(); })
+  .then(function(data){
+    if(data.success){
+      showToast('激活成功！已升级为专业版 🎉',false);
+      closeModal('upgrade-modal');
+    } else {
+      showToast(data.detail || '激活码无效',false);
+    }
+  })
+  .catch(function(){ showToast('网络错误',false); });
+};
+
+// ── 定价方案选择 ──
+window.selectPlan = function(plan){
+  if(!token){
+    openModal('login-modal');
+    return;
+  }
+  var planInfo = {
+    'monthly': {name:'专业版月度', price:29, days:30},
+    'yearly': {name:'专业版年度', price:199, days:365}
+  };
+  var info = planInfo[plan];
+  if(!info){ showToast('请选择有效方案',false); return; }
+  if(!confirm('确认购买 ' + info.name + ' ¥' + info.price + '？')) return;
+
+  var orderNo = 'SB' + Date.now() + Math.random().toString(36).slice(2,6).toUpperCase();
+
+  // 先尝试虎皮椒支付
+  var userUid = localStorage.getItem('sg_uid') || '';
+  fetch(API + '/xunhupay/default/create', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token},
+    body: JSON.stringify({
+      order_no: orderNo,
+      total: info.price,
+      title: 'SG智能建站 ' + info.name,
+      type: 'wechat',
+      user_uid: userUid,
+      return_url: location.origin + location.pathname + '?paid=1'
+    })
+  })
+  .then(function(r){ return r.json(); })
+  .then(function(data){
+    if(data.success && data.url){
+      // 跳转到虎皮椒支付页
+      window.location.href = data.url;
+    } else if(data.url_qrcode){
+      // 微信扫码支付
+      var qrHtml = '<div style="text-align:center;padding:20px">' +
+        '<h3 style="margin-bottom:16px">微信扫码支付 ¥' + info.price + '</h3>' +
+        '<img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=' + encodeURIComponent(data.url_qrcode) + '" style="margin:0 auto"/>' +
+        '<p style="margin-top:12px;color:#888;font-size:13px">支付完成后页面将自动更新</p>' +
+        '</div>';
+      var overlay = document.createElement('div');
+      overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9999;display:flex;align-items:center;justify-content:center';
+      overlay.innerHTML = '<div style="background:#fff;border-radius:12px;padding:20px;max-width:360px">' + qrHtml + '</div>';
+      overlay.addEventListener('click', function(e){ if(e.target===overlay) overlay.remove(); });
+      document.body.appendChild(overlay);
+      // 轮询订单状态
+      var pollTimer = setInterval(function(){
+        fetch(API + '/xunhupay/default/query?order_no=' + orderNo)
+        .then(function(r){ return r.json(); })
+        .then(function(d){
+          if(d.status === 'paid'){
+            clearInterval(pollTimer);
+            overlay.remove();
+            showToast('支付成功！已升级为专业版 🎉',false);
+            location.reload();
+          }
+        })
+        .catch(function(){});
+      }, 3000);
+      // 5分钟超时停止轮询
+      setTimeout(function(){ clearInterval(pollTimer); }, 300000);
+    } else {
+      // 虎皮椒未配置，降级到激活码
+      showToast('在线支付暂未开通，请使用激活码升级。\n\n获取激活码：联系客服或闲鱼搜索"SG智能建站"',false);
+      openModal('upgrade-modal');
+    }
+  })
+  .catch(function(){
+    showToast('支付服务暂时不可用，请使用激活码升级',false);
+    openModal('upgrade-modal');
+  });
+};
+
+// ── 联系销售 ──
+window.submitContact = function(){
+  var name = document.getElementById('contact-name').value.trim();
+  var email = document.getElementById('contact-email').value.trim();
+  if(!name || !email){ showToast('请填写公司名称和邮箱',false); return; }
+  showToast('感谢咨询！我们会在24小时内联系您。',false);
+  closeModal('contact-modal');
+};
+
+// ── 生成站点（v7.2: AbortController竞态防护 + 超时重试） ──
+var _genAbort = null; // 请求取消控制器
+var _genLock = false; // 请求锁
+
+window.doGenerate = function(){
+  var text = document.getElementById('gen-text').value.trim();
+  var name = document.getElementById('gen-name').value.trim();
+  var industry = document.getElementById('gen-industry').value.trim();
+  var audience = document.getElementById('gen-audience').value.trim();
+  var keywords = document.getElementById('gen-keywords').value.trim();
+  var phone = document.getElementById('gen-phone').value.trim();
+  var email = document.getElementById('gen-email').value.trim();
+
+  if(!text && !name){
+    showToast('请输入你的生意描述或品牌名',false);
+    return;
+  }
+
+  // 竞态防护：取消上一次未完成的请求
+  if(_genAbort){ _genAbort.abort(); }
+  if(_genLock){ return; } // 防连点
+  _genLock = true;
+  _genAbort = new AbortController();
+
+  
+  // 试用机会checkbox
+  var useTrial = document.getElementById('use-trial');
+  var useTrialChecked = useTrial && useTrial.checked;
+
+  var btn = document.getElementById('gen-btn');
+  var progress = document.getElementById('gen-progress');
+  var result = document.getElementById('gen-result');
+  
+  btn.disabled = true;
+  btn.textContent = '生成中...';
+  btn.style.opacity = '.7';
+  progress.style.display = 'block';
+  result.style.display = 'none';
+
+  var steps = ['分析需求中...', '设计页面结构...', '生成HTML内容...', '优化SEO数据...', '打包完成！'];
+  var stepIdx = 0;
+  var pct = 0;
+  var progressTimer = setInterval(function(){
+    pct += Math.random() * 15 + 5;
+    if(pct > 90) pct = 90;
+    document.getElementById('gen-bar').style.width = pct + '%';
+    document.getElementById('gen-percent').textContent = Math.round(pct) + '%';
+    if(pct > stepIdx * 20 + 15 && stepIdx < steps.length - 1){
+      stepIdx++;
+      document.getElementById('gen-step-text').textContent = steps[stepIdx];
+    }
+  }, 500);
+
+  var headers = {};
+  if(token) headers['Authorization'] = 'Bearer ' + token;
+
+  // 确定调用哪个API
+  var endpoint, body;
+  if(text){
+    endpoint = API + '/generate-from-text';
+    body = new FormData();
+    body.append('text', text);
+    if(phone) body.append('phone', phone);
+    if(email) body.append('email', email);
+  } else {
+    endpoint = API + '/generate';
+    body = new FormData();
+    var mode = 'landing';
+    if(selectedTemplate === 'dtc') mode = 'site';
+    else if(selectedTemplate === 'b2b') mode = 'site';
+    else if(selectedTemplate === 'affiliate') mode = 'site';
+    else if(selectedTemplate === 'local') mode = 'site';
+    body.append('mode', mode);
+    body.append('name', name || text.slice(0, 20));
+    body.append('async_mode', 'auto');
+    if(useTrialChecked) body.append('use_trial', 'true');  // 智能切换：site/shop走异步
+    if(industry) body.append('industry', industry);
+    if(audience) body.append('audience', audience);
+    if(keywords) body.append('keywords', keywords);
+    if(phone) body.append('phone', phone);
+    if(email) body.append('email', email);
+  }
+
+  // 超时控制：90秒无响应自动重试一次
+  var _timeoutId = setTimeout(function(){ _genAbort.abort(); }, 90000);
+  var _retryCount = 0;
+
+  function _doFetch(){
+    fetch(endpoint, {
+      method: 'POST',
+      headers: headers,
+      body: body,
+      signal: _genAbort.signal
+    })
+    .then(function(r){
+      clearTimeout(_timeoutId);
+      if(r.status === 429){
+        throw new Error('USAGE_LIMIT');
+      }
+      if(!r.ok){
+        throw new Error('HTTP_' + r.status);
+      }
+      return r.json();
+    })
+    .then(function(data){
+      // 异步模式：服务器返回task_id，前端自动轮询
+      if(data.async && data.task_id){
+        document.getElementById('gen-step-text').textContent = '后台生成中...';
+        _pollGenerate(data.task_id, progressTimer, progress, result, btn);
+        return;
+      }
+      clearInterval(progressTimer);
+      document.getElementById('gen-bar').style.width = '100%';
+      document.getElementById('gen-percent').textContent = '100%';
+      document.getElementById('gen-step-text').textContent = '完成！';
+      
+      setTimeout(function(){
+        progress.style.display = 'none';
+        result.style.display = 'block';
+        
+        var pageId = data.page_id || data.site_id;
+        var aiUsed = data.ai_used ? 'AI智能生成' : '模板快速生成';
+        var fileSize = data.file_size ? (data.file_size / 1024).toFixed(1) + ' KB' : '';
+        
+        document.getElementById('gen-result-info').innerHTML = 
+          '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">' +
+          '<div><span style="color:#888">模式：</span>' + (data.mode || 'landing') + '</div>' +
+          '<div><span style="color:#888">引擎：</span>' + aiUsed + '</div>' +
+          (fileSize ? '<div><span style="color:#888">大小：</span>' + fileSize + '</div>' : '') +
+          (data.ai_backend ? '<div><span style="color:#888">AI：</span>' + data.ai_backend + '</div>' : '') +
+          '</div>';
+        
+        document.getElementById('gen-preview-link').href = data.preview_url || (API + '/preview/' + pageId);
+        document.getElementById('gen-download-link').href = data.download_url || (API + '/download/' + pageId);
+
+        _genLock = false;
+        _genAbort = null;
+        btn.disabled = false;
+        btn.textContent = '🚀 再生成一个';
+        btn.style.opacity = '1';
+      }, 600);
+    })
+    .catch(function(err){
+      clearTimeout(_timeoutId);
+      // 被AbortController取消（用户重新点击）→ 静默处理
+      if(err.name === 'AbortError' && _genLock){ return; }
+      // 超时：自动重试一次
+      if(err.name === 'AbortError' && _retryCount === 0){
+        _retryCount++;
+        _genAbort = new AbortController();
+        _timeoutId = setTimeout(function(){ _genAbort.abort(); }, 90000);
+        document.getElementById('gen-step-text').textContent = '服务器唤醒中，重试...';
+        _doFetch();
+        return;
+      }
+      clearInterval(progressTimer);
+      progress.style.display = 'none';
+      _genLock = false;
+      _genAbort = null;
+      btn.disabled = false;
+      btn.textContent = '🚀 立即生成我的网站';
+      btn.style.opacity = '1';
+      
+      if(err.message === 'USAGE_LIMIT'){
+        openModal('upgrade-modal');
+      } else {
+        showToast('生成失败，请稍后重试（服务器可能正在唤醒，请等30秒再试）',false);
+      }
+    });
+  }
+  _doFetch();
+};
+
+// ── 异步生成轮询 ──
+var _pollGenerate = function(taskId, progressTimer, progress, result, btn){
+  var pollInterval = setInterval(function(){
+    fetch(API + '/generate/status/' + taskId, {signal: _genAbort ? _genAbort.signal : undefined})
+    .then(function(r){ return r.json(); })
+    .then(function(data){
+      if(data.status === 'done' && data.result){
+        clearInterval(pollInterval);
+        clearInterval(progressTimer);
+        document.getElementById('gen-bar').style.width = '100%';
+        document.getElementById('gen-percent').textContent = '100%';
+        document.getElementById('gen-step-text').textContent = '完成！';
+        var r2 = data.result;
+        setTimeout(function(){
+          progress.style.display = 'none';
+          result.style.display = 'block';
+          var pageId = r2.page_id || r2.site_id;
+          var aiUsed = r2.ai_used ? 'AI智能生成' : '模板快速生成';
+          var fileSize = r2.file_size ? (r2.file_size / 1024).toFixed(1) + ' KB' : '';
+          document.getElementById('gen-result-info').innerHTML = 
+            '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">' +
+            '<div><span style="color:#888">模式：</span>' + (r2.mode || 'landing') + '</div>' +
+            '<div><span style="color:#888">引擎：</span>' + aiUsed + '</div>' +
+            (fileSize ? '<div><span style="color:#888">大小：</span>' + fileSize + '</div>' : '') +
+            (r2.ai_backend ? '<div><span style="color:#888">AI：</span>' + r2.ai_backend + '</div>' : '') +
+            (r2.cached ? '<div><span style="color:#888">缓存：</span>命中⚡</div>' : '') +
+            '</div>';
+          document.getElementById('gen-preview-link').href = r2.preview_url || (API + '/preview/' + pageId);
+          document.getElementById('gen-download-link').href = r2.download_url || (API + '/download/' + pageId);
+          _genLock = false; _genAbort = null;
+          btn.disabled = false;
+          btn.textContent = '🚀 再生成一个';
+          btn.style.opacity = '1';
+        }, 600);
+      } else if(data.status === 'error'){
+        clearInterval(pollInterval); clearInterval(progressTimer);
+        progress.style.display = 'none';
+        _genLock = false; _genAbort = null;
+        btn.disabled = false; btn.textContent = '🚀 立即生成我的网站'; btn.style.opacity = '1';
+        showToast('生成失败: ' + (data.error || '请稍后重试',false));
+      } else {
+        // 仍在进行中，更新进度
+        var pct = parseFloat(document.getElementById('gen-percent').textContent) || 0;
+        if(pct < 85){ document.getElementById('gen-percent').textContent = Math.round(pct + 5) + '%'; }
+      }
+    })
+    .catch(function(err){
+      if(err.name === 'AbortError'){ clearInterval(pollInterval); return; }
+      // 网络错误，继续轮询
+    });
+  }, 2000);
+};
+
+// ── 点击overlay关闭弹窗 ──
+document.querySelectorAll('.modal-overlay, .generator-overlay').forEach(function(overlay){
+  overlay.addEventListener('click', function(e){
+    if(e.target === overlay){
+      overlay.style.display = 'none';
+      document.body.style.overflow = '';
+    }
+  });
+});
+
+// ── 程序化SEO引擎 ──
+window.seoRunning = false;
+window.currentSeoTask = null;
+
+window.launchSEO = function(){
+  if(seoRunning) return;
+  seoRunning = true;
+
+  var industry = document.getElementById('seo-industry').value;
+  var keywords = document.getElementById('seo-keywords').value.trim();
+  var city = document.getElementById('seo-city').value.trim();
+
+  var btn = document.getElementById('seo-launch');
+  btn.textContent = '挖掘关键词中...';
+  btn.style.opacity = '0.7';
+
+  var formData = new FormData();
+  formData.append('industry', industry);
+  formData.append('keywords', keywords || '网站建设,数字营销');
+  formData.append('city', city || '北京');
+  formData.append('max_keywords', '50');
+  formData.append('max_pages', '50');
+
+  var startTime = Date.now();
+
+  fetch(API + '/seo/seed', {method:'POST', body:formData})
+  .then(function(r){ return r.json(); })
+  .then(function(data){
+    currentSeoTask = data.task_id;
+    document.getElementById('seo-result').style.display = 'block';
+    document.getElementById('seo-task-info').textContent = '任务ID: ' + data.task_id + ' — 页面正在后台批量生成...';
+
+    // 轮询获取关键词结果
+    pollSEO(data.task_id, startTime);
+  })
+  .catch(function(){
+    btn.textContent = '启动SEO引擎';
+    btn.style.opacity = '1';
+    seoRunning = false;
+    showToast('网络错误，请重试',false);
+  });
+};
+
+function pollSEO(taskId, startTime){
+  setTimeout(function(){
+    fetch(API + '/seo/pages/' + taskId)
+    .then(function(r){ return r.json(); })
+    .then(function(data){
+      var elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+
+      // 更新统计卡片
+      animateNum('seo-kw-count', data.total_keywords);
+      animateNum('seo-page-count', data.total_pages);
+      animateNum('seo-link-count', data.total_pages * 3);
+      document.getElementById('seo-time').textContent = elapsed + 's';
+
+      // 意图分布条
+      var dist = data.intent_distribution || {};
+      var colors = {informational:'#3b82f6', transactional:'#22c55e', comparison:'#fbbf24', navigational:'#f97316'};
+      var barHTML = '';
+      var total = Object.values(dist).reduce(function(a,b){return a+b},0) || 1;
+      for(var intent in dist){
+        var pct = Math.round(dist[intent] / total * 100);
+        var color = colors[intent] || '#6c5ce7';
+        barHTML += '<span style="background:'+color+';flex:'+dist[intent]+'">'+intent+' '+pct+'%</span>';
+      }
+      document.getElementById('seo-intent-bar').innerHTML = barHTML;
+
+      // 关键词云
+      var topKw = data.top_keywords || [];
+      var cloudHTML = '';
+      var intentClass = {informational:'info',transactional:'trans',comparison:'comp',navigational:'nav'};
+      topKw.forEach(function(kw){
+        var cls = intentClass[kw.intent] || '';
+    cloudHTML += '<span class="seo-kw-tag '+cls+'">'+kw.keyword+'</span>';
+  });
+  document.getElementById('seo-keyword-cloud').innerHTML = cloudHTML;
+
+  // TOP表格
+  var tableHTML = '';
+  topKw.forEach(function(kw){
+    var diff = kw.difficulty || 0;
+    var diffColor = diff < 0.4 ? '#4ade80' : diff < 0.7 ? '#fbbf24' : '#f87171';
+    var intentLabel = {informational:'信息型',transactional:'交易型',comparison:'对比型',navigational:'导航型'};
+    tableHTML += '<tr><td style="color:#e2e8f0">'+kw.keyword+'</td><td>'+kw.volume+'</td><td><span style="color:'+diffColor+'">'+(diff*100).toFixed(0)+'%</span></td><td>'+(intentLabel[kw.intent]||kw.intent)+'</td></tr>';
+  });
+  document.getElementById('seo-top-tbody').innerHTML = tableHTML;
+
+  // 如果还在进行中，继续轮询
+  if(data.status === 'generating' || data.status === 'linking' || data.status === 'pending'){
+    pollSEO(taskId, startTime);
+  } else {
+    var btn = document.getElementById('seo-launch');
+    btn.textContent = '启动SEO引擎';
+    btn.style.opacity = '1';
+    seoRunning = false;
+
+    if(data.status === 'done'){
+      document.getElementById('seo-task-info').innerHTML = '<strong style="color:#4ade80">SEO流水线完成!</strong> 已生成 <strong>'+data.total_keywords+'</strong> 个关键词、<strong>'+data.total_pages+'</strong> 个页面，内链网络已构建。';
+    }
+  }
+})
+.catch(function(){
+  // 静默重试
+  setTimeout(function(){ pollSEO(taskId, startTime); }, 2000);
+});
+  }, 1500);
+}
+
+function animateNum(id, target){
+  var el = document.getElementById(id);
+  var current = parseInt(el.textContent) || 0;
+  if(current >= target) return;
+  var step = Math.max(1, Math.ceil((target - current) / 20));
+  var timer = setInterval(function(){
+    current += step;
+    if(current >= target){ current = target; clearInterval(timer); }
+    el.textContent = current;
+  }, 50);
+}
+
+// 绑定按钮
+document.getElementById('seo-launch').addEventListener('click', launchSEO);
+
+// ── 事件委托（替代inline onclick）──
+document.addEventListener('click', function(e){
+  var el = e.target.closest('[data-action]');
+  if (!el) return;
+  var action = el.getAttribute('data-action');
+  var args = el.getAttribute('data-args');
+  switch(action){
+    case 'openModal': openModal(args); break;
+    case 'closeModal': closeModal(args); break;
+    case 'scrollToGenerator': scrollToGenerator(); break;
+    case 'scrollToDemo': document.getElementById('demo').scrollIntoView({behavior:'smooth'}); break;
+    case 'closeGenerator': closeGenerator(); break;
+    case 'doGenerate': doGenerate(); break;
+    case 'doLogin': doLogin(); break;
+    case 'doRegister': doRegister(); break;
+    case 'doActivate': doActivate(); break;
+    case 'submitContact': submitContact(); break;
+    case 'startWithEmail': startWithEmail(); break;
+    case 'selectTemplate': selectTemplate(args); break;
+    case 'selectGenTemplate': selectGenTemplate(el, args); break;
+    case 'selectPlan': selectPlan(args); break;
+    case 'switchToRegister': closeModal('login-modal'); openModal('register-modal'); break;
+    case 'switchToLogin': closeModal('register-modal'); openModal('login-modal'); break;
+    default: break;
+  }
+});
+
+// ── 冷启动预热：页面加载后静默ping服务器，消除首次生成延迟 ──
+(function warmUp(){
+  fetch(API + '/health', {method:'GET', cache:'no-store'}).catch(function(){});
+})();
+})();
+</script>
+
+</body>
+</html>

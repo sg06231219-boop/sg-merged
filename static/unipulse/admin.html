@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>UniPulse 管理后台</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg:#0a0e1a;--bg2:#0f1325;--card:rgba(255,255,255,.04);--card2:rgba(255,255,255,.07);--border:rgba(255,255,255,.08);--text:#e2e8f0;--soft:#64748b;--gold:#f59e0b;--blue:#3b82f6;--cyan:#06b6d4;--purple:#8b5cf6;--green:#10b981;--red:#ef4444;--orange:#f97316}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);line-height:1.6;min-height:100vh}
+
+.login-wrap{display:flex;justify-content:center;align-items:center;min-height:100vh;padding:20px}
+.login-box{background:var(--card);border:1px solid var(--border);border-radius:18px;padding:40px;max-width:400px;width:100%;text-align:center}
+.login-box h1{font-size:24px;font-weight:800;margin-bottom:4px;background:linear-gradient(135deg,var(--gold),var(--orange));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.login-box p{color:var(--soft);font-size:13px;margin-bottom:24px}
+.form-group{margin-bottom:14px;text-align:left}
+.form-group label{display:block;font-size:12px;font-weight:600;color:var(--soft);margin-bottom:4px}
+.form-group input{width:100%;background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:10px 14px;color:var(--text);font-size:14px;outline:none}
+.form-group input:focus{border-color:rgba(59,130,246,.5);box-shadow:0 0 0 3px rgba(59,130,246,.08)}
+.login-btn{width:100%;background:linear-gradient(135deg,var(--blue),var(--purple));color:#fff;padding:12px;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer;border:none;box-shadow:0 4px 15px rgba(59,130,246,.3);margin-top:8px}
+.login-btn:hover{opacity:.9}
+.login-error{color:var(--red);font-size:12px;margin-top:8px}
+
+/* Layout */
+.admin{display:none}
+.admin.open{display:flex}
+.sidebar{width:220px;background:var(--bg2);border-right:1px solid var(--border);min-height:100vh;padding:20px 0;flex-shrink:0;position:sticky;top:0;height:100vh;overflow-y:auto}
+.sidebar .logo{padding:0 20px 20px;font-size:18px;font-weight:800;background:linear-gradient(135deg,var(--gold),var(--orange));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.sidebar .logo span{font-size:11px;color:var(--soft);-webkit-text-fill-color:var(--soft);font-weight:400;display:block;margin-top:2px}
+.nav-item{display:block;padding:9px 20px;font-size:13px;color:var(--soft);cursor:pointer;transition:all .15s;border-left:3px solid transparent}
+.nav-item:hover{color:var(--text);background:var(--card)}
+.nav-item.active{color:var(--blue);background:rgba(59,130,246,.08);border-left-color:var(--blue)}
+.nav-item .icon{margin-right:8px}
+
+.main{flex:1;padding:28px 32px;max-width:1100px}
+.page-title{font-size:20px;font-weight:700;margin-bottom:20px;display:flex;align-items:center;gap:10px}
+.page-title .badge{font-size:11px;padding:3px 10px;border-radius:12px;background:rgba(59,130,246,.15);color:var(--blue);font-weight:600}
+
+/* Stats */
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px;margin-bottom:28px}
+.stat-card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:18px;position:relative;overflow:hidden}
+.stat-card::before{content:'';position:absolute;top:-20px;right:-20px;width:60px;height:60px;border-radius:50%;opacity:.1}
+.stat-card .num{font-size:28px;font-weight:800;margin-bottom:2px}
+.stat-card .label{font-size:12px;color:var(--soft)}
+.stat-card .sub{font-size:10px;color:var(--green);margin-top:4px}
+.stat-card.blue .num{color:var(--blue)}.stat-card.blue::before{background:var(--blue)}
+.stat-card.green .num{color:var(--green)}.stat-card.green::before{background:var(--green)}
+.stat-card.gold .num{color:var(--gold)}.stat-card.gold::before{background:var(--gold)}
+.stat-card.purple .num{color:var(--purple)}.stat-card.purple::before{background:var(--purple)}
+.stat-card.cyan .num{color:var(--cyan)}.stat-card.cyan::before{background:var(--cyan)}
+.stat-card.orange .num{color:var(--orange)}.stat-card.orange::before{background:var(--orange)}
+
+/* Table */
+.data-table{width:100%;border-collapse:separate;border-spacing:0 4px}
+.data-table th{padding:8px 12px;text-align:left;font-size:11px;font-weight:600;color:var(--soft);text-transform:uppercase;letter-spacing:.5px}
+.data-table td{padding:10px 12px;font-size:13px;background:var(--card);border:none}
+.data-table tr td:first-child{border-radius:8px 0 0 8px}
+.data-table tr td:last-child{border-radius:0 8px 8px 0}
+.data-table tr:hover td{background:var(--card2)}
+.role-badge{font-size:10px;padding:2px 8px;border-radius:8px;font-weight:600}
+.role-badge.admin{background:rgba(239,68,68,.12);color:var(--red)}
+.role-badge.user{background:rgba(59,130,246,.12);color:var(--blue)}
+.btn-sm{padding:4px 10px;border-radius:6px;font-size:11px;cursor:pointer;border:none;transition:all .15s}
+.btn-del{background:rgba(239,68,68,.1);color:var(--red);border:1px solid rgba(239,68,68,.2)}
+.btn-del:hover{background:rgba(239,68,68,.2)}
+.btn-edit{background:rgba(59,130,246,.1);color:var(--blue);border:1px solid rgba(59,130,246,.2)}
+.btn-edit:hover{background:rgba(59,130,246,.2)}
+.btn-role{background:rgba(139,92,246,.1);color:var(--purple);border:1px solid rgba(139,92,246,.2)}
+.btn-role:hover{background:rgba(139,92,246,.2)}
+
+.pager{display:flex;gap:8px;justify-content:center;margin-top:20px;align-items:center}
+.pager button{background:var(--card);border:1px solid var(--border);color:var(--soft);padding:6px 14px;border-radius:8px;font-size:12px;cursor:pointer}
+.pager button:hover{color:var(--text);background:var(--card2)}
+.pager button:disabled{opacity:.4;cursor:default}
+.pager .info{font-size:12px;color:var(--soft)}
+
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--bg2);border:1px solid var(--green);color:var(--text);padding:10px 22px;border-radius:10px;font-size:13px;opacity:0;transition:opacity .3s;z-index:300;box-shadow:0 8px 30px rgba(0,0,0,.4)}
+.toast.show{opacity:1}
+.toast.err{border-color:var(--red)}
+
+.section{display:none}.section.active{display:block}
+.confirm-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:200;justify-content:center;align-items:center;backdrop-filter:blur(4px)}
+.confirm-overlay.open{display:flex}
+.confirm-box{background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:24px;max-width:380px;text-align:center}
+.confirm-box h3{margin-bottom:8px;font-size:16px}
+.confirm-box p{font-size:13px;color:var(--soft);margin-bottom:16px}
+.confirm-box .btns{display:flex;gap:10px;justify-content:center}
+.confirm-box .btns button{padding:8px 20px;border-radius:8px;font-size:13px;cursor:pointer;border:none}
+.confirm-box .btn-y{background:var(--red);color:#fff}
+.confirm-box .btn-n{background:var(--card);color:var(--text);border:1px solid var(--border)}
+
+@media(max-width:768px){.sidebar{width:60px;padding:12px 0}.nav-item{padding:10px 0;text-align:center;font-size:0}.nav-item .icon{font-size:16px;margin:0}.sidebar .logo span{display:none}.main{padding:16px}}
+</style>
+</head>
+<body>
+
+<div class="login-wrap" id="loginWrap">
+  <div class="login-box">
+    <h1>UniPulse</h1>
+    <p>管理后台</p>
+    <div class="form-group"><label>邮箱</label><input id="loginEmail" type="email" placeholder="admin@unipulse.com"></div>
+    <div class="form-group"><label>密码</label><input id="loginPass" type="password" placeholder="••••••"></div>
+    <button class="login-btn" id="doLogin">登 录</button>
+    <div class="login-error" id="loginErr"></div>
+  </div>
+</div>
+
+<div class="admin" id="adminWrap">
+  <div class="sidebar">
+    <div class="logo">UniPulse<span>管理后台</span></div>
+    <div class="nav-item active" data-sec="dashboard"><span class="icon">📊</span>概览</div>
+    <div class="nav-item" data-sec="users"><span class="icon">👥</span>用户管理</div>
+    <div class="nav-item" data-sec="posts"><span class="icon">💬</span>帖子管理</div>
+    <div class="nav-item" data-sec="comments"><span class="icon">💭</span>评论管理</div>
+    <div class="nav-item" data-sec="universities"><span class="icon">🏫</span>高校数据</div>
+    <div class="nav-item" data-sec="logout" style="margin-top:auto"><span class="icon">🚪</span>退出</div>
+  </div>
+  <div class="main">
+    <!-- Dashboard -->
+    <div class="section active" id="sec-dashboard">
+      <div class="page-title">📊 数据概览</div>
+      <div class="stats-grid" id="statsGrid"></div>
+    </div>
+    <!-- Users -->
+    <div class="section" id="sec-users">
+      <div class="page-title">👥 用户管理 <span class="badge" id="userCount"></span></div>
+      <table class="data-table"><thead><tr><th>ID</th><th>用户名</th><th>邮箱</th><th>角色</th><th>注册时间</th><th>操作</th></tr></thead><tbody id="userTbody"></tbody></table>
+      <div class="pager" id="userPager"></div>
+    </div>
+    <!-- Posts -->
+    <div class="section" id="sec-posts">
+      <div class="page-title">💬 帖子管理 <span class="badge" id="postCount"></span></div>
+      <table class="data-table"><thead><tr><th>ID</th><th>标题</th><th>分类</th><th>作者</th><th>评论</th><th>浏览</th><th>时间</th><th>操作</th></tr></thead><tbody id="postTbody"></tbody></table>
+      <div class="pager" id="postPager"></div>
+    </div>
+    <!-- Comments -->
+    <div class="section" id="sec-comments">
+      <div class="page-title">💭 评论管理 <span class="badge" id="commentCount"></span></div>
+      <table class="data-table"><thead><tr><th>ID</th><th>帖子</th><th>作者</th><th>内容</th><th>赞</th><th>时间</th><th>操作</th></tr></thead><tbody id="commentTbody"></tbody></table>
+      <div class="pager" id="commentPager"></div>
+    </div>
+    <!-- Universities -->
+    <div class="section" id="sec-universities">
+      <div class="page-title">🏫 高校数据 <span class="badge" id="uniCount"></span></div>
+      <table class="data-table"><thead><tr><th>排名</th><th>中文名</th><th>英文名</th><th>地区</th><th>国家</th><th>分数</th><th>操作</th></tr></thead><tbody id="uniTbody"></tbody></table>
+      <div class="pager" id="uniPager"></div>
+    </div>
+  </div>
+</div>
+
+<div class="confirm-overlay" id="confirmOverlay">
+  <div class="confirm-box">
+    <h3 id="confirmTitle">确认删除？</h3>
+    <p id="confirmMsg">此操作不可撤销</p>
+    <div class="btns"><button class="btn-y" id="confirmYes">确认</button><button class="btn-n" id="confirmNo">取消</button></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+(function(){
+  var API='/api',TOKEN_KEY='admin_token';
+  var token='',curSec='dashboard';
+  var pages={users:1,posts:1,comments:1,universities:1};
+  var toastTimer=null,confirmCb=null;
+
+  function $(id){return document.getElementById(id)}
+  function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
+  function toast(msg,err){var t=$('toast');t.textContent=msg;t.className='toast show'+(err?' err':'');clearTimeout(toastTimer);toastTimer=setTimeout(function(){t.classList.remove('show')},2500)}
+  function authH(){return{'Authorization':'Bearer '+token,'Content-Type':'application/json'}}
+  function get(path){return fetch(API+path,{headers:authH()}).then(function(r){if(r.status===401||r.status===403){doLogout();throw new Error('无权限')}return r.json()})}
+  function del(path){return fetch(API+path,{method:'DELETE',headers:authH()}).then(function(r){return r.json()})}
+
+  // Login
+  function doLogin(){
+    var email=$('loginEmail').value,pass=$('loginPass').value;
+    if(!email||!pass){$('loginErr').textContent='请填写邮箱和密码';return}
+    fetch(API+'/auth/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:email,password:pass})}).then(function(r){return r.json()}).then(function(d){
+      if(d.token){
+        token=d.token;localStorage.setItem(TOKEN_KEY,token);
+        // verify admin
+        fetch(API+'/admin/stats',{headers:authH()}).then(function(r){
+          if(r.ok){$('loginWrap').style.display='none';$('adminWrap').classList.add('open');loadDashboard();toast('✅ 登录成功')}
+          else{$('loginErr').textContent='非管理员账号';token='';localStorage.removeItem(TOKEN_KEY)}
+        });
+      }else{$('loginErr').textContent=d.detail||'登录失败'}
+    }).catch(function(){$('loginErr').textContent='网络错误'});
+  }
+
+  function doLogout(){token='';localStorage.removeItem(TOKEN_KEY);$('adminWrap').classList.remove('open');$('loginWrap').style.display='flex'}
+
+  function tryAutoLogin(){
+    var t=localStorage.getItem(TOKEN_KEY);
+    if(!t)return;
+    token=t;
+    fetch(API+'/admin/stats',{headers:authH()}).then(function(r){
+      if(r.ok){$('loginWrap').style.display='none';$('adminWrap').classList.add('open');loadDashboard()}
+      else{token='';localStorage.removeItem(TOKEN_KEY)}
+    }).catch(function(){});
+  }
+
+  // Nav
+  function switchSec(name){
+    if(name==='logout'){doLogout();return}
+    curSec=name;
+    document.querySelectorAll('.nav-item').forEach(function(n){n.classList.toggle('active',n.dataset.sec===name)});
+    document.querySelectorAll('.section').forEach(function(s){s.classList.toggle('active',s.id==='sec-'+name)});
+    if(name==='dashboard')loadDashboard();
+    if(name==='users')loadUsers();
+    if(name==='posts')loadPosts();
+    if(name==='comments')loadComments();
+    if(name==='universities')loadUnis();
+  }
+
+  // Dashboard
+  function loadDashboard(){
+    get('/admin/stats').then(function(s){
+      $('statsGrid').innerHTML=
+        '<div class="stat-card blue"><div class="num">'+s.users+'</div><div class="label">👥 用户总数</div><div class="sub">近7天 +'+s.recent_users+'</div></div>'+
+        '<div class="stat-card green"><div class="num">'+s.posts+'</div><div class="label">💬 帖子总数</div><div class="sub">近7天 +'+s.recent_posts+'</div></div>'+
+        '<div class="stat-card gold"><div class="num">'+s.comments+'</div><div class="label">💭 评论总数</div></div>'+
+        '<div class="stat-card purple"><div class="num">'+s.universities+'</div><div class="label">🏫 高校数量</div></div>'+
+        '<div class="stat-card cyan"><div class="num">'+s.programs+'</div><div class="label">🎓 专业数量</div></div>';
+    }).catch(function(){});
+  }
+
+  // Users
+  function loadUsers(p){
+    p=p||pages.users;pages.users=p;
+    get('/admin/users?page='+p+'&size=20').then(function(d){
+      $('userCount').textContent=d.total+' 人';
+      var html='';
+      d.items.forEach(function(u){
+        var rb='<span class="role-badge '+u.role+'">'+(u.role==='admin'?'管理员':'用户')+'</span>';
+        var toggleBtn=u.role==='admin'?'<button class="btn-sm btn-role" data-uid="'+u.id+'" data-role="user">降为用户</button>':'<button class="btn-sm btn-role" data-uid="'+u.id+'" data-role="admin">升为管理员</button>';
+        html+='<tr><td>'+u.id+'</td><td>'+esc(u.username)+'</td><td>'+esc(u.email)+'</td><td>'+rb+'</td><td>'+esc(u.created_at)+'</td><td>'+toggleBtn+' <button class="btn-sm btn-del" data-del-user="'+u.id+'">删除</button></td></tr>';
+      });
+      $('userTbody').innerHTML=html;
+      renderPager('userPager',d.total,20,p,function(pg){loadUsers(pg)});
+      // bind
+      document.querySelectorAll('[data-role]').forEach(function(b){b.onclick=function(){toggleRole(parseInt(b.dataset.uid),b.dataset.role)}});
+      document.querySelectorAll('[data-del-user]').forEach(function(b){b.onclick=function(){confirmDelete('删除用户 #'+b.dataset.delUser,'该用户的所有帖子/评论将被标记为[已删除用户]',function(){del('/admin/users/'+b.dataset.delUser).then(function(){toast('✅ 已删除');loadUsers()})})}});
+    });
+  }
+
+  function toggleRole(uid,role){
+    fetch(API+'/admin/users/'+uid+'/role?role='+role,{method:'PUT',headers:authH()}).then(function(r){return r.json()}).then(function(d){if(d.ok){toast('✅ 角色已更新');loadUsers()}else{toast('操作失败',true)}}).catch(function(){toast('操作失败',true)});
+  }
+
+  // Posts
+  function loadPosts(p){
+    p=p||pages.posts;pages.posts=p;
+    get('/admin/posts?page='+p+'&size=20').then(function(d){
+      $('postCount').textContent=d.total+' 篇';
+      var html='';
+      d.items.forEach(function(post){
+        html+='<tr><td>'+post.id+'</td><td title="'+esc(post.content)+'">'+esc(post.title)+'</td><td>'+esc(post.category)+'</td><td>'+esc(post.author)+'</td><td>'+(post.comment_count||0)+'</td><td>'+(post.views||0)+'</td><td>'+esc(post.created_at)+'</td><td><button class="btn-sm btn-del" data-del-post="'+post.id+'">删除</button></td></tr>';
+      });
+      $('postTbody').innerHTML=html;
+      renderPager('postPager',d.total,20,p,function(pg){loadPosts(pg)});
+      document.querySelectorAll('[data-del-post]').forEach(function(b){b.onclick=function(){confirmDelete('删除帖子 #'+b.dataset.delPost,'将同时删除所有评论',function(){del('/admin/posts/'+b.dataset.delPost).then(function(){toast('✅ 已删除');loadPosts()})})}});
+    });
+  }
+
+  // Comments
+  function loadComments(p){
+    p=p||pages.comments;pages.comments=p;
+    get('/admin/comments?page='+p+'&size=20').then(function(d){
+      $('commentCount').textContent=d.total+' 条';
+      var html='';
+      d.items.forEach(function(c){
+        var txt=(c.text||'').length>40?esc(c.text).substring(0,40)+'…':esc(c.text);
+        html+='<tr><td>'+c.id+'</td><td>'+esc(c.post_title||'#'+c.post_id)+'</td><td>'+esc(c.author)+'</td><td title="'+esc(c.text)+'">'+txt+'</td><td>'+(c.likes||0)+'</td><td>'+esc(c.created_at)+'</td><td><button class="btn-sm btn-del" data-del-comment="'+c.id+'">删除</button></td></tr>';
+      });
+      $('commentTbody').innerHTML=html;
+      renderPager('commentPager',d.total,20,p,function(pg){loadComments(pg)});
+      document.querySelectorAll('[data-del-comment]').forEach(function(b){b.onclick=function(){confirmDelete('删除评论 #'+b.dataset.delComment,'此操作不可撤销',function(){del('/admin/comments/'+b.dataset.delComment).then(function(){toast('✅ 已删除');loadComments()})})}});
+    });
+  }
+
+  // Universities
+  function loadUnis(p){
+    p=p||pages.universities;pages.universities=p;
+    get('/admin/universities?page='+p+'&size=20').then(function(d){
+      $('uniCount').textContent=d.total+' 所';
+      var html='';
+      d.items.forEach(function(u){
+        html+='<tr><td>#'+(u.rank||'-')+'</td><td>'+esc(u.cn)+'</td><td style="font-size:11px;color:var(--soft)">'+esc(u.name)+'</td><td>'+esc(u.region)+'</td><td>'+esc(u.country)+'</td><td style="color:var(--gold);font-weight:700">'+(u.score||'-')+'</td><td><button class="btn-sm btn-del" data-del-uni="'+u.id+'">删除</button></td></tr>';
+      });
+      $('uniTbody').innerHTML=html;
+      renderPager('uniPager',d.total,20,p,function(pg){loadUnis(pg)});
+      document.querySelectorAll('[data-del-uni]').forEach(function(b){b.onclick=function(){confirmDelete('删除高校 #'+b.dataset.delUni,'将从数据库中永久移除',function(){del('/admin/universities/'+b.dataset.delUni).then(function(){toast('✅ 已删除');loadUnis()})})}});
+    });
+  }
+
+  // Pager
+  function renderPager(containerId,total,size,cur,cb){
+    var pages=Math.ceil(total/size);if(pages<=1){$(containerId).innerHTML='';return}
+    var html='<button '+(cur<=1?'disabled':'')+' data-pg="'+(cur-1)+'">上一页</button><span class="info">'+cur+' / '+pages+' (共'+total+'条)</span><button '+(cur>=pages?'disabled':'')+' data-pg="'+(cur+1)+'">下一页</button>';
+    $(containerId).innerHTML=html;
+    $(containerId).querySelectorAll('button').forEach(function(b){b.onclick=function(){var pg=parseInt(b.dataset.pg);if(pg>=1&&pg<=pages)cb(pg)}});
+  }
+
+  // Confirm
+  function confirmDelete(title,msg,cb){
+    $('confirmTitle').textContent=title;$('confirmMsg').textContent=msg;
+    confirmCb=cb;$('confirmOverlay').classList.add('open');
+  }
+
+  // Events
+  $('doLogin').onclick=doLogin;
+  $('loginPass').onkeydown=function(e){if(e.key==='Enter')doLogin()};
+  document.querySelectorAll('.nav-item').forEach(function(n){n.onclick=function(){switchSec(n.dataset.sec)}});
+  $('confirmYes').onclick=function(){$('confirmOverlay').classList.remove('open');if(confirmCb)confirmCb();confirmCb=null};
+  $('confirmNo').onclick=function(){$('confirmOverlay').classList.remove('open');confirmCb=null};
+  $('confirmOverlay').onclick=function(e){if(e.target===$('confirmOverlay')){$('confirmOverlay').classList.remove('open');confirmCb=null}};
+
+  // Init
+  tryAutoLogin();
+})();
+</script>
+</body>
+</html>

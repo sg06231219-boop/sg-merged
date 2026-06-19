@@ -1,0 +1,16 @@
+{
+  "name": "世界杯2026赛事中心",
+  "short_name": "世界杯2026",
+  "description": "2026 FIFA世界杯赛事信息聚合 - 赛程比分、积分榜、射手榜、赛事资讯",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#060e1a",
+  "theme_color": "#060e1a",
+  "icons": [
+    {
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚽</text></svg>",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}

@@ -1,0 +1,689 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第11章：电源管理与低功耗设计 - 嵌入式小白完全指南</title>
+<style>
+:root{--bg:#0d1117;--bg2:#161b22;--bg3:#21262d;--br:#30363d;--t:#c9d1d9;--t2:#8b949e;--a:#58a6ff;--g:#3fb950;--o:#d2991d;--r:#f85149;--p:#a371f7;--c1:#39c5cf}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--t);line-height:1.8;max-width:880px;margin:0 auto;padding:14px}
+h1{font-size:1.55em;text-align:center;padding:16px 0;background:linear-gradient(135deg,var(--a),var(--p));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+h2{font-size:1.15em;color:var(--a);margin:30px 0 10px;padding-bottom:6px;border-bottom:2px solid var(--br)}
+h3{font-size:1.02em;color:var(--g);margin:18px 0 7px}
+h4{font-size:.95em;color:var(--o);margin:12px 0 5px}
+pre{background:#1c2128;border:1px solid var(--br);border-radius:8px;padding:12px 14px;overflow-x:auto;margin:8px 0 12px;font-size:.82em;line-height:1.6;white-space:pre-wrap;word-break:break-all;position:relative}
+code{font-family:'SF Mono','Fira Code',monospace}
+pre code{color:#e6edf3}
+.note{background:rgba(210,153,29,.08);border:1px solid rgba(210,153,29,.3);border-radius:8px;padding:10px 14px;margin:10px 0;font-size:.83em;color:var(--o)}
+.warn{background:rgba(248,81,73,.08);border:1px solid rgba(248,81,73,.3);border-radius:8px;padding:10px 14px;margin:10px 0;font-size:.83em;color:var(--r)}
+.tip{background:rgba(63,185,80,.06);border:1px solid rgba(63,185,80,.25);border-radius:8px;padding:10px 14px;margin:10px 0;font-size:.83em;color:var(--g)}
+.example{background:rgba(88,166,255,.06);border:1px solid rgba(88,166,255,.25);border-radius:8px;padding:10px 14px;margin:8px 0;font-size:.82em;color:var(--a)}
+.example b{color:var(--g)}
+.trouble{background:rgba(163,113,247,.06);border:1px solid rgba(163,113,247,.3);border-radius:8px;padding:10px 14px;margin:8px 0;font-size:.82em;color:var(--p)}
+.trouble b{color:var(--p)}
+.card{background:var(--bg2);border:1px solid var(--br);border-radius:10px;margin:14px 0;overflow:hidden}
+.card>.h{padding:10px 14px;background:var(--bg3);display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.card>.h>.name{font-weight:700;font-size:.9em;color:var(--t);font-family:monospace}
+.card>.h>.tag{font-size:.65em;padding:2px 8px;border-radius:8px;white-space:nowrap;border:1px solid var(--br);color:var(--t2)}
+.card>.h>.tag.g{background:rgba(63,185,80,.15);border-color:var(--g);color:var(--g)}
+.card>.h>.tag.y{background:rgba(210,153,29,.15);border-color:var(--o);color:var(--o)}
+.card>.h>.tag.r{background:rgba(248,81,73,.15);border-color:var(--r);color:var(--r)}
+.card>.h>.tag.b{background:rgba(88,166,255,.15);border-color:var(--a);color:var(--a)}
+.card>.h>.tag.p{background:rgba(163,113,247,.15);border-color:var(--p);color:var(--p)}
+.card>.b{padding:10px 14px;font-size:.87em}
+.card>.b>.desc{font-size:.92em;color:var(--t2);margin-bottom:8px}
+table{width:100%;border-collapse:collapse;margin:10px 0;font-size:.81em;background:var(--bg2);border-radius:8px;overflow:hidden;border:1px solid var(--br)}
+td,th{padding:8px 12px;border-bottom:1px solid var(--br);text-align:left}
+th{background:var(--bg3);color:var(--a);font-weight:600}
+tr:last-child td{border-bottom:none}
+.step{background:var(--bg3);border-radius:6px;padding:8px 13px;margin:6px 0;font-size:.83em}
+.step b{color:var(--a)}
+.summary{background:linear-gradient(135deg,rgba(88,166,255,.1),rgba(163,113,247,.1));border:1px solid var(--br);border-radius:10px;padding:12px 16px;margin:18px 0;font-size:.88em;color:var(--t)}
+.summary b{color:var(--a)}
+.analogy{background:rgba(57,197,207,.07);border-left:3px solid var(--c1);padding:8px 13px;margin:8px 0;font-size:.82em;color:var(--c1);border-radius:0 6px 6px 0}
+.analogy b{color:var(--c1)}
+.chnav{display:flex;justify-content:space-between;margin:30px 0 10px;gap:12px;border-top:1px solid var(--br);padding-top:16px;flex-wrap:wrap}
+.chnav a{flex:1;text-align:center;padding:10px 14px;background:var(--bg2);border:1px solid var(--br);border-radius:8px;color:var(--a);text-decoration:none;font-size:.85em;transition:all .2s;min-width:120px;cursor:pointer}
+.chnav a:hover{background:var(--bg3);border-color:var(--a)}
+.chnav .toc-link{flex:0;min-width:80px;background:var(--bg3);color:var(--t2)}
+.chnav .toc-link:hover{color:var(--a)}
+.copy-btn{position:absolute;top:4px;right:4px;padding:3px 10px;background:var(--bg3);border:1px solid var(--br);border-radius:5px;color:var(--t2);font-size:.72em;cursor:pointer;opacity:0;transition:opacity .2s}
+pre:hover .copy-btn{opacity:1}
+.copy-btn:hover{background:var(--a);color:var(--bg)}
+.copy-btn.copied{background:var(--g);color:var(--bg);border-color:var(--g)}
+@media(max-width:480px){body{padding:10px}h1{font-size:1.3em}h2{font-size:1.05em}pre{font-size:.75em}}
+</style>
+</head>
+<body>
+
+<h1>第11章：电源管理与低功耗设计</h1>
+<div class="summary"><b>📖 小白完全指南 · 11/14</b> | 阅读时间约14分钟</div>
+
+<p>嵌入式设备的"续航力"决定了产品体验。从纽扣电池跑一年的传感器节点，到电池供电的手持设备，电源管理是电子工程师的必修课。</p>
+
+<div class="analogy">💡 <b>类比：</b>电源管理就像<b>家庭理财</b>——收入(电池能量)有限，支出(系统功耗)要精打细算。LDO=稳定但浪费的固定月薪，DC-DC=高效但复杂的投资理财，低功耗模式=省钱过日子。</div>
+
+<h2>🔋 电池供电系统设计</h2>
+
+<p>嵌入式设备大部分是电池供电，电池管理做不好，产品体验就废了一半。</p>
+
+<h3>电池选型指南</h3>
+
+<table>
+<tr><th>电池类型</th><th>标称电压</th><th>能量密度</th><th>自放电/月</th><th>适用场景</th><th>价格</th></tr>
+<tr><td>CR2032纽扣</td><td>3.0V</td><td>~230mAh</td><td>极低(<1%)</td><td>BLE信标、传感器节点</td><td>¥1-3</td></tr>
+<tr><td>Li-SOCl₂(锂亚)</td><td>3.6V</td><td>高(2400mAh/AA)</td><td>极低(<0.5%)</td><td>工业传感器、水表气表</td><td>¥15-30</td></tr>
+<tr><td>Li-Po(锂聚合物)</td><td>3.7V</td><td>高</td><td>~5%</td><td>无人机、手持设备</td><td>¥20-100</td></tr>
+<tr><td>18650锂离子</td><td>3.7V</td><td>高(2600-3500mAh)</td><td>~3%</td><td>大功率设备、移动电源</td><td>¥15-50</td></tr>
+<tr><td>NiMH(镍氢)</td><td>1.2V×N</td><td>中等</td><td>高(20-30%)</td><td>玩具、遥控器</td><td>¥5-15</td></tr>
+<tr><td>碱性电池(AA/AAA)</td><td>1.5V</td><td>~2500mAh(AA)</td><td>极低</td><td>低成本一次性设备</td><td>¥1-3</td></tr>
+</table>
+
+<div class="card">
+<div class="h"><span class="name">锂电池放电特性</span><span class="tag y">重要</span></div>
+<div class="b"><div class="desc">
+<b>Li-Po放电曲线（关键电压点）：</b><br>
+• 4.20V = 100% 满电<br>
+• 4.00V = 80%（刚用不久）<br>
+• 3.85V = 50%（中间段最平）<br>
+• 3.70V = 20%（电量告急！请充电）<br>
+• 3.50V = 5%（接近截止）<br>
+• 3.00V = 0%（必须停止放电，低于此电压永久损坏）<br><br>
+<b>注：</b>锂电池在3.7-4.0V之间放电曲线较平，电压法测电量准确度有限。精确测量需库仑计。
+</div></div></div>
+
+<h3>锂电池充电管理</h3>
+
+<div class="card">
+<div class="h"><span class="name">TP4056模块（最常用单节锂电充电芯片）</span><span class="tag r">必备</span></div>
+<div class="b">
+<div class="desc">
+<b>TP4056核心参数：</b><br>
+• 输入：5V USB/Micro-USB/Type-C<br>
+• 充电电流：可编程（PROG引脚电阻设置，默认1.2K=1A）<br>
+• 充满电压：4.2V ±1%<br>
+• 充电阶段：涓流(＜2.9V)→恒流(CC)→恒压(CV)→截止(C/10即100mA)<br>
+• 状态输出：CHRG(STDBY)引脚——充电时低电平，充满高电平<br>
+• 温度保护：TEMP引脚接NTC，过热自动降电流<br><br>
+<b>PROG电阻与充电电流对照：</b><br>
+• 1.2KΩ → 1000mA（默认）&nbsp;&nbsp;&nbsp;2KΩ → 580mA<br>
+• 5KΩ → 240mA（USB100标准）&nbsp;&nbsp;&nbsp;10KΩ → 120mA（小电池）
+</div></div></div>
+
+<div class="card">
+<div class="h"><span class="name">锂电池保护电路（DW01+8205A）</span><span class="tag r">安全必备</span></div>
+<div class="b">
+<div class="desc">
+<b>任何锂电池电路必须有保护板！</b>裸电池充电/过放=起火爆炸风险。<br><br>
+<b>DW01保护IC + 8205A双MOSFET 经典组合：</b><br>
+• <b>过充保护：</b>电压＞4.25V → 断开充电MOS（COUT=低）<br>
+• <b>过放保护：</b>电压＜2.4V → 断开放电MOS（DOUT=低）<br>
+• <b>过流保护：</b>放电电流＞3A → 断开（短路/堵转）<br>
+• <b>短路保护：</b>电压瞬间跌落 → 立刻断开<br>
+• <b>延迟时间：</b>过充~1s、过放~100ms、过流~10ms<br><br>
+<b>典型接线（3个元件）：</b>DW01(6脚SOT23-6) + 8205A(8脚TSSOP8) + 100Ω电阻
+</div></div></div>
+
+<h3>电池电量测量</h3>
+
+<pre><code>// 电池电量测量：电压法（最简单，精度~10%）
+// Li-Po: 4.2V=100%  3.85V=50%  3.0V=0%（截止！）
+
+float measure_battery_voltage(void) {
+    // 假设电池经1:2分压后接ADC（100K+100K分压）
+    HAL_ADC_Start(&hadc1);
+    HAL_ADC_PollForConversion(&hadc1, 10);
+    uint16_t adc = HAL_ADC_GetValue(&hadc1);
+    // 3.3V参考，12位ADC
+    float v_adc = adc * 3.3f / 4096.0f;
+    float v_bat = v_adc * 2.0f;  // 分压1:2，实际=(R1+R2)/R2
+    return v_bat;
+}
+
+uint8_t battery_percent(float voltage) {
+    // Li-Po放电曲线近似（分段线性化）
+    if (voltage >= 4.15f) return 100;
+    if (voltage >= 4.06f) return 90;
+    if (voltage >= 3.98f) return 80;
+    if (voltage >= 3.92f) return 70;
+    if (voltage >= 3.87f) return 60;
+    if (voltage >= 3.82f) return 50;
+    if (voltage >= 3.77f) return 40;
+    if (voltage >= 3.73f) return 30;
+    if (voltage >= 3.68f) return 20;
+    if (voltage >= 3.60f) return 10;
+    return 5;  // 快没电了！
+}
+
+// 更精确的方法：库仑计（电量积分）
+// 芯片选择：MAX17048(1-cell I2C)、BQ27427(TI)、LTC2942
+// 库仑计通过测量电流的积分来计算实际消耗的电量
+// MAX17048使用示例（I2C读取，无需校准！）
+float max17048_read_soc(void) {
+    uint8_t buf[2];
+    HAL_I2C_Mem_Read(&hi2c1, 0x36<<1, 0x04, 1, buf, 2, 100);
+    return (float)((buf[0] << 8) | buf[1]) / 256.0f;
+    // 返回值0-100.0%，自动学习电池容量
+}</code></pre>
+
+<h2>🔌 DC-DC电源拓扑</h2>
+
+<div class="analogy">💡 <b>类比：</b>LDO像一个<b>可变电阻降压</b>——电流不变，差值功率全变成热量。DC-DC像一个<b>变压器+开关</b>——高速通断存储能量，效率高但纹波大。</div>
+
+<h3>LDO（低压差线性稳压器）</h3>
+
+<p>LDO的核心优势是<strong>无开关噪声、外围简单</strong>。劣势是效率低，大压差场景发热严重。</p>
+
+<pre><code>// LDO选型关键参数（按重要度排序）
+// 1. 压差(Dropout Voltage): Vin-Vout的最小值，越小越好
+// 2. 最大输出电流: 需>负载峰值电流
+// 3. 静态电流(Iq): 芯片自身耗电——电池设备选Iq<10μA！
+// 4. PSRR(电源纹波抑制比): 抑制输入噪声能力
+// 5. 噪声: 输出端噪声幅度——模拟电路关注
+
+// 常用LDO芯片速查
+// AMS1117-3.3: 1A, 1.1V压差@1A, 5-10mA Iq (⚠不推荐电池设备)
+// ME6206A33: 500mA, 100mV压差@200mA, 7μA Iq (适合电池)
+// HT7333-1:   250mA, 90mV压差@40mA,  5μA Iq (经典低功耗)
+// XC6206P332: 200mA, 250mV压差,      1μA Iq (超低功耗！)
+// TPS7A03:    200mA, 足压差,         200nA Iq (TI超低功耗)
+// TPS799:     200mA, 100mV压差, 40μV噪声 (超低噪声-ADC用)
+
+// LDO功耗计算（发热评估）
+// P_loss = (Vin - Vout) × I_load + Vin × Iq
+// AMS1117@5V→3.3V,100mA: (5-3.3)×0.1 = 0.17W ✅
+// AMS1117@12V→3.3V,100mA: (12-3.3)×0.1 = 0.87W 🔥烫手！
+// AMS1117@12V→3.3V,500mA: (12-3.3)×0.5 = 4.35W 💥烧毁!</code></pre>
+
+<div class="warn">⚠ <b>LDO散热估算：</b>LDO芯片热阻通常50-200°C/W。0.87W × 100°C/W = 87°C温升！加上室温25°C = 112°C结温，超过大多数芯片的125°C上限。大压差务必用DC-DC。</div>
+
+<h3>Buck（降压型DC-DC）</h3>
+
+<pre><code>// Buck转换器：高效降压，效率85-95%
+// 核心原理：开关管高速通断 → 电感储能/释放 → 电容平滑
+
+// 常用Buck芯片与模块
+// MP1584模块: 3A, 4.5-28V→0.8-25V, 1.5MHz (¥3, 最常用)
+// MP2307模块: 3A, 4.75-23V→1.0-20V, 340KHz (¥2)
+// TPS5430:    3A, 5.5-36V→1.22-31V, 500KHz (TI工业级)
+// MT3608:     升压, 2-24V→最高28V, 1.2MHz (¥2, 升压万用)
+// XL6009:     升降压SEPIC, 5-32V→可调 (万用电源方案)
+
+// Buck关键元件选型
+// 1. 电感 L = (Vin-Vout)×D/(ΔI×fsw)
+//    D = Vout/Vin (占空比), ΔI ≈ 0.3×Iload (纹波电流)
+//    例子: 12V→5V@1A, fsw=1.5MHz
+//    D=5/12=0.417, L=(12-5)×0.417/(0.3×1×1.5M) = 6.49μH → 选6.8μH
+//    饱和电流必须 > Iload+ΔI/2 = 1+0.15 = 1.15A → 选2A
+//
+// 2. 输出电容：决定输出电压纹波
+//    ΔVout ≈ ΔI/(8×fsw×Cout)
+//    例子: Cout=22μF, ΔV=0.3/(8×1.5M×22μ)=1.1mV
+//
+// 3. 输入电容：应对输入电流脉冲（MLCC 10μF+0.1μF）
+// 4. 续流二极管：肖特基SS34/SS54/B340A（低VF值=高效率）</code></pre>
+
+<div class="warn">⚠ <b>PCB布局黄金法则：</b>DC-DC的输入电容必须尽可能靠近IC引脚(<5mm)！远放=大电流环路=EMI地狱=不稳定。开关节点(SW/LX)面积越小越好——它是最大的辐射天线。反馈线(FB)远离电感和开关节点走线。地平面完整不断裂。</div>
+
+<h3>LDO vs DC-DC 选择决策树</h3>
+
+<pre><code>// 选择流程（按此顺序判断）
+// 1. 压差 < 1V ? → LDO（简单无噪声）
+// 2. 电流 < 100mA ? → LDO（发热可接受）
+// 3. 对噪声敏感（ADC/音频）? → LDO + π型滤波
+// 4. 电池供电+超低功耗 ? → LDO（Iq小）
+// 5. 以上都不满足 → DC-DC Buck
+//
+// 常见的"LDO+DC-DC"组合：DC-DC做一级粗降压(12V→5V)
+// + LDO做二级精降压(5V→3.3V)，兼具效率和噪声</code></pre>
+
+<h2>⚡ STM32低功耗模式详解</h2>
+
+<p>电池供电设备的核心竞争力就是功耗。STM32提供多层睡眠模式，选对模式能省90%以上的电。</p>
+
+<h3>三种睡眠模式对比</h3>
+
+<table>
+<tr><th>模式</th><th>唤醒方式</th><th>电流(F103)</th><th>唤醒时间</th><th>唤醒后</th><th>RAM保持</th></tr>
+<tr><td>Sleep</td><td>任意中断/事件</td><td>~5mA</td><td>即时(0)</td><td>继续执行下一条</td><td>✅全保持</td></tr>
+<tr><td>Stop</td><td>EXTI线/RTC唤醒</td><td>~20μA</td><td>~10μs</td><td>从WFI处继续</td><td>✅全保持</td></tr>
+<tr><td>Standby</td><td>WKUP引脚/RTC/NRST</td><td>~2μA</td><td>~50μs</td><td>相当于复位</td><td>❌丢失</td></tr>
+</table>
+
+<pre><code>// Sleep模式：最简单，CPU停下来但外设继续运行
+// 适合：等待DMA完成、等待UART接收
+void enter_sleep_mode(void) {
+    HAL_SuspendTick();  // 暂停SysTick（可选）
+    HAL_PWR_EnterSLEEPMode(PWR_MAINREGULATOR_ON, PWR_SLEEPENTRY_WFI);
+    HAL_ResumeTick();   // 恢复SysTick
+}
+// 或直接：
+__WFI();  // Wait For Interrupt，任意中断唤醒后继续
+// 注意：SysTick中断也会唤醒Sleep！
+
+// Sleep-on-Exit模式：中断退出后自动再睡
+SCB->SCR |= SCB_SCR_SLEEPONEXIT_Msk;
+// 典型：中断处理完数据 → 自动休眠 → 等待下一个中断</code></pre>
+
+<pre><code>// Stop模式：最常用低功耗，大部分时钟停了
+void enter_stop_mode(void) {
+    // 1. 关闭不必要的外设时钟（省电大户）
+    __HAL_RCC_GPIOB_CLK_DISABLE();
+    __HAL_RCC_GPIOC_CLK_DISABLE();
+    __HAL_RCC_USART1_CLK_DISABLE();  // 串口不需要了
+    __HAL_RCC_TIM2_CLK_DISABLE();    // 定时器不需要了
+    
+    // 2. 将所有未用IO设为模拟输入（最低功耗状态）
+    GPIO_InitTypeDef gpio = {0};
+    gpio.Mode = GPIO_MODE_ANALOG;
+    gpio.Pull = GPIO_NOPULL;
+    // PB0-PB15设为AN...
+    
+    // 3. 挂起SysTick（Stop模式前必须！）
+    HAL_SuspendTick();
+    
+    // 4. 进入Stop模式
+    HAL_PWR_EnterSTOPMode(PWR_LOWPOWERREGULATOR_ON, PWR_STOPENTRY_WFI);
+    
+    // 5. 唤醒后重新配置
+    HAL_ResumeTick();
+    SystemClock_Config();  // 重新配置时钟（HSE/HIS停了）
+    MX_GPIO_Init();        // IO恢复了
+    MX_USART1_UART_Init(); // 串口恢复了
+}
+
+// Standby模式：电流最低，但唤醒=复位
+void enter_standby_mode(void) {
+    // 使能WKUP引脚（PA0）
+    HAL_PWR_EnableWakeUpPin(PWR_WAKEUP_PIN1);
+    __HAL_PWR_CLEAR_FLAG(PWR_FLAG_WU);
+    
+    // 进入Standby
+    HAL_PWR_EnterSTANDBYMode();
+    // ⚠ 永远不会到这里——唤醒后从头执行main()！
+    // 所有RAM数据丢失，只能用备份域寄存器保存标志
+}</code></pre>
+
+<h3>低功耗设计黄金法则</h3>
+
+<div class="card">
+<div class="h"><span class="name">功耗优化检查清单</span><span class="tag y">必备</span></div>
+<div class="b">
+<div class="desc">
+✅ <b>外设：</b>不用就关时钟！__HAL_RCC_XXX_CLK_DISABLE()。不要"不用就放那"——时钟开着=耗电<br>
+✅ <b>GPIO：</b>悬空引脚设为模拟输入（AN模式+NOPULL），避免浮空导致内部推挽振荡耗电<br>
+✅ <b>时钟：</b>降频！72MHz→8MHz，电流降约80%。用HIS代替HSE也能省~1mA<br>
+✅ <b>看门狗：</b>独立看门狗(IWDG)在Stop模式下仍运行，功耗~1μA，不影响低功耗<br>
+✅ <b>LED：</b>每个LED约1-5mA，不用就关（GPIO_PIN_RESET关灯）<br>
+✅ <b>ADC：</b>采样完立即关：__HAL_ADC_DISABLE()。ADC是耗电大户(~2mA)<br>
+✅ <b>DMA：</b>用DMA做数据搬运，CPU多睡觉。DMA功耗远低于CPU<br>
+✅ <b>通信：</b>打包数据批量发送。减少无线电/收发器工作时间=节电<br>
+✅ <b>上拉/下拉：</b>外部上拉电阻用100K以上（避免10K=330μA浪费）<br>
+✅ <b>供电电压：</b>3.3V比5V省约40%功耗（动态功耗∝V²）
+</div></div></div>
+
+<h2>⏲ RTC闹钟唤醒实战</h2>
+
+<pre><code>// 每5分钟自动唤醒采集一次温湿度，其余时间Stop模式
+// 平均功耗 < 50μA！用CR2032可跑1年以上
+
+void setup_rtc_wakeup(void) {
+    // 禁用RTC写保护
+    HAL_RTCEx_DeactivateWakeUpTimer(&hrtc);
+    
+    // 配置RTC闹钟：5分钟后唤醒
+    RTC_AlarmTypeDef sAlarm = {0};
+    sAlarm.Alarm = RTC_ALARM_A;
+    sAlarm.AlarmTime.Hours = 0;
+    sAlarm.AlarmTime.Minutes = 5;
+    sAlarm.AlarmTime.Seconds = 0;
+    sAlarm.AlarmTime.SubSeconds = 0;
+    sAlarm.AlarmMask = RTC_ALARMMASK_NONE;
+    sAlarm.AlarmSubSecondMask = RTC_ALARMSUBSECONDMASK_ALL;
+    sAlarm.AlarmDateWeekDaySel = RTC_ALARMDATEWEEKDAYSEL_DATE;
+    sAlarm.AlarmDateWeekDay = 1;
+    
+    HAL_RTC_SetAlarm_IT(&hrtc, &sAlarm, RTC_FORMAT_BIN);
+}
+
+// RTC唤醒回调
+void HAL_RTC_AlarmAEventCallback(RTC_HandleTypeDef *hrtc) {
+    // RTC闹钟触发！在中断上下文中
+    // 设置标志或释放信号量，不要在中断中做复杂操作
+}
+
+void main_loop(void) {
+    uint8_t wake_count = 0;
+    
+    while (1) {
+        // 1. 采集数据（~10ms）
+        float temp = read_temperature();
+        float hum = read_humidity();
+        float batt = measure_battery_voltage();
+        
+        // 2. 累加计数
+        wake_count++;
+        
+        // 3. 每6次（即30分钟）发送一次BLE广播省电
+        if (wake_count >= 6) {
+            send_data_over_ble(temp, hum, batt);  // ~50ms
+            wake_count = 0;
+        }
+        
+        // 4. 设置下次唤醒闹钟
+        setup_rtc_wakeup();
+        
+        // 5. 进入Stop模式 → 功耗降到20μA！
+        enter_stop_mode();
+        // ... 5分钟后RTC闹钟唤醒，回到步骤1
+    }
+}</code></pre>
+
+<h2>📱 ESP32功耗优化实战</h2>
+
+<p>ESP32功能强大但功耗也大。用好睡眠模式是电池续航的关键。</p>
+
+<pre><code>// ESP32功耗等级（参考数据，实际因模块而异）
+// 运行模式(WiFi TX 802.11b): ~350mA
+// 运行模式(CPU 240MHz): ~68mA
+// 运行模式(CPU 80MHz): ~30mA
+// Modem Sleep: ~3mA @ DTIM=10
+// Light Sleep: ~0.8mA
+// Deep Sleep: ~5μA (RTC+ULP可用)
+// Hibernation: ~2.5μA (仅RTC定时器)
+
+// Deep Sleep 实战：每30秒唤醒采一次温湿度
+#include "esp_sleep.h"
+#include "esp_wifi.h"
+
+#define uS_TO_S_FACTOR 1000000
+#define TIME_TO_SLEEP  30
+
+// 保存在RTC慢速内存中的数据（Deep Sleep后仍保留）
+RTC_DATA_ATTR int boot_count = 0;
+RTC_DATA_ATTR float last_temp = 0;
+
+void enter_deep_sleep(void) {
+    // 1. 关闭WiFi/BLE（功耗大头）
+    esp_wifi_stop();
+    esp_bt_controller_disable();
+    
+    // 2. 配置唤醒源：定时器
+    esp_sleep_enable_timer_wakeup(TIME_TO_SLEEP * uS_TO_S_FACTOR);
+    
+    // 3. 可选：EXT0/EXT1唤醒（RTC GPIO）
+    // esp_sleep_enable_ext0_wakeup(GPIO_NUM_4, 1);  // GPIO4高电平唤醒
+    // esp_sleep_enable_ext1_wakeup(BIT(GPIO_NUM_4)|BIT(GPIO_NUM_5), ESP_EXT1_WAKEUP_ANY_HIGH);
+    
+    // 4. 可选：ULP协处理器唤醒（超低功耗模式下的简单逻辑）
+    // 例如：ULP每1秒读一次ADC，超过阈值才唤醒主CPU
+    
+    // 5. 进入Deep Sleep
+    esp_deep_sleep_start();
+    // ⚠ 这行代码永远执行不到！Deep Sleep后CPU完全断电
+}
+
+// 快速WiFi连接（优化启动时间）
+void wifi_quick_connect(void) {
+    wifi_config_t wifi_cfg = {
+        .sta = {
+            .ssid = "myssid",
+            .password = "mypassword",
+            .scan_method = WIFI_FAST_SCAN,    // 跳过全量扫描
+            .sort_method = WIFI_CONNECT_AP_BY_SIGNAL,
+            .threshold.authmode = WIFI_AUTH_WPA2_PSK,
+        },
+    };
+    esp_wifi_set_config(ESP_IF_WIFI_STA, &wifi_cfg);
+    esp_wifi_connect();
+    // 相比默认模式可节省2-3秒=节省~0.3mAh
+}
+
+void app_main(void) {
+    boot_count++;
+    
+    // 检查唤醒原因
+    esp_sleep_wakeup_cause_t cause = esp_sleep_get_wakeup_cause();
+    
+    if (cause == ESP_SLEEP_WAKEUP_TIMER) {
+        // 定时器唤醒：采集数据
+        float temp = read_dht11_temperature();
+        ESP_LOGI("TEMP", "Boot #%d: %.1f°C", boot_count, temp);
+        
+        // 智能判断：温度没变化就不浪费电发WiFi
+        if (fabs(temp - last_temp) < 1.0f && boot_count % 10 != 0) {
+            last_temp = temp;
+            enter_deep_sleep();  // 直接睡，不连WiFi
+        }
+        last_temp = temp;
+    }
+    
+    // WiFi初始化 + 发送数据（约2秒，约70mAh消耗）
+    nvs_flash_init();
+    esp_netif_init();
+    wifi_init_sta();
+    wifi_quick_connect();        // ~1.5s
+    send_data_to_server(temp);   // ~0.5s
+    
+    // 任务完成，洗澡睡觉
+    enter_deep_sleep();
+}</code></pre>
+
+<h3>ESP32动态调频</h3>
+
+<pre><code>// ESP32支持动态切换CPU频率，省电同时保持响应
+#include "esp_pm.h"
+
+void configure_dynamic_freq(void) {
+    esp_pm_config_esp32_t pm_cfg = {
+        .max_freq_mhz = 240,   // 最高240MHz（负载大时）
+        .min_freq_mhz = 80,    // 最低80MHz（空闲时）
+        .light_sleep_enable = true,  // 允许自动Light Sleep
+    };
+    esp_pm_configure(&pm_cfg);
+    // CPU自动根据负载升降频，无需手动控制
+}
+
+// 手动设置固定频率（如果需要）
+set_cpu_freq(80);  // 80MHz ~30mA
+set_cpu_freq(160); // 160MHz ~45mA
+set_cpu_freq(240); // 240MHz ~68mA</code></pre>
+
+<h2>📊 功耗测量方法</h2>
+
+<div class="tip">💡 <b>实用技巧：</b>用STM32L系列（L0/L4/L5）替代F系列，Stop模式功耗从20μA降到<1μA。L系列专为低功耗设计，内置LPUART、LPTIM等。</div>
+
+<pre><code>// 测量实际功耗的方法（从低级到高级）
+
+// 方法1：万用表串联法（最基础）
+// ① 断开开发板VDD跳线帽
+// ② 万用表打到mA/μA档（注意：不同档位内阻不同！）
+// ③ 表笔串联在VDD路径上
+// ④ 分别测量：运行态 → Sleep → Stop → Standby
+// ⑤ ⚠ 注意：Deep Sleep瞬间唤醒的大电流可能超出量程
+
+// 方法2：采样电阻+示波器（看动态波形）
+// ① 在VDD路径串联1Ω采样电阻
+// ② 示波器探头跨接电阻两端
+// ③ V=IR → 1mV = 1mA
+// ④ 可以看到每个唤醒周期内的电流变化！
+
+// 方法3：专业工具（推荐）
+// - Nordic Power Profiler Kit II (PPK2): ~$100, 精度1μA, 100Ksps
+//   支持nRF Connect桌面软件，自动计算平均功耗
+// - Joulescope JS220: ~$800, 精度nA级, 2MHz带宽
+//   可同时显示μA级待机和A级发射的电流波形
+// - STM32CubeMonitor-Power: 免费，但需要ST-LINK V3 + NUCLEO板
+// - Otii Arc: ~$600, 可做电源+测量+记录</code></pre>
+
+<h2>🛠 常见问题排查</h2>
+
+<div class="trouble"><b>🔍 问题1：Stop模式功耗远高于datasheet标称值</b><br>
+❌ <b>症状：</b>datasheet说Stop模式20μA，实测>500μA。<br>
+✅ <b>排查：</b><br>
+1. GPIO浮空！未初始化的IO默认浮空输入→内部触发器振荡→耗电<br>
+2. 外设时钟没关：USART/TIM/ADC开着即使不用也耗电<br>
+3. 调试器连着：ST-Link/J-Link的SWD接口在Stop模式下拉电流<br>
+4. 外部上拉电阻太小：10K上拉到3.3V=330μA！<br>
+✅ <b>修复：</b><br>
+1. 所有未用IO设AN模式：<code>GPIO_MODE_ANALOG + GPIO_NOPULL</code><br>
+2. <code>__HAL_RCC_XXX_CLK_DISABLE()</code>关所有不用的时钟<br>
+3. 测量时拔掉调试器<br>
+4. 上拉电阻换100K~1M</div>
+
+<div class="trouble"><b>🔍 问题2：Standby唤醒后程序行为异常</b><br>
+❌ <b>症状：</b>Standby唤醒后变量值不对、外设配置丢失。<br>
+✅ <b>原因：</b>Standby=芯片复位！RAM全部丢失，所有外设复位到默认状态。<br>
+✅ <b>修复：</b><br>
+1. 唤醒后完整执行初始化（和上电行为一致）<br>
+2. 用备份域寄存器(BKP_DRx)保存标志判断是冷启动还是Standby唤醒<br>
+3. <code>if(__HAL_PWR_GET_FLAG(PWR_FLAG_SB)) { /* Standby唤醒 */ }</code><br>
+4. 对时间敏感的应用用Stop模式代替Standby</div>
+
+<div class="trouble"><b>🔍 问题3：DC-DC输出电压剧烈纹波/不稳定</b><br>
+❌ <b>症状：</b>用示波器看到输出波形锯齿状，峰峰值>200mV。<br>
+✅ <b>排查：</b><br>
+1. 输入电容离IC太远(>5mm) → 输入电流环太大 → 不稳定<br>
+2. 电感饱和电流不够 → 接近满载时电感饱和 → 电流失控<br>
+3. 输出电容ESR太高 → 不能用普通电解电容<br>
+4. 反馈FB走线被干扰 → FB是模拟信号！<br>
+✅ <b>修复：</b><br>
+1. 输入电容贴IC引脚放（陶瓷10μF+0.1μF）<br>
+2. 确认电感标称电流>1.5倍负载<br>
+3. 输出电容用陶瓷MLCC，ESR尽量低<br>
+4. FB走线短而直，远离SW节点，包地</div>
+
+<div class="trouble"><b>🔍 问题4：电池电量显示不准（跳跃/死机不降）</b><br>
+❌ <b>症状：</b>电量从80%直接跳到20%，或长时间不动。<br>
+✅ <b>排查：</b><br>
+1. 电压法受温度影响大：低温时锂电池内阻高，带载电压跌落明显<br>
+2. 分压电阻温漂：普通电阻温漂100ppm/°C，50°C温差=0.5%误差<br>
+3. ADC参考电压不准：用内部1.2V参考代替VDDA<br>
+4. 测量时带载vs空载电压差很大：锂电池内阻~100mΩ<br>
+✅ <b>修复：</b><br>
+1. 多次采样+滑动平均滤波<br>
+2. 用内部参考电压校准：<code>Vref = 1.2V * 4096/ADC_Vrefint</code><br>
+3. 结合电压+库仑计，或直接用MAX17048<br>
+4. 在CPU空闲时采样（负载稳定）</div>
+
+<div class="trouble"><b>🔍 问题5：TP4056充电时芯片发烫</b><br>
+❌ <b>症状：</b>充电过程中TP4056温度非常高(>70°C)。<br>
+✅ <b>排查：</b><br>
+1. 充电电流设置过大：默认1A对应1.2KΩ<br>
+2. 输入电压偏高：5V正常，>5.5V会加大热耗<br>
+3. PCB散热不够：TP4056底部焊盘没接地铜皮<br>
+4. 电池电压很低→大压差→高功耗<br>
+✅ <b>修复：</b><br>
+1. 降低充电电流：换2K电阻→580mA，或10K→120mA<br>
+2. USB供电用5V（不要用快充头，可能输出9V/12V！）<br>
+3. PCB底部铺大片铜皮做散热，最好用过孔到背面<br>
+4. 热保护是正常的：TP4056在120°C自动降电流</div>
+
+<h2>🔬 调试技巧速查（10-13章桥梁）</h2>
+
+<div class="card">
+<div class="h"><span class="name">嵌入式调试武器库</span><span class="tag b">速查</span></div>
+<div class="b">
+<div class="desc">
+<b>硬件调试：</b><br>
+• J-Link/ST-Link：断点、单步、变量查看（基础）<br>
+• SEGGER RTT：高速printf，比SWO快10倍，不占串口<br>
+• 逻辑分析仪（Saleae）：I2C/SPI/UART通信抓包<br>
+• 示波器：PWM波形、电源噪声、时序分析<br><br>
+<b>软件调试：</b><br>
+• printf/UART：最基础的调试输出（见第6章串口）<br>
+• HardFault分析器：从栈帧还原崩溃现场<br>
+• assert()宏：开发期捕获非法状态<br>
+• Watchdog：系统卡死的最后安全网<br>
+• 分级日志系统：DEBUG/INFO/WARN/ERROR可编译开关<br><br>
+<b>功耗调试专用：</b><br>
+• 万用表μA档串联测量<br>
+• 1Ω采样电阻+示波器看动态电流<br>
+• Nordic PPK2 / Joulescope专业工具
+</div></div></div>
+
+<h2>📊 功耗计算与电池续航估算</h2>
+
+<pre><code>// 电池续航计算公式
+// 续航(h) = 电池容量(mAh) / 平均电流(mA)
+// 平均电流 = (运行电流×运行时间 + 睡眠电流×睡眠时间) / 总周期
+
+// 实例：BLE温湿度信标
+// 唤醒200ms: 采集10ms(5mA) + BLE广播50ms(15mA) + 其他40ms(5mA)
+// 睡眠30s: Stop模式(20μA)
+// 平均电流 = (5×10 + 15×50 + 5×40 + 20e-3×29900) / 30000
+//          = (50 + 750 + 200 + 598) / 30000
+//          = 1598 / 30000 = 0.0533 mA
+// CR2032(230mAh)续航 = 230/0.0533 ≈ 4315小时 ≈ 180天
+
+// 编写功耗计算器
+float calc_avg_current(void) {
+    float run_i = 15.0;   // 运行时电流(mA)
+    float run_t = 200;    // 运行时间(ms)
+    float sleep_i = 0.02; // 睡眠电流(mA)
+    float period = 30000; // 总周期(ms)
+    
+    float sleep_t = period - run_t;
+    return (run_i * run_t + sleep_i * sleep_t) / period;
+}
+
+float calc_battery_life(float capacity_mah, float avg_current_ma) {
+    return capacity_mah / avg_current_ma;  // 小时
+}</code></pre>
+
+<h2>🎯 实战练习</h2>
+
+<div class="tip">📝 <b>练习1：电池电量监测仪</b><br>
+用STM32 ADC + 分压电阻测量锂电池电压，OLED显示电量百分比和图标。低于10%时LED闪烁告警。加分项：用MAX17048库仑计代替分压法。<br><br>
+📝 <b>练习2：ESP32 Deep Sleep低功耗数据采集</b><br>
+实现ESP32每1分钟从Deep Sleep唤醒→读DHT11→BLE广播→继续睡。用PPK2或万用表测量平均功耗，目标<100μA。<br><br>
+📝 <b>练习3：STM32 Stop模式+RTC唤醒</b><br>
+STM32每30秒RTC闹钟唤醒→读温度→串口输出→进Stop。实现连续工作，测量Stop模式电流。<br><br>
+📝 <b>练习4：DC-DC电源模块测试</b><br>
+用MP1584模块搭建12V→5V→3.3V(AMS1117)两级供电。对比直接用AMS1117从12V降到3.3V的效率和发热。<br><br>
+📝 <b>练习5：功耗优化对比</b><br>
+同一个LED闪烁程序，分别在72MHz和8MHz下运行。使用万用表测量电流差。体会"降频省电"的效果。</div>
+
+<h2>📋 知识点回顾</h2>
+<div class="summary">
+<b>✅ 电源管理核心：</b><br>
+• <b>LDO vs DC-DC：</b>小压差(<1V)/低电流(<100mA)→LDO(简单无噪声)；大压差/大电流→DC-DC(高效)<br>
+• <b>锂电池：</b>标称3.7V、充满4.2V、截止3.0V，必须有DW01+8205A保护板<br>
+• <b>电量测量：</b>电压法(简单±10%) vs 库仑计(精确±1%)，MAX17048即插即用<br>
+• <b>STM32低功耗：</b>Sleep(~5mA)→Stop(~20μA)→Standby(~2μA)，Stop最常用<br>
+• <b>ESP32 Deep Sleep：</b>~5μA，唤醒源=定时器/GPIO/ULP协处理器<br>
+<b>🛠 设计检查清单：</b><br>
+• <b>PCB布局：</b>DC-DC输入电容<5mm，开关节点面积最小，FB线远离SW<br>
+• <b>电池安全：</b>保护板必须有(过充4.25V/过放2.4V/短路)，充电IC选TP4056<br>
+• <b>低功耗IO：</b>悬空引脚→AN模式+NOPULL，上拉电阻≥100K<br>
+• <b>测试验证：</b>万用表μA档/PPK2测量实际功耗，运行态+睡眠态都要测<br>
+<b>📏 续航估算公式：</b><br>
+• 平均电流 = (I_run×t_run + I_sleep×t_sleep)/t_total<br>
+• 续航小时 = 电池容量(mAh)/平均电流(mA)<br>
+• 例：CR2032(230mAh) + 平均0.05mA = 4600小时 ≈ 191天
+</div>
+
+<div class="chnav">
+<a onclick="window.parent.loadPage('guide-ch10')">← 第10章</a>
+<a class="toc-link" onclick="window.parent.loadPage('guide')">📑 目录</a>
+<a onclick="window.parent.loadPage('guide-ch12')">第12章 →</a>
+</div>
+
+<script>
+document.querySelectorAll('pre').forEach(pre => {
+  const btn = document.createElement('button');
+  btn.className = 'copy-btn';
+  btn.textContent = 'Copy';
+  btn.onclick = () => {
+    navigator.clipboard.writeText(pre.textContent).then(() => {
+      btn.textContent = 'Copied!';
+      btn.classList.add('copied');
+      setTimeout(() => { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 1500);
+    });
+  };
+  pre.appendChild(btn);
+});
+</script>
+</body>
+</html>

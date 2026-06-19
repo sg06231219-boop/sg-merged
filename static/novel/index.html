@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#0a0a14">
+<meta name="description" content="小说翻改工具：AI驱动的小说文本改写平台，支持名称批量替换、句式改写、智能提取专有名词、对照预览，书库管理。">
+<meta name="keywords" content="小说翻改,AI改写,文本改写,名称替换,句式改写,书库管理">
+<meta property="og:title" content="小说翻改工具">
+<meta property="og:description" content="AI驱动的小说文本改写平台，支持名称替换、句式改写、对照预览">
+<meta property="og:image" content="https://novel-rewriter.onrender.com/static/og-image.png">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📖</text></svg>">
+<title>小说翻改工具 v7.3.0</title>
+<link rel="manifest" href="/static/manifest.json">
+<link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+<!-- 阅读进度条 -->
+<div class="reading-progress" id="readingProgress"></div>
+<!-- 回到顶部按钮 -->
+<button class="back-to-top" id="backToTop" title="回到顶部">⬆</button>
+<div class="app">
+  <div class="topbar">
+    <button class="btn btn-g btn-xs" data-action="togglePanel" data-args="'panelL'" title="书库">📚</button>
+    <h1>📖 小说翻改</h1><span class="ver" id="verBadge">...</span>
+    <div class="view-modes">
+      <button class="vm on" data-action="setViewMode" data-args="'both'" id="vmBoth">并排</button>
+      <button class="vm" data-action="setViewMode" data-args="'orig'" id="vmOrig">原文</button>
+      <button class="vm" data-action="setViewMode" data-args="'result'" id="vmResult">结果</button>
+    </div>
+    <div class="topbar-right">
+      <button class="btn btn-g btn-xs" data-action="toggleTheme" id="themeBtn" title="主题">🌙</button>
+      <button class="btn btn-g btn-xs" data-action="showModal" data-args="'apiModal'" title="API设置">🔑</button>
+      <button class="btn btn-g btn-xs" data-action="downloadResult" title="下载TXT">💾</button>
+      <button class="btn btn-g btn-xs" data-action="downloadResultJson" title="下载JSON">📦</button>
+      <button class="btn btn-g btn-xs" data-action="downloadResultEpub" title="导出EPUB">📕</button>
+      <button class="btn btn-g btn-xs" data-action="importFile" title="导入文件">📁</button>
+      <input type="file" id="fileInput" accept=".txt,.md,.text" style="display:none" onchange="handleFile(event)">
+    </div>
+  </div>
+
+  <div class="main">
+    <!-- 左栏 书库 -->
+    <div class="panel-l" id="panelL">
+      <div class="ph"><h2>📚 书库</h2><button class="btn btn-p btn-xs" data-action="showModal" data-args="'addBookModal'">+ 新书</button></div>
+      <div class="book-search">
+        <input id="bookSearch" placeholder="搜索书名/作者...（按 / 快速搜索）" oninput="handleSearch()">
+        <select id="searchScope" onchange="handleSearch()">
+          <option value="title">书名搜索</option>
+          <option value="content">内容搜索</option>
+        </select>
+      </div>
+      <div class="pb" id="bookList"></div>
+    </div>
+
+    <!-- 中栏 规则 -->
+    <div class="panel-m" id="panelM">
+      <div class="ph">
+        <h2>🔄 替换规则</h2>
+        <div style="display:flex;gap:2px">
+          <button class="btn btn-g btn-xs" data-action="toggleBatch" title="批量">📝</button>
+          <button class="btn btn-g btn-xs" data-action="showModal" data-args="'saveTpModal'" title="模板">💾</button>
+          <button class="btn btn-g btn-xs" data-action="clearRules" title="清空">🗑️</button>
+          <button class="btn btn-p btn-xs" data-action="addRule">+</button>
+        </div>
+      </div>
+      <div class="pb">
+        <div class="batch-area" id="batchArea">
+          <textarea id="batchInput" placeholder="每行一条：原名→新名&#10;萧炎→林焱&#10;药老→魂老"></textarea>
+          <p>用 → 或 = 分隔</p>
+          <button class="btn btn-p btn-sm" data-action="parseBatch" style="width:100%;margin-top:3px">批量添加</button>
+        </div>
+        <div id="rulesBox"></div>
+        <div style="margin-top:6px">
+          <button class="btn btn-a btn-sm" data-action="extractNames" style="width:100%">🧠 智能提取名称</button>
+        </div>
+        <div class="ep" id="extPanel">
+          <h3>提取结果（点击添加）</h3>
+          <div id="extResults"></div>
+        </div>
+        <div style="margin-top:8px;padding-top:6px;border-top:1px solid var(--bd)">
+          <div style="font-size:.7em;color:var(--tx2);margin-bottom:3px">📦 模板</div>
+          <div id="tpList"></div>
+        </div>
+      </div>
+      <div style="padding:6px;border-top:1px solid var(--bd)">
+        <button class="btn btn-p" data-action="doRewrite" id="rewriteBtn" style="width:100%;padding:8px;font-size:12px" title="快捷键: Ctrl+Enter">🚀 开始翻改 (Ctrl+Enter)</button>
+        <button class="btn btn-a" data-action="rewriteBookStream" id="rewriteBookBtn" style="width:100%;padding:8px;font-size:12px;margin-top:3px">📚 整本翻改(流式)</button>
+        <div id="bookRewriteProgress" style="display:none;margin-top:4px">
+          <div style="background:var(--sf2);border-radius:4px;overflow:hidden;height:16px;position:relative">
+            <div id="brProgress" style="background:linear-gradient(90deg,var(--pm),var(--ac));height:100%;width:0;transition:width .3s"></div>
+            <span id="brProgressText" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:9px;color:#fff">0%</span>
+          </div>
+          <div id="brStatus" style="font-size:9px;color:var(--tx3);text-align:center;margin-top:2px"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 右栏 编辑器 -->
+    <div class="panel-r">
+      <div class="toolbar">
+        <label><input type="checkbox" id="useAi" onchange="toggleAi()"> AI改写</label>
+        <div class="sep" id="aiSep" style="display:none"></div>
+        <label id="aiPrvLbl" style="display:none">后端 <select id="aiProvider"><option value="zhipu">智谱</option><option value="deepseek">DeepSeek</option><option value="openai">OpenAI</option></select></label>
+        <label id="aiLvLbl" style="display:none">强度 <select id="aiLv"><option value="light">轻微</option><option value="medium" selected>中等</option><option value="heavy">大幅</option></select></label>
+        <div class="sep"></div>
+        <div class="font-ctrl">
+          <button class="font-btn" data-action="changeFontSize" data-args="-1" title="减小字体">−</button>
+          <span id="fontSizeVal" style="font-size:10px;color:var(--tx2);min-width:28px;text-align:center">13px</span>
+          <button class="font-btn" data-action="changeFontSize" data-args="1" title="增大字体">+</button>
+        </div>
+        <div class="counter">原文 <span id="cntO">0</span> 字 → 改写 <span id="cntR">0</span> 字</div>
+        <span id="chNav" style="display:none;margin-left:8px"></span>
+      </div>
+      <div class="cmp" id="cmpContainer">
+        <div class="cmp-p" id="cmpOrig">
+          <div class="cmp-h">
+            <div class="dot" style="background:var(--wn)"></div>
+            <span id="origTitle">原文</span>
+            <button class="cmp-btn copy-btn" data-action="copyText" data-args="'origText'">📋 复制</button>
+            <button class="cmp-btn save-ch-btn" id="saveChBtn" data-action="saveChapterContent" style="display:none;right:60px" title="保存到章节">💾 保存</button>
+          </div>
+          <div class="cmp-b" id="origScroll"><textarea class="ed" id="origText" placeholder="粘贴原文或从书库加载..." oninput="updateCnt();saveDraft()"></textarea></div>
+        </div>
+        <div class="cmp-p" id="cmpResult">
+          <div class="cmp-h">
+            <div class="dot" style="background:var(--ok)"></div>
+            <span id="repInfo">结果</span>
+            <button class="cmp-btn apply-btn ok" id="applyBtn" data-action="applyResultToChapter" style="display:none" title="应用到章节">✅ 应用</button>
+            <button class="cmp-btn copy-btn" data-action="copyResult">📋 复制</button>
+          </div>
+          <div class="cmp-b" id="resultScroll"><div class="result" id="resultText">等待翻改...</div></div>
+        </div>
+      </div>
+      <div class="sbar">
+        <div>规则: <span class="v" id="sRules">0</span></div>
+        <div>替换: <span class="v" id="sReps">0</span></div>
+        <div id="sAi" style="display:none">AI: <span class="v">开启</span></div>
+        <label style="margin-left:auto"><input type="checkbox" id="syncScrollCb" checked onchange="toggleSyncScroll()"> 同步滚动</label>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Loading -->
+<div class="ld-bg" id="ldBg"><div class="spin"></div><div class="ld-text" id="ldText">处理中...</div></div>
+
+<!-- API Key -->
+<div class="modal-bg" id="apiModal">
+  <div class="modal">
+    <h2>🔑 API 设置</h2>
+    <p>AI改写需要API Key。<a href="https://open.bigmodel.cn" target="_blank" style="color:var(--pm)">智谱</a> <a href="https://platform.deepseek.com" target="_blank" style="color:var(--pm)">DeepSeek</a></p>
+    <select id="apiKeyProvider" onchange="loadApiKey()">
+      <option value="zhipu">智谱 API Key</option>
+      <option value="deepseek">DeepSeek API Key</option>
+      <option value="openai">OpenAI API Key</option>
+    </select>
+    <input type="text" id="apiKeyIn" placeholder="输入 API Key">
+    <div class="modal-act"><button class="btn btn-g" data-action="hideModal" data-args="'apiModal'">取消</button><button class="btn btn-p" data-action="saveApiKey">保存</button></div>
+  </div>
+</div>
+
+<!-- 新建书籍 -->
+<div class="modal-bg" id="addBookModal">
+  <div class="modal">
+    <h2>📚 新建书籍</h2>
+    <input type="text" id="newBookTitle" placeholder="书名">
+    <input type="text" id="newBookAuthor" placeholder="作者（选填）">
+    <textarea id="newBookContent" placeholder="第一章内容（选填）"></textarea>
+    <div class="modal-act"><button class="btn btn-g" data-action="hideModal" data-args="'addBookModal'">取消</button><button class="btn btn-p" data-action="createBook">创建</button></div>
+  </div>
+</div>
+
+<!-- 添加章节 -->
+<div class="modal-bg" id="addChModal">
+  <div class="modal">
+    <h2>📝 添加章节</h2>
+    <input type="text" id="newChTitle" placeholder="章节标题">
+    <textarea id="newChContent" placeholder="章节内容"></textarea>
+    <div class="modal-act"><button class="btn btn-g" data-action="hideModal" data-args="'addChModal'">取消</button><button class="btn btn-p" data-action="addChapter">添加</button></div>
+  </div>
+</div>
+
+<!-- 保存模板 -->
+<div class="modal-bg" id="saveTpModal">
+  <div class="modal">
+    <h2>💾 保存模板</h2>
+    <input type="text" id="tpName" placeholder="模板名称">
+    <div class="modal-act"><button class="btn btn-g" data-action="hideModal" data-args="'saveTpModal'">取消</button><button class="btn btn-p" data-action="saveTemplate">保存</button></div>
+  </div>
+</div>
+
+<!-- 确认删除 -->
+<div class="modal-bg" id="confirmModal">
+  <div class="modal">
+    <h2>⚠️ 确认删除</h2>
+    <p id="confirmText">确定要删除吗？</p>
+    <div class="modal-act"><button class="btn btn-g" data-action="hideModal" data-args="'confirmModal'">取消</button><button class="btn btn-d" id="confirmBtn">删除</button></div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script src="/static/js/app.js"></script>
+<script>
+// ===== 阅读进度条 =====
+(function(){
+  const bar = document.getElementById('readingProgress');
+  function updateProgress(){
+    // 主要滚动区域是 cmp-b 和 pb，取最大滚动比例
+    const scrollEls = document.querySelectorAll('.cmp-b, .pb');
+    let maxRatio = 0;
+    scrollEls.forEach(el => {
+      const ratio = el.scrollTop / (el.scrollHeight - el.clientHeight || 1);
+      if (ratio > maxRatio) maxRatio = ratio;
+    });
+    bar.style.width = (maxRatio * 100) + '%';
+  }
+  // 监听所有可滚动区域
+  document.addEventListener('scroll', updateProgress, true);
+  // 初始化
+  updateProgress();
+})();
+
+// ===== 回到顶部按钮 =====
+(function(){
+  const btn = document.getElementById('backToTop');
+  function checkScroll(){
+    // 检查所有可滚动区域是否有超过400px的
+    const scrollEls = document.querySelectorAll('.cmp-b, .pb');
+    let shouldShow = false;
+    scrollEls.forEach(el => {
+      if (el.scrollTop > 400) shouldShow = true;
+    });
+    btn.classList.toggle('show', shouldShow);
+  }
+  document.addEventListener('scroll', checkScroll, true);
+  btn.addEventListener('click', function(){
+    document.querySelectorAll('.cmp-b, .pb').forEach(el => {
+      el.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+  });
+})();
+
+// ===== 骨架屏 =====
+// 书库骨架
+function showBookSkeleton(){
+  const el = document.getElementById('bookList');
+  let html = '';
+  for (let i = 0; i < 5; i++) {
+    html += '<div class="skeleton skel-book"><div class="skel-book-inner">'
+      + '<div class="skeleton skel-book-icon"></div>'
+      + '<div class="skel-book-text"><div class="skeleton skel-book-title"></div><div class="skeleton skel-book-meta"></div></div>'
+      + '</div></div>';
+  }
+  el.innerHTML = html;
+}
+// 章节内容骨架
+function showChapterSkeleton(){
+  const el = document.getElementById('resultText');
+  let html = '<div class="skel-chapter-container">';
+  for (let i = 0; i < 3; i++) {
+    html += '<div class="skeleton skel-para"></div>';
+  }
+  html += '</div>';
+  el.innerHTML = html;
+}
+
+// ===== 拦截加载函数，注入骨架屏 =====
+const _origLoadBooks = loadBooks;
+loadBooks = async function(){
+  showBookSkeleton();
+  return _origLoadBooks.apply(this, arguments);
+};
+const _origLoadChapterById = loadChapterById;
+loadChapterById = function(){
+  showChapterSkeleton();
+  return _origLoadChapterById.apply(this, arguments);
+};
+</script>
+</body>
+</html>

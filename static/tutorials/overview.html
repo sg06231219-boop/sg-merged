@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>教程总览 - 嵌入式开发教程</title>
+<style>
+:root{
+  --bg:#0d1117;--bg2:#161b22;--bg3:#21262d;--br:#30363d;
+  --t:#c9d1d9;--t2:#8b949e;--a:#58a6ff;--g:#3fb950;--o:#d2991d;--r:#f85149;--p:#a371f7;--c1:#39c5cf;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--t);line-height:1.7}
+.container{max-width:1100px;margin:0 auto;padding:24px 20px}
+h1{font-size:1.8em;text-align:center;padding:20px 0;background:linear-gradient(135deg,var(--a),var(--p));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+h2{font-size:1.2em;color:var(--a);margin:28px 0 12px;padding-bottom:6px;border-bottom:2px solid var(--br)}
+h3{font-size:1.05em;color:var(--c1);margin:18px 0 8px}
+a{color:var(--a);text-decoration:none}
+a:hover{text-decoration:underline}
+table{width:100%;border-collapse:collapse;margin:12px 0;font-size:.86em}
+th{background:var(--bg3);color:var(--a);padding:8px 10px;text-align:left;border:1px solid var(--br)}
+td{padding:7px 10px;border:1px solid var(--br)}
+tr:nth-child(even){background:var(--bg2)}
+.tag{display:inline-block;padding:2px 8px;border-radius:12px;font-size:.72em;font-weight:600;margin:2px}
+.tag-g{background:rgba(63,185,80,.15);color:var(--g)}
+.tag-b{background:rgba(88,166,255,.15);color:var(--a)}
+.tag-o{background:rgba(210,153,29,.15);color:var(--o)}
+.tag-r{background:rgba(248,81,73,.15);color:var(--r)}
+.toc{background:var(--bg2);border:1px solid var(--br);border-radius:10px;padding:16px 20px;margin:16px 0}
+.toc summary{cursor:pointer;color:var(--a);font-weight:600;user-select:none}
+.toc ol{margin-top:10px;padding-left:20px}
+.toc li{margin:4px 0;font-size:.88em}
+.roadmap{background:var(--bg2);border:1px solid var(--br);border-radius:12px;padding:18px 22px;margin:16px 0}
+.roadmap-step{display:inline-block;background:var(--bg3);border:1px solid var(--br);border-radius:8px;padding:6px 14px;margin:4px;font-size:.85em;cursor:pointer}
+.roadmap-step:hover{border-color:var(--a)}
+.roadmap-arrow{color:var(--t2);font-size:1.1em}
+.matrix{overflow-x:auto;margin:12px 0}
+.matrix table{font-size:.78em}
+.skill-bar{display:flex;align-items:center;gap:8px;margin:4px 0}
+.skill-bar .bar{height:8px;border-radius:4px;background:var(--a)}
+.skill-bar .label{font-size:.82em;min-width:100px}
+.back-home{display:inline-block;padding:8px 18px;background:var(--bg2);border:1px solid var(--br);border-radius:8px;color:var(--t);margin:16px 0;cursor:pointer}
+.back-home:hover{color:var(--a);border-color:var(--a);text-decoration:none}
+</style>
+</head>
+<body>
+<div class="container">
+
+<a href="#" class="back-home" onclick="parent.loadPage && parent.loadPage('home') || (window.location.hash='#/home')">← 返回首页</a>
+
+<h1>📊 嵌入式教程总览</h1>
+<p style="text-align:center;color:var(--t2);margin-bottom:20px">32篇教程完整汇总 · 学习路径 · 技能矩阵 · 速查表</p>
+
+<!-- 目录 -->
+<div class="toc">
+<summary>📑 本页目录（点击展开）</summary>
+<ol>
+<li><a href="#stats">📊 全站统计</a></li>
+<li><a href="#roadmap">🗺️ 推荐学习路线</a></li>
+<li><a href="#tree">📚 教程目录树</a></li>
+<li><a href="#matrix">🧩 技能矩阵</a></li>
+<li><a href="#toolchain">🔧 工具链全景</a></li>
+<li><a href="#cheatsheet">📝 常用速查表</a></li>
+</ol>
+</div>
+
+<!-- 统计 -->
+<h2 id="stats">📊 全站统计</h2>
+<table>
+<tr><th>维度</th><th>数量</th><th>详情</th></tr>
+<tr><td>教程总数</td><td><strong>47篇</strong></td><td>小白指南14章 + 基础工具6篇 + 项目教程20篇 + 专题7篇</td></tr>
+<tr><td>总内容量</td><td><strong>约1.7MB</strong></td><td>文字约55万字，代码示例约1200个</td></tr>
+<tr><td>覆盖芯片</td><td><strong>8款</strong></td><td>STM32F1/F4/H7、ESP32、S32K144、nRF52、CH32V、GD32</td></tr>
+<tr><td>覆盖协议</td><td><strong>12种</strong></td><td>UART/I2C/SPI/CAN/USB/WiFi/BLE/MQTT/HTTP/Modbus/单总线/红外</td></tr>
+<tr><td>难度分布</td><td>小白14章 / 基础6 / 项目20 / 专题7</td><td>从环境搭建到BCI脑机接口全覆盖</td></tr>
+</table>
+
+<!-- 学习路线 -->
+<h2 id="roadmap">🗺️ 推荐学习路线</h2>
+
+<div class="roadmap">
+<h3>🚀 路线A：快速入门（4周，每天2小时）</h3>
+<span class="roadmap-step" onclick="parent.loadPage('main')">① 小白完全指南</span><span class="roadmap-arrow">→</span>
+<span class="roadmap-step" onclick="parent.loadPage('arm-gcc')">② ARM GCC</span><span class="roadmap-arrow">→</span>
+<span class="roadmap-step" onclick="parent.loadPage('stm32')">③ STM32开发</span><span class="roadmap-arrow">→</span>
+<span class="roadmap-step" onclick="parent.loadPage('proj-led-button')">④ LED项目</span><span class="roadmap-arrow">→</span>
+<span class="roadmap-step" onclick="parent.loadPage('proj-uart-hello')">⑤ 串口项目</span>
+<p style="margin-top:10px;color:var(--t2);font-size:.85em">目标：能独立点亮LED、用串口打印Hello World</p>
+</div>
+
+<div class="roadmap">
+<h3>🎯 路线B：标准成长（12周，每天1~2小时）</h3>
+<span class="roadmap-step" onclick="parent.loadPage('main')">小白指南</span><span class="roadmap-arrow">→</span>
+<span class="roadmap-step" onclick="parent.loadPage('arm-gcc')">ARM GCC</span><span class="roadmap-arrow">→</span>
+<span class="roadmap-step" onclick="parent.loadPage('makefile')">Makefile</span><span class="roadmap-arrow">→</span>
+<span class="roadmap-step" onclick="parent.loadPage('stm32')">STM32</span><span class="roadmap-arrow">→</span>
+<span class="roadmap-step" onclick="parent.loadPage('serial')">串口</span><span class="roadmap-arrow">→</span>
+<span class="roadmap-step" onclick="parent.loadPage('flash-debug')">烧录调试</span><span class="roadmap-arrow">→</span>
+<span class="roadmap-step" onclick="parent.loadPage('proj-freertos-station')">FreeRTOS项目</span><span class="roadmap-arrow">→</span>
+<span class="roadmap-step" onclick="parent.loadPage('proj-smart-car')">智能小车</span>
+<p style="margin-top:10px;color:var(--t2);font-size:.85em">目标：能独立完成多模块整合项目，理解RTOS多任务</p>
+</div>
+
+<div class="roadmap">
+<h3>🧠 路线C：深度学习+BCI方向（24周，每天2~3小时）</h3>
+<span class="roadmap-step" onclick="parent.loadPage('main')">小白指南</span><span class="roadmap-arrow">→</span>
+<span class="roadmap-step" onclick="parent.loadPage('stm32')">STM32</span><span class="roadmap-arrow">→</span>
+<span class="roadmap-step" onclick="parent.loadPage('freertos')">FreeRTOS</span><span class="roadmap-arrow">→</span>
+<span class="roadmap-step" onclick="parent.loadPage('proj-dma-adc')">DMA+ADC</span><span class="roadmap-arrow">→</span>
+<span class="roadmap-step" onclick="parent.loadPage('bci-2026')">BCI 2026报告</span><span class="roadmap-arrow">→</span>
+<span class="roadmap-step">自制ADS1299采集板</span><span class="roadmap-arrow">→</span>
+<span class="roadmap-step">EEGNet嵌入式部署</span><span class="roadmap-arrow">→</span>
+<span class="roadmap-step">完整BCI系统</span>
+<p style="margin-top:10px;color:var(--t2);font-size:.85em">目标：掌握嵌入式BCI全栈，能设计8通道实时脑电系统</p>
+</div>
+
+<!-- 教程目录树 -->
+<h2 id="tree">📚 教程目录树</h2>
+
+<h3>📘 小白完全指南（14章系统教程）</h3>
+<table>
+<tr><td><a href="#" onclick="parent.loadPage('guide-ch00')">第0章：环境搭建</a></td><td>31KB</td><td><span class="tag tag-g">必读</span><span class="tag tag-b">起点</span></td></tr>
+<tr><td><a href="#" onclick="parent.loadPage('guide-ch01')">第1章：ARM GCC工具链</a></td><td>34KB</td><td><span class="tag tag-g">核心</span><span class="tag tag-b">编译</span></td></tr>
+<tr><td><a href="#" onclick="parent.loadPage('guide-ch02')">第2章：CMake构建</a></td><td>32KB</td><td><span class="tag tag-b">自动化</span></td></tr>
+<tr><td><a href="#" onclick="parent.loadPage('guide-ch03')">第3章：Makefile实战</a></td><td>18KB</td><td><span class="tag tag-o">进阶</span></td></tr>
+<tr><td><a href="#" onclick="parent.loadPage('guide-ch04')">第4章：串口通信</a></td><td>26KB</td><td><span class="tag tag-g">必学</span></td></tr>
+<tr><td><a href="#" onclick="parent.loadPage('guide-ch05')">第5章：烧录与调试</a></td><td>25KB</td><td><span class="tag tag-g">必学</span></td></tr>
+<tr><td><a href="#" onclick="parent.loadPage('guide-ch06')">第6章：STM32入门</a></td><td>21KB</td><td><span class="tag tag-g">必学</span><span class="tag tag-b">MCU</span></td></tr>
+<tr><td><a href="#" onclick="parent.loadPage('guide-ch07')">第7章：ESP32入门</a></td><td>21KB</td><td><span class="tag tag-o">进阶</span><span class="tag tag-b">WiFi</span></td></tr>
+<tr><td><a href="#" onclick="parent.loadPage('guide-ch08')">第8章：FreeRTOS入门</a></td><td>20KB</td><td><span class="tag tag-o">进阶</span><span class="tag tag-r">RTOS</span></td></tr>
+<tr><td><a href="#" onclick="parent.loadPage('guide-ch09')">第9章：通信协议(I2C/SPI/CAN)</a></td><td>45KB</td><td><span class="tag tag-o">进阶</span></td></tr>
+<tr><td><a href="#" onclick="parent.loadPage('guide-ch10')">第10章：PCB硬件设计</a></td><td>27KB</td><td><span class="tag tag-r">专业</span></td></tr>
+<tr><td><a href="#" onclick="parent.loadPage('guide-ch11')">第11章：电源管理</a></td><td>18KB</td><td><span class="tag tag-r">专业</span></td></tr>
+<tr><td><a href="#" onclick="parent.loadPage('guide-ch12')">第12章：传感器开发</a></td><td>21KB</td><td><span class="tag tag-r">综合</span></td></tr>
+<tr><td><a href="#" onclick="parent.loadPage('guide-ch13')">第13章：项目实战</a></td><td>23KB</td><td><span class="tag tag-r">综合</span></td></tr>
+</table>
+
+<h3>📖 独立主题教程（6篇）</h3>
+
+<table>
+<tr><td><a href="#" onclick="parent.loadPage('main')">ARM GCC 工具链</a></td><td>35KB</td><td><span class="tag tag-g">必读</span><span class="tag tag-b">全流程</span></td></tr>
+<tr><td><a href="#" onclick="parent.loadPage('arm-gcc')">ARM GCC 工具链</a></td><td>35KB</td><td><span class="tag tag-g">核心</span><span class="tag tag-b">编译</span></td></tr>
+<tr><td><a href="#" onclick="parent.loadPage('cmake')">CMake 构建系统</a></td><td>32KB</td><td><span class="tag tag-b">自动化</span></td></tr>
+<tr><td><a href="#" onclick="parent.loadPage('makefile')">Makefile 实战</a></td><td>76KB</td><td><span class="tag tag-o">进阶</span></td></tr>
+<tr><td><a href="#" onclick="parent.loadPage('flash-debug')">烧录与调试</a></td><td>92KB</td><td><span class="tag tag-g">必学</span><span class="tag tag-r">调试</span></td></tr>
+<tr><td><a href="#" onclick="parent.loadPage('serial')">串口通信</a></td><td>48KB</td><td><span class="tag tag-g">必学</span></td></tr>
+<tr><td><a href="#" onclick="parent.loadPage('stm32')">STM32 开发</a></td><td>65KB</td><td><span class="tag tag-g">必学</span><span class="tag tag-b">MCU</span></td></tr>
+<tr><td><a href="#" onclick="parent.loadPage('esp32')">ESP32 开发</a></td><td>28KB</td><td><span class="tag tag-o">进阶</span><span class="tag tag-b">WiFi</span></td></tr>
+<tr><td><a href="#" onclick="parent.loadPage('freertos')">FreeRTOS 入门</a></td><td>111KB</td><td><span class="tag tag-o">进阶</span><span class="tag tag-r">RTOS</span></td></tr>
+<tr><td><a href="#" onclick="parent.loadPage('protocols')">通信协议</a></td><td>23KB</td><td><span class="tag tag-o">进阶</span></td></tr>
+</table>
+
+<h3>🚀 实战项目教程（20篇）</h3>
+<table>
+<tr><td colspan="3"><strong>🟢 入门级（0~3个月）</strong></td></tr>
+<tr><td><a href="#" onclick="parent.loadPage('proj-led-button')">LED跑马灯+按键</a></td><td>25KB</td><td><span class="tag tag-g">GPIO</span></td></tr>
+<tr><td><a href="#" onclick="parent.loadPage('proj-uart-hello')">串口Hello World</a></td><td>28KB</td><td><span class="tag tag-g">UART</span></td></tr>
+<tr><td><a href="#" onclick="parent.loadPage('proj-oled-display')">OLED显示</a></td><td>30KB</td><td><span class="tag tag-g">I2C</span></td></tr>
+<tr><td><a href="#" onclick="parent.loadPage('proj-dht11-monitor')">温湿度监测</a></td><td>31KB</td><td><span class="tag tag-g">传感器</span></td></tr>
+<tr><td colspan="3"><strong>🟡 进阶级（3~6个月）</strong></td></tr>
+<tr><td><a href="#" onclick="parent.loadPage('proj-pwm-motor')">PWM电机控制</a></td><td>15KB</td><td><span class="tag tag-o">PWM</span></td></tr>
+<tr><td><a href="#" onclick="parent.loadPage('proj-servo-control')">舵机控制</a></td><td>17KB</td><td><span class="tag tag-o">PWM</span></td></tr>
+<tr><td><a href="#" onclick="parent.loadPage('proj-ir-remote')">红外遥控</a></td><td>21KB</td><td><span class="tag tag-o">中断</span></td></tr>
+<tr><td><a href="#" onclick="parent.loadPage('proj-ultrasonic')">超声波测距</a></td><td>18KB</td><td><span class="tag tag-o">定时器</span></td></tr>
+<tr><td><a href="#" onclick="parent.loadPage('proj-stepper-motor')">步进电机</a></td><td>21KB</td><td><span class="tag tag-o">电机</span></td></tr>
+<tr><td colspan="3"><strong>🟠 实战级（6~12个月）</strong></td></tr>
+<tr><td><a href="#" onclick="parent.loadPage('proj-freertos-station')">FreeRTOS监测站</a></td><td>25KB</td><td><span class="tag tag-r">RTOS</span></td></tr>
+<tr><td><a href="#" onclick="parent.loadPage('proj-smart-car')">智能小车</a></td><td>26KB</td><td><span class="tag tag-r">综合</span></td></tr>
+<tr><td><a href="#" onclick="parent.loadPage('proj-can-bus')">CAN总线</a></td><td>22KB</td><td><span class="tag tag-r">CAN</span></td></tr>
+<tr><td><a href="#" onclick="parent.loadPage('proj-sd-logger')">SD卡记录仪</a></td><td>26KB</td><td><span class="tag tag-r">文件系统</span></td></tr>
+<tr><td><a href="#" onclick="parent.loadPage('proj-esp32-iot')">ESP32物联网</a></td><td>24KB</td><td><span class="tag tag-r">IoT</span></td></tr>
+<tr><td colspan="3"><strong>🔴 高级级（1年+）</strong></td></tr>
+<tr><td><a href="#" onclick="parent.loadPage('proj-low-power')">低功耗电池设备</a></td><td>22KB</td><td><span class="tag tag-r">低功耗</span></td></tr>
+<tr><td><a href="#" onclick="parent.loadPage('proj-bootloader-iap')">Bootloader IAP</a></td><td>26KB</td><td><span class="tag tag-r">Bootloader</span></td></tr>
+<tr><td><a href="#" onclick="parent.loadPage('proj-dma-adc')">DMA双缓冲ADC</a></td><td>22KB</td><td><span class="tag tag-r">DMA</span></td></tr>
+<tr><td><a href="#" onclick="parent.loadPage('proj-usb-hid')">USB HID</a></td><td>21KB</td><td><span class="tag tag-r">USB</span></td></tr>
+<tr><td><a href="#" onclick="parent.loadPage('proj-s32k144-auto')">汽车电子(S32K144)</a></td><td>23KB</td><td><span class="tag tag-r">汽车</span></td></tr>
+<tr><td><a href="#" onclick="parent.loadPage('proj-oscilloscope-debug')">示波器调试</a></td><td>24KB</td><td><span class="tag tag-r">调试</span></td></tr>
+</table>
+
+<h3>🧠 前沿专题（2篇）</h3>
+<table>
+<tr><td><a href="#" onclick="parent.loadPage('practice-projects')">练手方向大全</a></td><td>35KB</td><td><span class="tag tag-g">实战</span><span class="tag tag-b">必看</span></td></tr>
+<tr><td><a href="#" onclick="parent.loadPage('bci-2026')">脑机接口2026全球进展</a></td><td>50KB</td><td><span class="tag tag-r">前沿</span><span class="tag tag-o">热点</span></td></tr>
+</table>
+
+<!-- 技能矩阵 -->
+<h2 id="matrix">🧩 技能矩阵（教程 vs 技能点覆盖）</h2>
+<div class="matrix">
+<table>
+<tr>
+  <th>教程</th><th>GPIO</th><th>UART</th><th>I2C</th><th>SPI</th><th>PWM</th><th>ADC</th><th>DMA</th><th>定时器</th><th>中断</th><th>RTOS</th><th>CAN</th><th>USB</th><th>低功耗</th><th>AI/BCI</th>
+</tr>
+<tr><td>小白指南</td><td>✅</td><td>✅</td><td>✅</td><td>✅</td><td>✅</td><td>✅</td><td></td><td>✅</td><td>✅</td><td></td><td></td><td></td><td></td><td></td></tr>
+<tr><td>STM32开发</td><td>✅</td><td>✅</td><td>✅</td><td>✅</td><td>✅</td><td>✅</td><td>✅</td><td>✅</td><td>✅</td><td></td><td></td><td></td><td>✅</td><td></td></tr>
+<tr><td>FreeRTOS</td><td></td><td>✅</td><td></td><td></td><td></td><td></td><td></td><td></td><td>✅</td><td>✅</td><td></td><td></td><td></td><td></td></tr>
+<tr><td>通信协议</td><td></td><td>✅</td><td>✅</td><td>✅</td><td></td><td></td><td></td><td></td><td></td><td></td><td>✅</td><td></td><td></td><td></td></tr>
+<tr><td>DMA+ADC</td><td></td><td></td><td></td><td>✅</td><td></td><td>✅</td><td>✅</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+<tr><td>CAN总线</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td>✅</td><td></td><td></td><td></td></tr>
+<tr><td>USB HID</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td>✅</td><td></td><td></td><td>✅</td><td></td><td></td></tr>
+<tr><td>低功耗</td><td>✅</td><td></td><td></td><td></td><td></td><td></td><td></td><td>✅</td><td></td><td></td><td></td><td></td><td>✅</td><td></td></tr>
+<tr><td>BCI 2026</td><td></td><td>✅</td><td></td><td>✅</td><td></td><td>✅</td><td>✅</td><td></td><td></td><td></td><td></td><td></td><td></td><td>✅</td></tr>
+</table>
+</div>
+
+<!-- 工具链全景 -->
+<h2 id="toolchain">🔧 嵌入式工具链全景图</h2>
+<pre style="font-size:.88em;line-height:1.8">
+【代码编写】
+  VS Code + Cortex-Debug插件 + C/C++插件
+       ↓
+【编译】                              【调试】
+  ARM GCC (arm-none-eabi-gcc)          OpenOCD (开源调试服务器)
+  ↕ Makefile / CMake                   ↕ J-Link Commander / ST-Link Utility
+  STM32CubeMX (代码生成)               ↕ GDB (命令行调试)
+       ↓                               ↕ printf调试 (最简单)
+【烧录】                                【分析】
+  ST-Link (SWD接口)                    Saleae逻辑分析仪 (协议解码)
+  J-Link (高速SWD)                    PuTTY / Tera Term (串口监视)
+  UART ISP (串口烧录，免调试器)         CubeMonitor (ST官方运行时变量监视)
+       ↓
+【版本管理】
+  Git + .gitignore (排除.user/.ioc)
+       ↓
+【部署】                              【协作】
+  OTA (Over-The-Air)                   GitHub / Gitee
+  IAP (In-Application Programming)       Read the Docs (文档)
+</pre>
+
+<!-- 速查表 -->
+<h2 id="cheatsheet">📝 常用速查表</h2>
+
+<h3>STM32常用GPIO配置速查</h3>
+<table>
+<tr><th>功能</th><th>GPIO模式</th><th>HAL配置</th></tr>
+<tr><td>LED输出</td><td>推挽输出</td><td>GPIO_MODE_OUTPUT_PP</td></tr>
+<tr><td>按键输入（上拉）</td><td>输入+上拉</td><td>GPIO_MODE_INPUT + GPIO_PULLUP</td></tr>
+<tr><td>按键中断</td><td>外部中断</td><td>GPIO_MODE_IT_FALLING</td></tr>
+<tr><td>I2C</td><td>复用开漏</td><td>GPIO_MODE_AF_OD</td></tr>
+<tr><td>SPI</td><td>复用推挽</td><td>GPIO_MODE_AF_PP</td></tr>
+<tr><td>UART</td><td>复用推挽</td><td>GPIO_MODE_AF_PP</td></tr>
+</table>
+
+<h3>GDB常用命令速查</h3>
+<table>
+<tr><th>命令</th><th>作用</th></tr>
+<tr><td>break main / b main</td><td>在main函数设断点</td></tr>
+<tr><td>run / r</td><td>运行程序</td></tr>
+<tr><td>continue / c</td><td>继续运行</td></tr>
+<tr><td>next / n</td><td>单步跳过（不进函数）</td></tr>
+<tr><td>step / s</td><td>单步进入（进函数）</td></tr>
+<tr><td>finish</td><td>运行到当前函数返回</td></tr>
+<tr><td>print var / p var</td><td>打印变量值</td></tr>
+<tr><td>backtrace / bt</td><td>查看调用栈（死机时最有用！）</td></tr>
+<tr><td>info registers</td><td>查看寄存器</td></tr>
+<tr><td>monitor reset</td><td>复位MCU（OpenOCD命令）</td></tr>
+</table>
+
+<h3>CMSIS-DSP常用函数速查</h3>
+<table>
+<tr><th>函数</th><th>作用</th><th>所在文件</th></tr>
+<tr><td>arm_biquad_cascade_df1_f32()</td><td>IIR滤波（最常用！）</td><td>arm_biquad_cascade_df1_f32.h</td></tr>
+<tr><td>arm_rfft_fast_f32()</td><td>实数FFT（功率谱）</td><td>arm_rfft_fast_f32.h</td></tr>
+<tr><td>arm_mat_mult_f32()</td><td>矩阵乘法（CSP用）</td><td>arm_mat_mult_f32.h</td></tr>
+<tr><td>arm_dot_prod_f32()</td><td>点积（分类器用）</td><td>arm_dot_prod_f32.h</td></tr>
+<tr><td>arm_mean_f32()</td><td>均值（归一化用）</td><td>arm_mean_f32.h</td></tr>
+<tr><td>arm_std_f32()</td><td>标准差</td><td>arm_std_f32.h</td></tr>
+</table>
+
+<p style="margin-top:24px;text-align:center">
+  <a href="#" class="back-home" onclick="parent.loadPage && parent.loadPage('home') || (window.location.hash='#/home')">← 返回教程首页</a>
+</p>
+
+</div><!-- end container -->
+
+<script>
+// 如果是在iframe中加载，点击链接用parent.loadPage
+document.querySelectorAll('a[onclick]').forEach(a => {
+  // 已有onclick，不需要额外处理
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,46 @@
+{
+  "name": "auto-site-builder",
+  "version": "1.0.0",
+  "description": "自动独立站生成平台 — 输入一句话，AI 自动生成 Google SEO 优化的完整独立站",
+  "main": "electron/main.js",
+  "scripts": {
+    "start": "electron .",
+    "dev": "electron . --dev",
+    "build": "electron-builder --win portable",
+    "build:portable": "electron-builder --win portable",
+    "build:installer": "electron-builder --win nsis",
+    "pwa": "python apis/app.py"
+  },
+  "build": {
+    "appId": "com.autosite.builder",
+    "productName": "自动独立站生成平台",
+    "directories": {
+      "output": "dist-electron"
+    },
+    "files": [
+      "electron/**/*",
+      "apis/**/*",
+      "core/**/*",
+      "builders/**/*",
+      "static/**/*",
+      "outputs/**/*",
+      "requirements.txt",
+      "config.yaml",
+      "railway.json"
+    ],
+    "extraResources": [],
+    "win": {
+      "target": [
+        { "target": "portable", "arch": ["x64"] }
+      ],
+      "icon": "static/icons/icon-512x512.png"
+    },
+    "portable": {
+      "artifactName": "AutoSiteBuilder-${version}-portable.exe"
+    }
+  },
+  "devDependencies": {
+    "electron": "^35.0.0",
+    "electron-builder": "^25.0.0"
+  }
+}

@@ -1,0 +1,54 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# 环境
+.env
+.venv/
+venv/
+env/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# 本地工具和临时文件
+tools/
+node_modules/
+outputs/
+tunnel_stderr.txt
+public_url.txt
+*.bat
+*.ps1
+deploy.py
+start_deploy.*
+
+# 测试和调试
+test_*.py
+_test*.py
+_verify*.py
+_check*.py
+
+# 文档和进度
+PROGRESS.md
+task-*.md
+README.md
+
+# Electron（桌面版，不需要部署）
+electron/
+package.json
+package-lock.json
+
+# 用户数据（不入git）
+data/
+
+# 营销文案
+营销文案.md
+
+# 配置（云端用环境变量）
+config.yaml

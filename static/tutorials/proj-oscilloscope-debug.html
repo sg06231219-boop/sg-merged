@@ -1,0 +1,525 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0"><title>教程20: 示波器调试实战</title><style>:root{--bg:#0d1117;--bg2:#161b22;--bg3:#21262d;--br:#30363d;--t:#c9d1d9;--t2:#8b949e;--a:#58a6ff;--g:#3fb950;--o:#d29922;--r:#f85149;--p:#a371f7;--c1:#39c5cf}body{background:var(--bg);color:var(--t);font-family:system-ui,sans-serif;line-height:1.8;max-width:900px;margin:0 auto;padding:20px}h1{text-align:center;background:linear-gradient(135deg,var(--a),var(--p));-webkit-background-clip:text;-webkit-text-fill-color:transparent}h2{color:var(--a);border-bottom:2px solid var(--br);padding-bottom:6px;margin-top:32px}h3{color:var(--c1);margin-top:22px}pre{background:#1c2128;border:1px solid var(--br);border-radius:8px;padding:14px;overflow-x:auto;font-size:.84em}code{font-family:'Cascadia Code',Consolas,monospace}:not(pre)>code{background:var(--bg3);padding:2px 6px;border-radius:4px;color:var(--c1)}table{width:100%;border-collapse:collapse;margin:12px 0}th{background:var(--bg3);color:var(--a);padding:8px 12px;border:1px solid var(--br);text-align:left}td{padding:8px 12px;border:1px solid var(--br)}.note{background:rgba(88,166,255,.08);border-left:3px solid var(--a);border-radius:8px;padding:12px 16px;margin:12px 0}.warn{background:rgba(248,81,73,.08);border-left:3px solid var(--r);border-radius:8px;padding:12px 16px;margin:12px 0}.tip{background:rgba(63,185,80,.08);border-left:3px solid var(--g);border-radius:8px;padding:12px 16px;margin:12px 0}.step{background:var(--bg2);border:1px solid var(--br);border-radius:8px;padding:12px 16px;margin:10px 0}</style></head><body>
+
+<h1>📈 教程20: 示波器调试实战</h1>
+
+<h2>📋 项目概述</h2>
+<p>示波器是嵌入式开发者的"第三只眼"。本教程将教你用示波器测量GPIO翻转、I2C/SPI/UART时序、PWM信号，并利用示波器的触发功能捕捉偶发BUG，让你的调试效率提升10倍。</p>
+
+<div class="note">
+<strong>示波器 vs 逻辑分析仪：</strong><br>
+- <strong>示波器</strong>：测量模拟信号(波形形状、幅度、噪声)、高频信号、协议模拟部分(UART/SPI/I2C)<br>
+- <strong>逻辑分析仪</strong>：捕获数字信号、解码协议数据(更擅长协议层分析)<br>
+两者配合使用最佳！
+</div>
+
+<h2>🔧 硬件准备</h2>
+<table>
+<tr><th>元件</th><th>数量</th><th>说明</th></tr>
+<tr><td>数字示波器</td><td>1</td><td>普源DS1000Z/2000E、鼎阳SDS1000X+/1000E等，100MHz带宽以上</td></tr>
+<tr><td>示波器探头×2</td><td>标配</td><td>1×/10×可切换探头</td></tr>
+<tr><td>STM32F103C8T6开发板</td><td>1</td><td>被测设备</td></tr>
+<tr><td>面包板+杜邦线</td><td>若干</td><td>连接测试点</td></tr>
+<tr><td>10K电位器</td><td>1</td><td>PWM输入测试</td></tr>
+<tr><td>逻辑分析仪(可选)</td><td>1</td><td>LA1010/DSLogic等，协议解码用</td></tr>
+</table>
+
+<div class="warn">
+<strong>⚠️ 示波器安全使用：</strong><br>
+1. 探头衰减比要设置正确(1×=不衰减，10×=衰减10倍)<br>
+2. 测量高压信号时，确认示波器探头耐压范围<br>
+3. 共地：示波器所有通道的地是相通的，不要用示波器测浮地设备<br>
+4. 接地夹要尽量短，减少环路面积降低噪声
+</div>
+
+<h2>📐 接线图</h2>
+<pre>
+示波器测量接线：
+┌─────────────────────────────────────────────────────┐
+│                                                     │
+│  STM32F103C8T6 开发板                               │
+│                                                     │
+│  GPIO测试点:                                        │
+│  ┌──────────────────────────────────────────────┐  │
+│  │  PB0  ──────┐                                │  │
+│  │             │ ← 示波器探头(Channel 1)         │  │
+│  │  PB1  ──────┼── 示波器探头(Channel 2)         │  │
+│  │             │                                │  │
+│  │  PA0  ──────┘                                │  │
+│  │             │                                │  │
+│  │  PA2/I2C_SCL│ ← 示波器探头(Channel 1)        │  │
+│  │  PA3/I2C_SDA│ ← 示波器探头(Channel 2)        │  │
+│  │             │                                │  │
+│  │  PA5/SPI_SCK│ ← 示波器探头(Channel 1)        │  │
+│  │  PA6/SPI_MISO│ ← 示波器探头(Channel 2)        │  │
+│  │             │                                │  │
+│  │  PA9/UART_TX│ ← 示波器探头(Channel 1)        │  │
+│  │  PA10/UART_RX│ ← 示波器探头(Channel 2)        │  │
+│  │             │                                │  │
+│  │  GND       ←── 所有示波器探头的接地夹(GND)   │  │
+│  └──────────────────────────────────────────────┘  │
+│                                                     │
+│  探头连接原则:                                       │
+│  1. 接地夹 → 最近的GND点(开发板上的GND焊盘)          │
+│  2. 探头尖 → 测试点                                 │
+│  3. 接地线越短越好(减少环路)                        │
+│                                                     │
+│  双通道对比:                                         │
+│  CH1 → 时钟/同步信号                                │
+│  CH2 → 数据信号                                     │
+│                                                     │
+└─────────────────────────────────────────────────────┘
+</pre>
+
+<h2>📖 知识讲解</h2>
+
+<h3>示波器基础操作</h3>
+<pre>
+示波器面板布局:
+┌─────────────────────────────────────────────────────────┐
+│  ┌─────────────────────────────────────────────────┐   │
+│  │  屏幕(波形显示区)                                 │   │
+│  │                                                   │   │
+│  │  ┌───────────────────────────────────────────┐   │   │
+│  │  │                                           │   │   │
+│  │  │     ___        ___                       │   │   │
+│  │  │    /   \      /   \      ___            │   │   │
+│  │  │   /     \____/     \____/   \___        │   │   │
+│  │  │                                           │   │   │
+│  │  └───────────────────────────────────────────┘   │   │
+│  │                                                   │   │
+│  │  CH1: 2.00V  1kHz   CH2: 1.56V  DC Offset      │   │
+│  └─────────────────────────────────────────────────┘   │
+│                                                          │
+│  [Auto] [Run/Stop] [Single]   ← 触发控制               │
+│  [Time/Div] ← 水平时基旋钮                              │
+│  [Volt/Div] ×2  ← 垂直档位旋钮(每通道独立)             │
+│  [Coupling] ← 耦合方式(GND/DC/AC)                       │
+│  [Trigger] ← 触发电平旋钮                               │
+│  [Math] ← 数学运算(FFT, 差分等)                        │
+└─────────────────────────────────────────────────────────┘
+</pre>
+
+<h3>触发模式详解</h3>
+<table>
+<tr><th>模式</th><th>说明</th><th>适用场景</th></tr>
+<tr><td><strong>Auto</strong></td><td>有信号自动触发，无信号自动扫描</td><td>快速观察，不知道信号何时出现</td></tr>
+<tr><td><strong>Normal</strong></td><td>有信号才触发，无信号保持显示</td><td>偶发信号、噪声环境</td></tr>
+<tr><td><strong>Single</strong></td><td>满足触发条件一次后停止</td><td>一次性事件(掉电、异常)</td></tr>
+<tr><td><strong>Roll</strong></td><td>滚动模式，右向左滚动显示</td><td>超低频信号、长时间监测</td></tr>
+</table>
+<pre>
+触发耦合:
+- DC: 显示直流+交流成分 (最常用)
+- AC: 阻断直流，只显示交流 (测AC信号纹波)
+- HF: 抑制高频 (滤除噪声尖峰)
+- LF: 抑制低频 (滤除工频干扰)
+
+触发类型:
+- Edge: 边沿触发(上升/下降沿)
+- Pulse: 脉宽触发(大于/小于/等于某脉宽)
+- Nth Edge: N次边沿触发
+- I2C/SPI/UART: 协议触发(高端示波器)
+</pre>
+
+<h3>探头衰减比(1× vs 10×)</h3>
+<pre>
+┌─────────┬────────────────┬─────────────────────────┐
+│  档位   │  特点           │  使用场景                │
+├─────────┼────────────────┼─────────────────────────┤
+│  1×    │  不衰减          │  低频、低压信号          │
+│         │  带宽受限(~10MHz)│  观察信号整体形状        │
+│         │  负载大(1MΩ)     │                         │
+├─────────┼────────────────┼─────────────────────────┤
+│  10×   │  衰减10倍        │  高频信号(>10MHz)       │
+│         │  带宽大(~100MHz) │  高压信号               │
+│         │  负载小(10MΩ)    │  精确测量               │
+└─────────┴────────────────┴─────────────────────────┘
+
+⚠️ 必须在示波器上设置正确的探头衰减比！
+   否则读数和触发电平都会错误
+</pre>
+
+<h2>💻 完整测试代码</h2>
+
+<h3>GPIO翻转测试代码</h3>
+<pre>
+/* GPIO翻转测试 - 用于测量GPIO响应速度 */
+#include "main.h"
+
+void Test_GPIO_Toggle(void)
+{
+    /* PB0输出，50%占空比翻转 */
+    HAL_GPIO_TogglePin(GPIOB, GPIO_PIN_0);
+
+    /* 用示波器测量PB0引脚
+     * 设置时基: 1us/div
+     * 观察: 上升/下降时间、周期
+     *
+     * STM32F103 GPIO翻转频率理论:
+     * - 72MHz / 4 cycles ≈ 18MHz (汇编优化)
+     * - 72MHz / 12 cycles ≈ 6MHz (HAL库调用)
+     */
+}
+
+/* 中断延迟测量 */
+volatile uint8_t g_int_triggered = 0;
+
+void EXTI0_IRQHandler(void)
+{
+    /* 在这里拉高一个GPIO(PB1)作为测量点 */
+    HAL_GPIO_WritePin(GPIOB, GPIO_PIN_1, GPIO_PIN_SET);
+    /* 中断处理代码 */
+    g_int_triggered = 1;
+    HAL_GPIO_EXTI_IRQHandler(GPIO_PIN_0);
+    HAL_GPIO_WritePin(GPIOB, GPIO_PIN_1, GPIO_PIN_RESET);
+}
+
+/* 测试方法:
+ * CH1: PA0(外部中断触发信号)
+ * CH2: PB1(中断处理标志)
+ * 测量: 从CH1下降沿到CH2上升沿的延迟
+ *
+ * 中断延迟 = 中断响应时间 + 用户代码执行时间
+ * Cortex-M3/M4 中断响应 ≈ 12个时钟周期 ≈ 0.17us @ 72MHz
+ */
+</pre>
+
+<h3>I2C时序测试代码</h3>
+<pre>
+/* I2C时序测试 - 用于测量I2C波形 */
+#include "main.h"
+
+I2C_HandleTypeDef hi2c1;
+
+void Test_I2C_Scanner(void)
+{
+    /* 扫描I2C总线上的设备地址 */
+    uint8_t addr;
+    HAL_StatusTypeDef status;
+
+    for (addr = 1; addr &lt; 128; addr++)
+    {
+        status = HAL_I2C_IsDeviceReady(&amp;hi2c1, (uint16_t)(addr &lt;&lt; 1), 3, 100);
+
+        if (status == HAL_OK)
+        {
+            printf("Found device at 0x%02X\r\n", addr);
+        }
+    }
+}
+
+/* I2C时序测量要点:
+ *
+ * ┌────────────────┐    ┌────────────────────────┐
+ * │ START condition │    │ SCL (时钟)              │
+ * │ S ──────────────┘    │  ___ ___ ___ ___ ___    │
+ * │                     │    ┌───┐   ┌───┐        │
+ * │ SDA (数据)           │ ───┘   └───┘   └────    │
+ * │ ═══╗    ╔═══════════│ ↑    ↑    ↑    ↑        │
+ * │    ║    ║ SCL低电平 │ SDA在SCL高时变化         │
+ * │    ╚════╝           │ (START/STOP条件)         │
+ * └────────────────┘                            │
+ *                                                │
+ * I2C标准速率:                                   │
+ * - Standard: 100KHz, t_LOW=4.7us, t_HIGH=4.7us│
+ * - Fast: 400KHz, t_LOW=1.3us, t_HIGH=0.6us    │
+ * - Fast Mode+: 1MHz (需要IO开漏+上拉匹配)      │
+ */
+</pre>
+
+<h3>SPI时序测试代码</h3>
+<pre>
+/* SPI时序测试 */
+#include "main.h"
+
+SPI_HandleTypeDef hspi1;
+
+void Test_SPI_Transfer(void)
+{
+    uint8_t tx_data[8] = {0x55, 0xAA, 0x0F, 0xF0, 0x33, 0xCC, 0x12, 0x21};
+    uint8_t rx_data[8];
+
+    /* SPI时序测量:
+     * ┌───────────────────────────────────────┐
+     * │ SCK (时钟)                             │
+     * │  ────┐   ────┐   ────┐   ────┐       │
+     * │       └───┘   └───┘   └───┘   └─     │
+     * │                                        │
+     * │ MOSI: ──── 1 ──── 0 ──── 1 ────      │
+     * │ ──────────────────────────────        │
+     * │                                        │
+     * │ CPOL=0, CPHA=0 时序:                  │
+     * │  - SCLK空闲=0, 第一个边沿采样          │
+     * │                                        │
+     * │ CPOL=1, CPHA=1 时序:                  │
+     * │  - SCLK空闲=1, 第二个边沿采样          │
+     * └───────────────────────────────────────┘
+     */
+
+    HAL_SPI_TransmitReceive(&amp;hspi1, tx_data, rx_data, 8, 1000);
+}
+
+/* SPI时序参数说明:
+ * CPOL: 时钟极性
+ *   CPOL=0: 空闲SCLK=0, 第一个边沿上升
+ *   CPOL=1: 空闲SCLK=1, 第一个边沿下降
+ *
+ * CPHA: 时钟相位
+ *   CPHA=0: 第一个边沿采样
+ *   CPHA=1: 第二个边沿采样
+ *
+ * 组合:
+ *   Mode 0: CPOL=0, CPHA=0 ← 最常用
+ *   Mode 1: CPOL=0, CPHA=1
+ *   Mode 2: CPOL=1, CPHA=0
+ *   Mode 3: CPOL=1, CPHA=1
+ */
+</pre>
+
+<h3>UART波形测试代码</h3>
+<pre>
+/* UART时序测试 */
+#include "main.h"
+
+UART_HandleTypeDef huart1;
+
+void Test_UART_Send(void)
+{
+    uint8_t data = 0x55; /* 二进制: 01010101 */
+
+    /* UART时序 (9600bps, 8N1):
+     * ┌────────────────────────────────────────┐
+     * │                                          │
+     * │  起始位(0)  D0  D1  D2  D3  D4  D5  D6  D7  停止位(1)
+     * │  ──────────╱───┘───┘───┘───┘───┘───┘───┘───┘───────
+     * │           ────────────────────────────────────────────
+     * │                                               ↑
+     * │                                           空闲=1
+     * │
+     * │ 1位时间 = 1/9600 ≈ 104.17us
+     * │ 1帧 = 10位 = 1.042ms
+     * │ 波特率误差应 < 2%
+     * └────────────────────────────────────────┘
+     */
+
+    HAL_UART_Transmit(&amp;huart1, &amp;data, 1, 1000);
+}
+
+/* 常用波特率位时间对照:
+ *  9600bps: 104.17us
+ *  19200bps: 52.08us
+ *  38400bps: 26.04us
+ *  57600bps: 17.36us
+ * 115200bps: 8.68us
+ *
+ * 示波器设置:
+ * - 时基: 根据波特率选择
+ *   9600 → 500us/div (能看到1位)
+ *   115200 → 10us/div (能看到1位)
+ * - 触发: 下降沿触发(从空闲到起始位0)
+ */
+</pre>
+
+<h3>PWM测量测试</h3>
+<pre>
+/* PWM信号测试 */
+#include "main.h"
+
+TIM_HandleTypeDef htim3;
+
+void Test_PWM_Measure(void)
+{
+    /* 配置TIM3 CH2 (PA7) 输出PWM */
+    /* 频率 = 72MHz / (PSC+1) / (ARR+1)
+     * 例: PSC=7199, ARR=999 → 72M/7200/1000 = 10Hz
+     *      PSC=71, ARR=999 → 72M/72/1000 = 1000Hz */
+
+    HAL_TIM_PWM_Start(&amp;htim3, TIM_CHANNEL_2);
+
+    /* PWM参数:
+     * ┌────────────────────────────────────────┐
+     * │                                          │
+     * │ ══════════════╗          ╔════════════  │
+     * │               ║          ║              │
+     * │               ╚══════════╝              │
+     * │                                          │
+     * │ ←──── T ──────→│                        │
+     * │   ┌─── Duty ───┐│                       │
+     * │                                          │
+     * │  占空比 = D/T × 100%                    │
+     * │  周期的倒数 = 频率                      │
+     * └────────────────────────────────────────┘
+     */
+
+    /* 改变占空比 */
+    __HAL_TIM_SET_COMPARE(&amp;htim3, TIM_CHANNEL_2, 500); /* 50% */
+}
+
+/* PWM测量方法:
+ * 示波器测量:
+ * 1. 频率: 使用示波器频率计或光标测量周期
+ * 2. 占空比: 示波器的"测量"功能 → 占空比
+ * 3. 幅值: 高电平 - 低电平
+ *
+ * 示波器Cursor(光标)测量:
+ * 手动移动光标A/B到信号边沿，示波器计算:
+ * - ΔT: 时间差
+ * - ΔV: 电压差
+ */
+</pre>
+
+<h2>📝 分步操作指引</h2>
+
+<div class="step">
+<strong>第1步：示波器基础设置</strong><br>
+1. 开机后按<strong>[Auto]</strong>键，让示波器自动识别信号<br>
+2. 确认探头衰减比设置：<code>探头菜单 → 10×</code>，示波器也要对应设置<code>CH1 → 10×</code><br>
+3. 接地夹夹到开发板GND，探头尖接触测试点<br>
+4. 调节<strong>时基(Time/Div)</strong>和<strong>档位(Volt/Div)</strong>，让波形清晰
+</div>
+
+<div class="step">
+<strong>第2步：GPIO翻转测量</strong><br>
+1. 烧录GPIO翻转测试代码<br>
+2. 示波器探头接PB0，地线夹到板子GND<br>
+3. 设置时基: 1μs/div<br>
+4. 观察周期，计算翻转频率<br>
+5. 对比HAL库vs直接操作寄存器的速度差异
+</div>
+
+<div class="step">
+<strong>第3步：I2C/SPI时序分析</strong><br>
+1. CH1接SCL，CH2接SDA<br>
+2. 触发方式: <strong>边沿触发</strong>，电平设在SCL中点<br>
+3. 时基: 根据速率选择<br>
+   I2C 100KHz → 50μs/div<br>
+   SPI 1MHz → 1μs/div<br>
+4. 观察: 启动条件、地址发送、数据ACK、停止条件
+</div>
+
+<div class="step">
+<strong>第4步：UART波形调试</strong><br>
+1. 示波器接TX引脚，地线接GND<br>
+2. 设置触发: <strong>下降沿</strong>(因为UART空闲=1，起始位=0)<br>
+3. 时基: 根据波特率选择(9600→200μs/div, 115200→20μs/div)<br>
+4. 观察: 起始位、数据位、停止位是否正确<br>
+5. 用光标测量位时间，验证波特率精度
+</div>
+
+<div class="step">
+<strong>第5步：中断延迟测量</strong><br>
+1. CH1接外部中断源(按键/PWM)<br>
+2. CH2接GPIO标志(中断入口处拉高)<br>
+3. 触发: <strong>单次触发</strong>，边沿触发<br>
+4. 测量CH1边沿到CH2边沿的时间差<br>
+5. 这个延迟就是中断响应时间+用户代码执行时间
+</div>
+
+<div class="step">
+<strong>第6步：捕捉偶发BUG</strong><br>
+1. 设置触发为<strong>单次模式</strong><br>
+2. 触发条件设为异常信号特征<br>
+   - I2C总线卡死 → SCL低电平脉宽触发(>5ms)<br>
+   - 复位异常 → 下降沿窄脉冲触发<br>
+   - 看门狗复位 → 复位引脚下降沿<br>
+3. 降低时基，确保捕捉到事件前后的波形<br>
+4. 反复触发直到捕获到异常
+</div>
+
+<h2>❓ 常见问题排查</h2>
+
+<h3>问题1：探头衰减比设置错误</h3>
+<div class="warn">
+<strong>⚠️ 这是最常见的测量错误！</strong><br>
+如果探头在10×档，但示波器设置在1×档：<br>
+- 示波器显示的电压值是实际值的1/10<br>
+- 触发电平也会错误<br>
+- 测量结果完全不对
+</div>
+<p><strong>解决：</strong>每次换探头或换档位，都要确认示波器的CH设置与探头档位一致。</p>
+
+<h3>问题2：触发设置问题</h3>
+<table>
+<tr><th>现象</th><th>原因</th><th>解决</th></tr>
+<tr><td>波形不稳定，左右滑动</td><td>触发不稳定，触发电平不在信号范围内</td><td>调节触发电平旋钮，使其在波形中间</td></tr>
+<tr><td>一直等待Trigger</td><td>Normal模式但没有满足触发条件的信号</td><td>按Auto或检查探头连接</td></tr>
+<tr><td>只有一条水平线</td><td>触发电平太高/太低，或耦合设置错误</td><td>检查GND耦合，或重新Auto</td></tr>
+<tr><td>偶发信号看不到</td><td>用的是Auto模式而不是Normal</td><td>改用Normal或Single模式</td></tr>
+</table>
+
+<h3>问题3：带宽选择</h3>
+<div class="note">
+<strong>示波器带宽选择原则：</strong><br>
+示波器带宽 ≥ 信号最高频率成分 × 3~5<br><br>
+<strong>常见场景带宽需求：</strong><br>
+- GPIO翻转(1MHz): 20MHz示波器足够<br>
+- UART(115KHz): 1MHz示波器即可<br>
+- I2C(400KHz): 10MHz示波器<br>
+- SPI(10MHz): 50MHz示波器<br>
+- USB全速(12MHz): 100MHz以上示波器<br>
+- DDR内存(100MHz+): 200MHz+示波器
+</div>
+
+<h3>问题4：接地问题</h3>
+<pre>
+接地环路导致的噪声:
+┌─────────────────────────────────┐
+│                                 │
+│  接地夹线太长 ──────────────────│ ← 形成大环路
+│  ┌───────────────────────────┐ │    收集空间噪声
+│  │                           │ │
+│  │   探头尖              │ │
+│  │                           │ │
+│  └───────────────────────────┘ │
+│                                 │
+└─────────────────────────────────┘
+
+正确做法:
+1. 接地夹线尽量短
+2. 使用探头自带的接地弹簧(附件)
+3. 如果信号质量差，用"保护地"(Guard)而非信号地
+4. 对于高频信号，考虑差分探头
+</pre>
+
+<h3>问题5：带宽限制</h3>
+<div class="tip">
+<strong>示波器带宽限制功能：</strong><br>
+大多数示波器有20MHz带宽限制，用来滤除高频噪声。<br><br>
+使用场景：<br>
+- 当信号包含高频毛刺但我们只关心低频成分时<br>
+- 测量UART/低频PWM时，开启20MHz限制可以减少噪声<br>
+- 测高速信号时记得关闭带宽限制<br><br>
+<strong>操作：</strong>按下示波器的<code>[BW Limit]</code>键或通道菜单。
+</div>
+
+<div class="note">
+<strong>💡 示波器高级功能：</strong><br>
+1. <strong>FFT频谱分析</strong>：分析信号频率成分，查找干扰源<br>
+2. <strong>协议解码</strong>：高端示波器内置I2C/SPI/UART解码，直接显示数值<br>
+3. <strong>模板触发</strong>：设定合格波形模板，超出则触发(生产测试)<br>
+4. <strong>分段存储</strong>：将内存分成多段，记录多次事件<br>
+5. <strong>外部触发输入</strong>：用外部信号作为触发源，同步测量<br>
+6. <strong>XY模式</strong>：用于李萨如图形，观察两个信号的相位关系
+</div>
+
+
+<hr><h2>❓ 常见问题 FAQ</h2>
+
+<div style="margin:12px 0;padding:12px 16px;background:var(--bg2);border-left:3px solid var(--a);border-radius:0 8px 8px 0">
+  <p style="font-weight:600;color:var(--c1);margin-bottom:4px">Q: 没有示波器怎么办？</p>
+  <p style="color:var(--t)">A: 1)逻辑分析仪(¥60)可看数字信号 2)Saleae软件很强大 3)STM32的GPIO翻转+逻辑分析仪替代 4)SoundCard示波器(用声卡)看低频信号</p>
+</div>
+
+<div style="margin:12px 0;padding:12px 16px;background:var(--bg2);border-left:3px solid var(--a);border-radius:0 8px 8px 0">
+  <p style="font-weight:600;color:var(--c1);margin-bottom:4px">Q: 如何测量中断延迟？</p>
+  <p style="color:var(--t)">A: 在中断入口翻转GPIO(拉高)，处理完再拉低。示波器测量GPIO高电平宽度=中断处理时间。触发信号用外部中断源。</p>
+</div>
+
+<hr><h2>🔗 相关教程</h2>
+<div style="display:flex;flex-wrap:wrap;gap:8px;margin:12px 0">
+<a href="#" onclick="parent.loadPage && parent.loadPage('flash-debug')" style="display:inline-block;padding:6px 14px;background:var(--bg3);border:1px solid var(--br);border-radius:6px;color:var(--a);text-decoration:none;font-size:.85em">烧录与调试 →</a>
+<a href="#" onclick="parent.loadPage && parent.loadPage('proj-dma-adc')" style="display:inline-block;padding:6px 14px;background:var(--bg3);border:1px solid var(--br);border-radius:6px;color:var(--a);text-decoration:none;font-size:.85em">DMA+ADC →</a>
+</div>
+
+</body></html>

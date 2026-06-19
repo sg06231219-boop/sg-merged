@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>管理后台 - 多智能体协同学习平台</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧠</text></svg>">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg:#0a0e17;--card:#131a2b;--border:#1e2a42;--accent:#00d4aa;--accent2:#6c5ce7;--text:#e8edf5;--muted:#8892a8;--danger:#ff6b6b;--warn:#ffc107;--success:#00d4aa}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Microsoft YaHei',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+.login-wrap{display:flex;align-items:center;justify-content:center;min-height:100vh}
+.login-box{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:40px;width:360px;text-align:center}
+.login-box h1{font-size:20px;background:linear-gradient(90deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.login-box p{font-size:12px;color:var(--muted);margin:6px 0 24px}
+.login-box input{width:100%;padding:10px 12px;border-radius:8px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-size:13px;outline:none;margin-bottom:12px}
+.login-box input:focus{border-color:var(--accent)}
+.login-box button{width:100%;padding:11px;border:none;border-radius:8px;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;font-size:13px;font-weight:700;cursor:pointer}
+.login-box button:hover{transform:translateY(-1px)}
+.login-error{color:var(--danger);font-size:11px;display:none;margin-top:8px}
+.login-box .back{display:inline-block;margin-top:16px;font-size:11px;color:var(--muted);text-decoration:none}
+.app{display:none}
+.sidebar{position:fixed;left:0;top:0;bottom:0;width:220px;background:var(--card);border-right:1px solid var(--border);padding:20px 0;z-index:10}
+.sidebar .logo{padding:0 20px 20px;border-bottom:1px solid var(--border);margin-bottom:16px}
+.sidebar .logo span{font-size:17px;font-weight:800;background:linear-gradient(90deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.sidebar .logo small{display:block;color:var(--muted);font-size:11px;margin-top:2px}
+.sidebar nav a{display:flex;align-items:center;gap:10px;padding:10px 20px;color:var(--muted);text-decoration:none;font-size:13px;transition:all .2s;border-left:3px solid transparent}
+.sidebar nav a:hover,.sidebar nav a.active{color:var(--text);background:rgba(0,212,170,.08);border-left-color:var(--accent)}
+.main{margin-left:220px;padding:24px 32px}
+.header{display:flex;justify-content:space-between;align-items:center;margin-bottom:24px}
+.header h2{font-size:20px}
+.header button{padding:7px 14px;border-radius:7px;border:1px solid var(--border);background:var(--card);color:var(--muted);cursor:pointer;font-size:12px}
+.header button:hover{color:var(--danger);border-color:var(--danger)}
+.stats{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px;margin-bottom:24px}
+.stat-card{background:var(--card);border:1px solid var(--border);border-radius:11px;padding:16px;text-align:center}
+.stat-card .val{font-size:26px;font-weight:800;background:linear-gradient(135deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.stat-card .lbl{font-size:10px;color:var(--muted);margin-top:2px;text-transform:uppercase;letter-spacing:.5px}
+.card{background:var(--card);border:1px solid var(--border);border-radius:11px;padding:18px;margin-bottom:16px}
+.card h3{font-size:14px;margin-bottom:14px;display:flex;align-items:center;gap:7px}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th{text-align:left;padding:8px 10px;color:var(--muted);border-bottom:1px solid var(--border);font-weight:600;font-size:10px;text-transform:uppercase;letter-spacing:.5px}
+td{padding:8px 10px;border-bottom:1px solid var(--border)}
+tr:hover td{background:rgba(0,212,170,.03)}
+.badge{display:inline-block;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:600}
+.badge-ok{background:rgba(0,212,170,.12);color:var(--success)}
+.badge-err{background:rgba(255,107,107,.12);color:var(--danger)}
+.badge-warn{background:rgba(255,193,7,.12);color:var(--warn)}
+.badge-muted{background:rgba(136,146,168,.12);color:var(--muted)}
+.btn-sm{padding:4px 10px;border:1px solid var(--border);border-radius:5px;background:var(--bg);color:var(--text);font-size:10px;cursor:pointer;transition:all .2s}
+.btn-sm:hover{border-color:var(--accent);color:var(--accent)}
+.btn-sm.danger:hover{border-color:var(--danger);color:var(--danger)}
+.refresh-btn{padding:6px 14px;border-radius:7px;border:1px solid var(--border);background:var(--card);color:var(--muted);cursor:pointer;font-size:12px;float:right}
+.refresh-btn:hover{border-color:var(--accent);color:var(--accent)}
+.page{display:none}.page.active{display:block}
+.modal-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.6);z-index:200;display:none;align-items:center;justify-content:center}
+.modal-overlay.show{display:flex}
+.modal{background:var(--card);border:1px solid var(--border);border-radius:14px;width:90%;max-width:700px;max-height:80vh;overflow-y:auto;padding:24px;position:relative}
+.modal-close{position:absolute;top:12px;right:16px;background:none;border:none;color:var(--muted);font-size:18px;cursor:pointer}
+.modal-close:hover{color:var(--text)}
+.modal h3{font-size:15px;margin-bottom:14px}
+.modal pre{background:var(--bg);padding:12px;border-radius:8px;font-size:11px;overflow-x:auto;max-height:400px;line-height:1.5}
+.agent-chip{display:inline-flex;align-items:center;gap:6px;padding:7px 12px;background:var(--card);border:1px solid var(--border);border-radius:8px;font-size:11px;margin:3px}
+.agent-chip .dot{width:7px;height:7px;border-radius:50%;background:var(--success)}
+.agent-chip .dot.idle{background:var(--muted)}
+</style>
+</head>
+<body>
+<div class="login-wrap" id="loginPage">
+  <div class="login-box">
+    <h1>🧠 多智能体协同学习平台</h1>
+    <p>管理后台 · XH-202630</p>
+    <div class="login-error" id="loginError">密码错误</div>
+    <input type="password" id="loginPwd" placeholder="管理员密码" autocomplete="current-password">
+    <button onclick="doLogin()">登 录</button>
+    <a class="back" href="/">← 返回首页</a>
+  </div>
+</div>
+<div class="app" id="appPage">
+  <div class="sidebar">
+    <div class="logo"><span>🧠 多智能体平台</span><small>管理后台 v4.1</small></div>
+    <nav>
+      <a href="#" class="active" data-page="dashboard">📊 数据概览</a>
+      <a href="#" data-page="sessions">📋 会话记录</a>
+      <a href="#" data-page="agents">🤖 Agent状态</a>
+      <a href="#" data-page="system">⚙️ 系统信息</a>
+    </nav>
+  </div>
+  <div class="main">
+    <div class="page active" id="page-dashboard">
+      <div class="header"><h2>📊 数据概览</h2><button onclick="doLogout()">退出登录</button></div>
+      <div class="stats" id="statsGrid"></div>
+      <div class="card"><h3>🤖 Agent 状态</h3><div id="agentChips"></div></div>
+      <div class="card"><h3>📋 最近会话</h3><table><thead><tr><th>ID</th><th>时间</th><th>状态</th><th>背景</th><th>Agent</th><th>耗时</th></tr></thead><tbody id="dashSessions"></tbody></table></div>
+    </div>
+    <div class="page" id="page-sessions">
+      <div class="header"><h2>📋 会话记录</h2><button class="refresh-btn" onclick="loadSessions()">刷新</button></div>
+      <div class="card"><table><thead><tr><th>ID</th><th>创建时间</th><th>状态</th><th>背景</th><th>经验</th><th>Agent完成</th><th>耗时</th><th>操作</th></tr></thead><tbody id="sessionsTbody"></tbody></table></div>
+    </div>
+    <div class="page" id="page-agents">
+      <div class="header"><h2>🤖 Agent 状态</h2><button class="refresh-btn" onclick="loadAgents()">刷新</button></div>
+      <div class="card" id="agentsDetail"></div>
+    </div>
+    <div class="page" id="page-system">
+      <div class="header"><h2>⚙️ 系统信息</h2><button class="refresh-btn" onclick="loadSystem()">刷新</button></div>
+      <div class="card" id="sysInfo"></div>
+    </div>
+  </div>
+</div>
+<div class="modal-overlay" id="detailModal"><div class="modal"><button class="modal-close" onclick="closeModal()">&times;</button><h3 id="modalTitle">会话详情</h3><pre id="modalBody"></pre></div></div>
+
+<script>
+async function api(path,opts={}){
+  const r=await fetch(path,{...opts,credentials:'same-origin',headers:{'Content-Type':'application/json',...opts.headers}});
+  if(r.status===401){showLogin();throw new Error('unauth');}
+  return r;
+}
+async function doLogin(){
+  const pwd=document.getElementById('loginPwd').value;
+  try{
+    const r=await fetch('/api/admin/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:pwd}),credentials:'same-origin'});
+    if(r.ok){showApp();}else{document.getElementById('loginError').style.display='block';}
+  }catch(e){document.getElementById('loginError').style.display='block';}
+}
+async function doLogout(){await api('/api/admin/logout',{method:'POST'});showLogin();}
+function showLogin(){document.getElementById('loginPage').style.display='flex';document.getElementById('appPage').style.display='none';}
+function showApp(){document.getElementById('loginPage').style.display='none';document.getElementById('appPage').style.display='block';loadDashboard();}
+document.getElementById('loginPwd').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();});
+
+document.querySelectorAll('.sidebar nav a').forEach(a=>{
+  a.addEventListener('click',e=>{
+    e.preventDefault();
+    document.querySelectorAll('.sidebar nav a').forEach(x=>x.classList.remove('active'));
+    a.classList.add('active');
+    document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+    document.getElementById('page-'+a.dataset.page).classList.add('active');
+    const pg=a.dataset.page;
+    if(pg==='dashboard')loadDashboard();
+    if(pg==='sessions')loadSessions();
+    if(pg==='agents')loadAgents();
+    if(pg==='system')loadSystem();
+  });
+});
+
+async function loadDashboard(){
+  try{
+    const r=await api('/api/admin/stats');const d=await r.json();
+    const s=d.sessions||{};
+    document.getElementById('statsGrid').innerHTML=[
+      {l:'总会话',v:s.total||0},{l:'已完成',v:s.completed||0},{l:'运行中',v:s.running||0},
+      {l:'失败',v:s.failed||0},{l:'限流IP',v:(d.rate_limiter||{}).tracked_ips||0},
+      {l:'版本',v:d.version||'-'},{l:'API Key',v:d.api_key_configured?'✅':'❌'},
+      {l:'Agent数',v:(d.agents||[]).length}
+    ].map(x=>'<div class="stat-card"><div class="val">'+x.v+'</div><div class="lbl">'+x.l+'</div></div>').join('');
+    // Agent chips
+    document.getElementById('agentChips').innerHTML=(d.agents||[]).map(a=>'<span class="agent-chip"><div class="dot idle"></div>'+esc(a.name)+' · '+esc(a.role||'')+'</span>').join('');
+    // Recent sessions
+    const sr=await api('/api/admin/sessions?limit=5');const sd=await sr.json();
+    document.getElementById('dashSessions').innerHTML=(sd.sessions||[]).map(s=>{
+      const bg=(s.profile&&s.profile.background||'-').substring(0,25);
+      return '<tr><td style="font-family:monospace;font-size:10px">'+s.id+'</td><td>'+(s.created_at||'').substring(5,16)+'</td><td><span class="badge badge-'+statusCls(s.status)+'">'+s.status+'</span></td><td>'+esc(bg)+'</td><td>'+(s.agent_count||0)+'</td><td>'+(s.total_seconds?s.total_seconds+'s':'-')+'</td></tr>';
+    }).join('')||'<tr><td colspan="6" style="color:var(--muted);text-align:center;padding:16px">暂无会话</td></tr>';
+  }catch(e){console.error(e);}
+}
+
+async function loadSessions(){
+  try{
+    const r=await api('/api/admin/sessions?limit=50');const d=await r.json();
+    document.getElementById('sessionsTbody').innerHTML=(d.sessions||[]).map(s=>{
+      const bg=(s.profile&&s.profile.background||'-').substring(0,25);
+      const exp=(s.profile&&s.profile.experience||'-');
+      return '<tr><td style="font-family:monospace;font-size:10px">'+s.id+'</td><td>'+(s.created_at||'').substring(5,16)+'</td><td><span class="badge badge-'+statusCls(s.status)+'">'+s.status+'</span></td><td title="'+esc(s.profile&&s.profile.background||'')+'">'+esc(bg)+'</td><td>'+esc(exp)+'</td><td>'+(s.agent_count||0)+'</td><td>'+(s.total_seconds?s.total_seconds+'s':'-')+'</td><td><button class="btn-sm" onclick="viewSession(\''+s.id+'\')">详情</button> <button class="btn-sm danger" onclick="delSession(\''+s.id+'\')">删除</button></td></tr>';
+    }).join('')||'<tr><td colspan="8" style="color:var(--muted);text-align:center;padding:16px">暂无会话记录</td></tr>';
+  }catch(e){console.error(e);}
+}
+
+async function loadAgents(){
+  try{
+    const r=await api('/api/admin/agents');const d=await r.json();
+    document.getElementById('agentsDetail').innerHTML='<div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px">'+(d.agents||[]).map(a=>'<span class="agent-chip"><div class="dot '+(a.has_result?'':'idle')+'"></div><b>'+esc(a.name)+'</b> · '+esc(a.role||'')+'</span>').join('')+'</div>'+(d.agents||[]).map(a=>'<div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:8px"><b>'+esc(a.name)+'</b> <span style="color:var(--muted)">· '+esc(a.role||'')+'</span><p style="color:var(--muted);font-size:11px;margin-top:4px">'+esc(a.description||'')+'</p></div>').join('');
+  }catch(e){console.error(e);}
+}
+
+async function loadSystem(){
+  try{
+    const r=await api('/api/admin/stats');const d=await r.json();
+    document.getElementById('sysInfo').innerHTML='<h3>系统信息</h3><table><thead><tr><th>项目</th><th>值</th></tr></thead><tbody>'+
+      '<tr><td>版本</td><td>'+esc(d.version||'-')+'</td></tr>'+
+      '<tr><td>API Key配置</td><td>'+(d.api_key_configured?'✅ 已配置':'❌ 未配置')+'</td></tr>'+
+      '<tr><td>Agent数量</td><td>'+(d.agents||[]).length+'</td></tr>'+
+      '<tr><td>限流策略</td><td>'+(d.rate_limiter||{}).max_per_minute+'次/分/IP</td></tr>'+
+      '<tr><td>追踪IP数</td><td>'+(d.rate_limiter||{}).tracked_ips+'</td></tr>'+
+      '<tr><td>存储</td><td>'+esc(d.uptime_note||'内存存储')+'</td></tr>'+
+      '</tbody></table>';
+  }catch(e){console.error(e);}
+}
+
+async function viewSession(sid){
+  const r=await api('/api/admin/sessions/'+sid);const d=await r.json();
+  document.getElementById('modalTitle').textContent='会话 '+sid;
+  document.getElementById('modalBody').textContent=JSON.stringify(d,null,2);
+  document.getElementById('detailModal').classList.add('show');
+}
+function closeModal(){document.getElementById('detailModal').classList.remove('show');}
+async function delSession(sid){
+  if(!confirm('确定删除会话 '+sid+'？'))return;
+  await api('/api/admin/sessions/'+sid,{method:'DELETE'});loadSessions();
+}
+function statusCls(s){return{s:'completed',r:'running',e:'error',p:'pending',c:'cancelled'}[s[0]]||'muted';}
+function esc(s){return(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+document.getElementById('detailModal').addEventListener('click',function(e){if(e.target===this)closeModal();});
+
+// Auto-check auth
+(async function(){try{await api('/api/admin/stats');showApp();}catch(e){showLogin();}})();
+</script>
+</body>
+</html>

@@ -1,0 +1,571 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0"><title>教程6：舵机控制 - STM32嵌入式开发</title><style>:root{--bg:#0d1117;--bg2:#161b22;--bg3:#21262d;--br:#30363d;--t:#c9d1d9;--t2:#8b949e;--a:#58a6ff;--g:#3fb950;--o:#d29922;--r:#f85149;--p:#a371f7;--c1:#39c5cf}body{background:var(--bg);color:var(--t);font-family:system-ui,sans-serif;line-height:1.8;max-width:900px;margin:0 auto;padding:20px}h1{text-align:center;background:linear-gradient(135deg,var(--a),var(--p));-webkit-background-clip:text;-webkit-text-fill-color:transparent}h2{color:var(--a);border-bottom:2px solid var(--br);padding-bottom:6px;margin-top:32px}h3{color:var(--c1);margin-top:22px}pre{background:#1c2128;border:1px solid var(--br);border-radius:8px;padding:14px;overflow-x:auto;font-size:.84em}code{font-family:'Cascadia Code',Consolas,monospace}:not(pre)>code{background:var(--bg3);padding:2px 6px;border-radius:4px;color:var(--c1)}table{width:100%;border-collapse:collapse;margin:12px 0}th{background:var(--bg3);color:var(--a);padding:8px 12px;border:1px solid var(--br);text-align:left}td{padding:8px 12px;border:1px solid var(--br)}.note{background:rgba(88,166,255,.08);border-left:3px solid var(--a);border-radius:8px;padding:12px 16px;margin:12px 0}.warn{background:rgba(248,81,73,.08);border-left:3px solid var(--r);border-radius:8px;padding:12px 16px;margin:12px 0}.tip{background:rgba(63,185,80,.08);border-left:3px solid var(--g);border-radius:8px;padding:12px 16px;margin:12px 0}.step{background:var(--bg2);border:1px solid var(--br);border-radius:8px;padding:12px 16px;margin:10px 0}</style></head><body>
+<h1>🎯 教程6：舵机控制</h1>
+<p style="text-align:center;color:var(--t2)">STM32F103C8T6 + SG90舵机×2 | 定时器PWM | 多路舵机协同</p>
+
+<h2>📖 你将学到什么</h2>
+<ul>
+<li>舵机PWM信号格式与控制原理</li>
+<li>STM32定时器产生50Hz PWM的方法</li>
+<li>角度与CCR值的精确换算</li>
+<li>多路PWM输出（双舵机控制）</li>
+<li>机械臂协同运动编程</li>
+</ul>
+
+<h2>🧰 硬件清单</h2>
+<table>
+<tr><th>元件</th><th>数量</th><th>说明</th></tr>
+<tr><td>STM32F103C8T6 最小系统板</td><td>1</td><td>Blue Pill</td></tr>
+<tr><td>SG90 9g舵机</td><td>2</td><td>或MG90S</td></tr>
+<tr><td>5V 2A 电源</td><td>1</td><td>独立供电（重要！）</td></tr>
+<tr><td>杜邦线</td><td>若干</td><td>公对公</td></tr>
+<tr><td>面包板</td><td>1</td><td>方便接线</td></tr>
+</table>
+
+<h2>🔬 舵机控制原理</h2>
+
+<h3>SG90舵机规格</h3>
+<table>
+<tr><th>参数</th><th>数值</th></tr>
+<tr><td>工作电压</td><td>4.8V ~ 6V</td></tr>
+<tr><td>控制信号</td><td>PWM (20ms周期 / 50Hz)</td></tr>
+<tr><td>角度范围</td><td>0° ~ 180°</td></tr>
+<tr><td>脉冲宽度</td><td>0.5ms ~ 2.5ms</td></tr>
+<tr><td>保持扭矩</td><td>约 1.8kg·cm</td></tr>
+<tr><td>工作电流</td><td>约 100~250mA</td></tr>
+</table>
+
+<h3>舵机PWM信号格式</h3>
+<p>舵机通过PWM信号的<strong>脉冲宽度</strong>来控制角度，而不是占空比：</p>
+
+<pre><code>┌──────────────────────────────────────────────────────────┐
+│                   20ms 周期 (50Hz)                        │
+│                                                          │
+│  ┌────┐                                                   │
+│  │0.5ms│   ← 0°位置                                       │
+│  └────┘                                                   │
+│                    ┌────────┐                             │
+│                    │ 1.5ms  │   ← 90°中间位置             │
+│                    └────────┘                             │
+│                                   ┌──────────┐            │
+│                                   │  2.5ms   │  ← 180°位置│
+│                                   └──────────┘            │
+│                                                          │
+│  ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓│
+│  (低电平区间)                                             │
+└──────────────────────────────────────────────────────────┘
+
+角度-脉冲对照表：
+  0°   → 0.5ms 脉冲
+  45°  → 1.0ms 脉冲
+  90°  → 1.5ms 脉冲
+  135° → 2.0ms 脉冲
+  180° → 2.5ms 脉冲</code></pre>
+
+<div class="note">
+<strong>关键区别：</strong>舵机关心的是<strong>脉冲宽度（ms）</strong>，而不是占空比百分比！20ms周期中，0.5ms只占2.5%，但这就是0°位置。
+</div>
+
+<h3>CCR值计算公式</h3>
+<pre><code>假设 TIM3 时钟 = 72MHz, PSC = 72, ARR = 19999 (20ms)
+
+计数频率 = 72000000 / 72 = 1MHz = 1计数/μs
+
+CCR = 脉冲宽度(μs)
+  0°   → CCR = 500
+  90°  → CCR = 1500
+  180° → CCR = 2500
+
+通用公式：
+  CCR(angle) = 500 + (angle / 180) × 2000
+  CCR(angle) = 500 + angle × 11.111...
+
+例如 angle = 90°:
+  CCR = 500 + 90 × 11.111 = 500 + 1000 = 1500 ✓</code></pre>
+
+<h2>🔌 接线图</h2>
+
+<pre><code>STM32F103C8T6          舵机1 (SG90)          舵机2 (SG90)
+─────────────          ────────────          ────────────
+PA0 (TIM2_CH1) ────── 橙/黄 信号线      PA1 (TIM2_CH2) ────── 橙/黄 信号线
+PA2 (TIM2_CH2) ────── (预留/不用)        PA3 (TIM2_CH3) ────── (预留/不用)
+
+                       电源接线
+STM32或外部电源         ────────
+5V/外部5V 2A ──────────── 红线(VCC) ────────────── 红线(VCC)
+GND          ──────────── 棕线(GND) ────────────── 棕线(GND)</code></pre>
+
+<div class="warn">
+<strong>⚠ 供电警告：</strong><br>
+- <strong>强烈建议使用独立5V电源</strong>（如手机充电头5V2A或稳压模块），不要用STM32开发板的3.3V或5V给舵机供电！<br>
+- STM32F103C8T6的5V引脚从USB取电，电流能力有限，带不动舵机。<br>
+- 多个舵机同时运行需要更大电流（每个约200mA，两个就是400mA+）。<br>
+- <strong>共地！</strong>STM32 GND 和 外部电源 GND 必须连接。
+</div>
+
+<h3>CubeMX TIM2 配置</h3>
+<pre><code>TIM2 配置（32位定时器，适合长周期）：
+  Prescaler (PSC): 72-1    → 计数频率 1MHz (1μs/计数)
+  Counter Period (ARR): 20000-1 → 周期 20000μs = 20ms = 50Hz
+
+Channel 1, 2, 3 均配置为 PWM Generation</code></pre>
+
+<h2>📝 分步操作指引</h2>
+
+<div class="step">
+<strong>Step 1：CubeMX 配置</strong><br>
+1. RCC → HSE → Crystal/Ceramic Resonator<br>
+2. Clock Configuration → 72MHz<br>
+3. TIM2 → Channel1: PWM Generation CH1<br>
+4. TIM2 → Channel2: PWM Generation CH2<br>
+5. TIM2 → Prescaler: 71, Period: 19999<br>
+6. 生成代码
+</div>
+
+<div class="step">
+<strong>Step 2：舵机角度函数</strong><br>
+编写 <code>Servo_SetAngle(TIM_HandleTypeDef *htim, uint32_t ch, uint16_t angle)</code><br>
+参数：angle 范围 0~180°
+</div>
+
+<div class="step">
+<strong>Step 3：测试单舵机</strong><br>
+先用通道1控制一个舵机，从0°→90°→180°循环移动，确认角度正确。
+</div>
+
+<div class="step">
+<strong>Step 4：双舵机协同</strong><br>
+通道1控制底座（水平），通道2控制机械臂（俯仰），实现协同运动。
+</div>
+
+<div class="step">
+<strong>Step 5：运动序列编程</strong><br>
+编写动作序列数组，让舵机按预设轨迹运动。
+</div>
+
+<h2>💻 完整代码</h2>
+
+<h3>main.c — 舵机控制核心代码</h3>
+<pre><code>/* USER CODE BEGIN Includes */
+#include &lt;stdio.h&gt;
+#include &lt;stdint.h&gt;
+/* USER CODE END Includes */
+
+/* USER CODE BEGIN PV */
+#define SERVO_MIN   500   // 0° 对应 CCR
+#define SERVO_MID  1500   // 90° 对应 CCR
+#define SERVO_MAX  2500   // 180° 对应 CCR
+
+// 运动序列：每个动作 {舵机1角度, 舵机2角度, 延时ms}
+typedef struct {
+    uint16_t angle1;   // 舵机1 (底座) 0~180
+    uint16_t angle2;   // 舵机2 (臂) 0~180
+    uint16_t delay_ms; // 保持时间
+} ServoAction_t;
+
+// 演示动作序列
+const ServoAction_t g_action_seq[] = {
+    { 90,  90, 1000},  // 初始位置
+    { 30,  60,  500},  // 左转+抬起
+    { 90,  30,  500},  // 中间+下压
+    { 90, 120,  500},  // 中间+抬起
+    {150,  60,  500},  // 右转+抬起
+    {150,  30,  500},  // 右转+下压
+    { 90,  90, 1000},  // 回到初始
+};
+/* USER CODE END PV */
+
+/* USER CODE BEGIN 0 */
+
+// 角度转CCR值
+// angle: 0~180度
+// 返回: CCR值 500~2500
+static uint32_t Angle_To_CCR(uint16_t angle)
+{
+    if (angle &gt; 180) angle = 180;
+    return SERVO_MIN + (angle * (SERVO_MAX - SERVO_MIN) / 180);
+}
+
+// 设置舵机角度
+// htim: 定时器句柄
+// channel: TIM_CHANNEL_1 / TIM_CHANNEL_2 等
+// angle: 0~180度
+void Servo_SetAngle(TIM_HandleTypeDef *htim, uint32_t channel, uint16_t angle)
+{
+    uint32_t ccr = Angle_To_CCR(angle);
+    __HAL_TIM_SET_COMPARE(htim, channel, ccr);
+}
+
+// 平滑移动到目标角度（步进方式）
+void Servo_SmoothMove(TIM_HandleTypeDef *htim, uint32_t channel,
+                      uint16_t target, uint16_t step_delay_ms)
+{
+    static uint16_t current_angle = 0; // 上次位置（需要在函数外声明持久变量）
+    
+    // 简化版：直接跳到目标位置
+    // 完整版需要记录current_angle并逐步逼近
+    Servo_SetAngle(htim, channel, target);
+    HAL_Delay(step_delay_ms);
+}
+
+// 执行动作序列
+void Servo_RunSequence(void)
+{
+    uint8_t seq_len = sizeof(g_action_seq) / sizeof(ServoAction_t);
+    
+    for (uint8_t i = 0; i &lt; seq_len; i++) {
+        Servo_SetAngle(&amp;htim2, TIM_CHANNEL_1, g_action_seq[i].angle1);
+        Servo_SetAngle(&amp;htim2, TIM_CHANNEL_2, g_action_seq[i].angle2);
+        printf("Action %d: S1=%d°, S2=%d°\r\n", 
+               i, g_action_seq[i].angle1, g_action_seq[i].angle2);
+        HAL_Delay(g_action_seq[i].delay_ms);
+    }
+}
+
+// 串口打印帮助
+void Print_Help(void)
+{
+    printf("\r\n=== Servo Control Help ===\r\n");
+    printf("S1:90  - Set Servo1 angle (0~180)\r\n");
+    printf("S2:90  - Set Servo2 angle (0~180)\r\n");
+    printf("RUN    - Run action sequence\r\n");
+    printf("HELP   - Show this help\r\n");
+    printf("=========================\r\n");
+}
+
+// 解析串口命令
+uint8_t g_rx_buf[64];
+volatile uint8_t g_rx_len = 0;
+
+void Parse_Command(uint8_t *cmd)
+{
+    if (strncmp((char*)cmd, "S1:", 3) == 0) {
+        uint16_t ang = atoi((char*)(cmd + 3));
+        Servo_SetAngle(&amp;htim2, TIM_CHANNEL_1, ang);
+        printf("Servo1 → %d°\r\n", ang);
+    }
+    else if (strncmp((char*)cmd, "S2:", 3) == 0) {
+        uint16_t ang = atoi((char*)(cmd + 3));
+        Servo_SetAngle(&amp;htim2, TIM_CHANNEL_2, ang);
+        printf("Servo2 → %d°\r\n", ang);
+    }
+    else if (strncmp((char*)cmd, "RUN", 3) == 0) {
+        Servo_RunSequence();
+    }
+    else if (strncmp((char*)cmd, "HELP", 4) == 0) {
+        Print_Help();
+    }
+    else {
+        printf("Unknown command: %s\r\n", cmd);
+    }
+}
+
+/* USER CODE END 0 */
+
+int main(void)
+{
+    HAL_Init();
+    SystemClock_Config();
+    MX_GPIO_Init();
+    MX_TIM2_Init();
+    MX_USART1_UART_Init();
+
+    /* USER CODE BEGIN 2 */
+    // 启动两路PWM输出
+    HAL_TIM_PWM_Start(&amp;htim2, TIM_CHANNEL_1);
+    HAL_TIM_PWM_Start(&amp;htim2, TIM_CHANNEL_2);
+    
+    // 设置到中位 (90°)
+    Servo_SetAngle(&amp;htim2, TIM_CHANNEL_1, 90);
+    Servo_SetAngle(&amp;htim2, TIM_CHANNEL_2, 90);
+    
+    printf("Servo Control Ready!\r\n");
+    printf("Initial: Both at 90°\r\n");
+    Print_Help();
+    
+    // 启动串口接收
+    HAL_UART_Receive_IT(&amp;huart1, (uint8_t*)g_rx_buf, 32);
+    /* USER CODE END 2 */
+
+    /* USER CODE BEGIN WHILE */
+    while (1)
+    {
+        // 处理串口命令（需要在USART中断或主循环中调用）
+        // 这里简化处理，实际项目建议用中断
+        
+        // 测试：每3秒自动运行一次序列
+        static uint32_t last_run = 0;
+        if (HAL_GetTick() - last_run &gt; 10000) {
+            last_run = HAL_GetTick();
+            Servo_RunSequence();
+        }
+        
+        HAL_Delay(100);
+    }
+    /* USER CODE END WHILE */
+}
+
+// USART1 中断回调（需要添加此函数到stm32f1xx_it.c或main.c）
+void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
+{
+    if (huart-&gt;Instance == USART1) {
+        Parse_Command(g_rx_buf);
+        memset(g_rx_buf, 0, sizeof(g_rx_buf));
+        HAL_UART_Receive_IT(&amp;huart1, (uint8_t*)g_rx_buf, 32);
+    }
+}</code></pre>
+
+<h3>stm32f1xx_hal_msp.c — TIM2 GPIO配置参考</h3>
+<pre><code>// CubeMX自动生成，但手动配置时参考：
+void MX_TIM2_Init(void)
+{
+    TIM_ClockConfigTypeDef sClockSourceConfig = {0};
+    TIM_MasterConfigTypeDef sMasterConfig = {0};
+    TIM_OC_InitTypeDef sConfigOC = {0};
+
+    htim2.Instance = TIM2;
+    htim2.Init.Prescaler = 72 - 1;        // 72分频 → 1MHz
+    htim2.Init.CounterMode = TIM_COUNTERMODE_UP;
+    htim2.Init.Period = 20000 - 1;        // 20ms周期
+    htim2.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+    htim2.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_ENABLE;
+    
+    // PWM模式配置
+    sConfigOC.OCMode = TIM_OCMODE_PWM1;
+    sConfigOC.Pulse = 1500;               // 90°位置
+    sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
+    sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
+    
+    // 配置通道1和2
+    HAL_TIM_PWM_Init(&amp;htim2);
+    HAL_TIM_PWM_ConfigChannel(&amp;htim2, &amp;sConfigOC, TIM_CHANNEL_1);
+    
+    sConfigOC.Pulse = 1500;
+    HAL_TIM_PWM_ConfigChannel(&amp;htim2, &amp;sConfigOC, TIM_CHANNEL_2);
+    
+    HAL_TIM_MspPostInit(&amp;htim2);
+}
+
+// GPIO配置（在HAL_TIM_MspPostInit或MX_GPIO_Init中）
+// PA0 = TIM2_CH1, PA1 = TIM2_CH2
+// __HAL_AFIO_REMAP_TIM2_PARTIAL_1(); // 如果需要重映射</code></pre>
+
+<h2>❓ 常见问题排查</h2>
+
+<h3>问题1：舵机持续抖动</h3>
+<div class="warn">
+<strong>最常见原因：</strong><br>
+1. <strong>供电不足</strong> — STM32开发板的5V只能提供~100mA，舵机需要200mA+，必须用独立电源。<br>
+2. <strong>PWM频率不对</strong> — 舵机需要50Hz（20ms周期），不是1000Hz！如果PSC/ARR设置成1kHz，舵机会疯狂抖动。<br>
+3. <strong>脉冲宽度不在范围内</strong> — 确保CCR值在500~2500之间，不要超过边界太多。<br>
+4. <strong>舵机自身问题</strong> — 测试多个舵机确认是硬件问题还是接线问题。
+</div>
+
+<h3>问题2：角度范围校准</h3>
+<div class="note">
+不同舵机的实际角度范围可能略有差异。如果SG90达不到0°或180°：<br>
+<pre><code>// 修改CCR边界值适配你的舵机
+#define SERVO_MIN   600   // 原来500，调大让0°更靠边
+#define SERVO_MAX  2400   // 原来2500，调小让180°更靠边
+#define SERVO_MID  1500   // 中间通常比较准</code></pre>
+建议先打印实际角度，再逐步微调。
+</div>
+
+<h3>问题3：多舵机供电功率计算</h3>
+<div class="tip">
+<strong>功率预算：</strong><br>
+<pre><code>SG90舵机电流：
+  空闲时: ~50mA
+  正常运转: ~100~200mA
+  堵转(受阻): ~500~600mA (⚠ 不要让舵机长时间堵转!)
+
+多舵机电源选择：
+  1个舵机 → 5V 0.5A 足矣
+  2个舵机 → 5V 1A 推荐
+  4个舵机 → 5V 2A 必须
+  
+推荐方案：
+  LM2596降压模块 (12V输入) → 5V 3A输出
+  或 USB 5V 3A电源适配器
+  或 手机充电宝 (5V 2.1A)</code></pre>
+</div>
+
+<h3>问题4：舵机反应迟钝/卡顿</h3>
+<div class="note">
+1. 检查是否有其他中断干扰定时器PWM输出<br>
+2. 降低主循环中HAL_Delay的频率<br>
+3. 确保PWM引脚没有被复用为普通GPIO<br>
+4. SG90舵机本身响应速度约0.12s/60°，不是瞬时的，这是正常现象
+</div>
+
+<h3>问题5：想让舵机旋转360°怎么办？</h3>
+<div class="note">
+SG90是<strong>180°角度舵机</strong>，无法360°旋转。<br>
+如果需要连续旋转的<strong>舵机</strong>（也叫"360°舵机"或"连续旋转舵机"），控制逻辑完全不同：<br>
+- 0.5ms脉冲 = 全速顺时针<br>
+- 1.5ms脉冲 = 停止<br>
+- 2.5ms脉冲 = 全速逆时针<br>
+连续旋转舵机没有位置反馈，无法知道当前角度！
+</div>
+
+<h2>🎯 进阶练习</h2>
+<ol>
+<li>添加OLED显示两个舵机的当前角度</li>
+<li>用串口命令控制角度：<code>S1:45</code>、<code>S2:120</code></li>
+<li>编写平滑插值函数，让舵机从当前角度移动到目标角度</li>
+<li>做一个小机械臂：底座舵机+大臂舵机+小臂舵机</li>
+<li>添加摇杆控制（ADC读取），实时控制两个舵机</li>
+<li>实现"记住动作"功能：记录操作轨迹并回放</li>
+</ol>
+
+
+
+<h2>📐 舵机内部结构与PID控制</h2>
+<p>标准舵机内部是一个完整的闭环控制系统：</p>
+<pre><code>舵机内部框图:
+┌─────────┐   ┌──────────┐   ┌──────────┐   ┌─────────┐
+│PWM信号  │→  │比较器/   │→  │H桥驱动  │→  │直流电机 │→ 齿轮减速→输出轴
+│(500-   │   │误差放大  │   │          │   │         │
+│ 2500μs)│   └────┬─────┘   └──────────┘   └─────────┘
+└─────────┘        │                                    │
+                   │         ┌──────────┐               │
+                   └─────────│电位器反馈│←──────────────┘
+                             └──────────┘
+
+误差 = 目标位置 - 实际位置(电位器电压)
+误差 → P放大 → 驱动电机 → 减小误差 → 0误差=停止</code></pre>
+
+<h3>舵机死区(Deadband)与精度</h3>
+<table>
+<tr><th>舵机类型</th><th>死区</th><th>最小角度分辨率</th><th>典型价格</th></tr>
+<tr><td>廉价SG90</td><td>~10&mu;s</td><td>~1°</td><td>¥5</td></tr>
+<tr><td>标准MG995</td><td>~5&mu;s</td><td>~0.5°</td><td>¥15</td></tr>
+<tr><td>数字舵机(DS3225)</td><td>~2&mu;s</td><td>~0.2°</td><td>¥40</td></tr>
+<tr><td>磁编码舵机</td><td>~0.5&mu;s</td><td>~0.05°</td><td>¥200+</td></tr>
+</table>
+
+<h2>🔄 模拟舵机 vs 数字舵机</h2>
+<table>
+<tr><th>特性</th><th>模拟舵机</th><th>数字舵机</th></tr>
+<tr><td>控制频率</td><td>50Hz (20ms帧)</td><td>最高333Hz (3ms帧)</td></tr>
+<tr><td>死区</td><td>5-10&mu;s</td><td>0.5-2&mu;s</td></tr>
+<tr><td>响应速度</td><td>0.2-0.3s/60°</td><td>0.05-0.1s/60°</td></tr>
+<tr><td>静止耗电</td><td>低(仅电位器)</td><td>高(MCU持续工作)</td></tr>
+<tr><td>锁定力矩</td><td>中</td><td>高(高频修正)</td></tr>
+<tr><td>典型应用</td><td>航模/教学</td><td>机器人/无人机</td></tr>
+</table>
+
+<div class="warn">
+<strong>数字舵机注意事项：</strong> 数字舵机需要更高的控制频率（100-333Hz），如果仍用50Hz信号，它会在每帧之间"睡着"再"醒来"，表现为抖动和发热。用TIM的PWM频率参数调整：72MHz/(PSC+1)/(ARR+1) ≈ 250Hz。例如PSC=71, ARR=3999 → 250Hz。
+</div>
+
+<h2>🧮 多舵机同步控制算法</h2>
+<pre><code>// 多舵机插值同步 - 使多个舵机同时到达目标位置
+// 避免"各走各的"的机械抖动
+
+#define SERVO_COUNT 6
+
+typedef struct {
+    uint16_t start_pulse;   // 起始脉宽 (500-2500)
+    uint16_t target_pulse;  // 目标脉宽
+    uint16_t current_pulse; // 当前脉宽
+    uint32_t start_time;    // 起始时间戳(ms)
+    uint32_t duration;      // 运动时长(ms)
+} ServoChannel;
+
+ServoChannel servos[SERVO_COUNT];
+
+void Servo_MoveSync(uint16_t targets[], uint32_t duration_ms) {
+    // 找出需要最长时间移动的舵机
+    uint32_t max_travel = 0;
+    for (int i = 0; i < SERVO_COUNT; i++) {
+        uint32_t travel = abs((int)targets[i] - (int)servos[i].current_pulse);
+        if (travel > max_travel) max_travel = travel;
+    }
+    
+    // 按最大行程分配时间，所有舵机同步完成
+    for (int i = 0; i < SERVO_COUNT; i++) {
+        servos[i].start_pulse = servos[i].current_pulse;
+        servos[i].target_pulse = targets[i];
+        servos[i].start_time = HAL_GetTick();
+        uint32_t travel = abs((int)targets[i] - (int)servos[i].current_pulse);
+        servos[i].duration = (max_travel > 0) 
+            ? (travel * duration_ms) / max_travel 
+            : duration_ms;
+    }
+}
+
+void Servo_Update(void) {
+    // 在SysTick中断或RTOS任务中调用
+    uint32_t now = HAL_GetTick();
+    for (int i = 0; i < SERVO_COUNT; i++) {
+        if (servos[i].current_pulse == servos[i].target_pulse) continue;
+        uint32_t elapsed = now - servos[i].start_time;
+        if (elapsed >= servos[i].duration) {
+            servos[i].current_pulse = servos[i].target_pulse;
+        } else {
+            // 线性插值
+            float t = (float)elapsed / servos[i].duration;
+            // 使用缓动函数让运动更平滑
+            t = t * t * (3.0f - 2.0f * t);  // smoothstep
+            servos[i].current_pulse = servos[i].start_pulse 
+                + (uint16_t)((servos[i].target_pulse - servos[i].start_pulse) * t);
+        }
+        TIMx->CCRx = servos[i].current_pulse;  // 更新对应通道
+    }
+}</code></pre>
+
+<h2>🎯 总线舵机协议(UART/TTL)</h2>
+<p>高端机器人舵机(如Dynamixel、SCS系列)使用串行总线协议替代PWM控制，支持位置/速度/温度/电压反馈：</p>
+<pre><code>// Dynamixel Protocol 2.0 示例
+// 指令格式: [0xFF,0xFF,0xFD,0x00, ID, Len_L,Len_H, INST, PARAM..., CRC_L,CRC_H]
+// INST=0x03: 写位置 (Goal Position)
+
+uint8_t dxl_write_position(uint8_t id, uint16_t position) {
+    uint8_t packet[] = {
+        0xFF, 0xFF, 0xFD, 0x00,           // Header
+        id,                                 // ID
+        0x07, 0x00,                         // Length (7 bytes)
+        0x03,                               // Instruction: WRITE
+        0x74, 0x00,                         // Address: Goal Position (116)
+        position & 0xFF, position >> 8,     // Position (0-4095)
+        position & 0xFF, position >> 8,     // Position (0-4095)
+        0x00, 0x00                          // CRC (calculate)
+    };
+    // 计算CRC16...
+    return uart_send(packet, sizeof(packet));
+}
+
+// 电压反馈(Address 144): 实际电压 = 读取值 × 0.1V
+// 温度反馈(Address 146): 实际温度 = 读取值 (°C)
+// 负载反馈(Address 126): 0-1023 → 0-100% 最大扭矩</code></pre>
+
+<h2>⚙️ 舵机电源设计要点</h2>
+<div class="warn">
+<strong>多舵机系统的电源陷阱：</strong>
+<ul>
+<li>单个SG90堵转电流可达750mA，6个=4.5A！</li>
+<li>STM32开发板的5V输出通常仅500mA，带上2个舵机就可能复位</li>
+<li>解法：舵机独立供电(5-6V/3-5A开关电源)，共地接STM32</li>
+<li>舵机启动瞬间电流可达额定值3-5倍，电源需留裕量</li>
+<li>信号线串100&Omega;电阻防止舵机噪声耦合回MCU</li>
+</ul>
+</div><hr><h2>❓ 常见问题 FAQ</h2>
+
+<div style="margin:12px 0;padding:12px 16px;background:var(--bg2);border-left:3px solid var(--a);border-radius:0 8px 8px 0">
+  <p style="font-weight:600;color:var(--c1);margin-bottom:4px">Q: 舵机抖动？</p>
+  <p style="color:var(--t)">A: 1)PWM信号不稳定（用定时器硬件PWM不要软件模拟） 2)供电不足（舵机峰值电流>500mA） 3)负载过大</p>
+</div>
+
+<div style="margin:12px 0;padding:12px 16px;background:var(--bg2);border-left:3px solid var(--a);border-radius:0 8px 8px 0">
+  <p style="font-weight:600;color:var(--c1);margin-bottom:4px">Q: 角度不准？</p>
+  <p style="color:var(--t)">A: 校准0.5ms~2.5ms对应0°~180°。不同舵机范围不同，需要实测。</p>
+</div>
+
+<hr><h2>🔗 相关教程</h2>
+<div style="display:flex;flex-wrap:wrap;gap:8px;margin:12px 0">
+<a href="#" onclick="parent.loadPage && parent.loadPage('proj-pwm-motor')" style="display:inline-block;padding:6px 14px;background:var(--bg3);border:1px solid var(--br);border-radius:6px;color:var(--a);text-decoration:none;font-size:.85em">PWM电机 →</a>
+<a href="#" onclick="parent.loadPage && parent.loadPage('proj-stepper-motor')" style="display:inline-block;padding:6px 14px;background:var(--bg3);border:1px solid var(--br);border-radius:6px;color:var(--a);text-decoration:none;font-size:.85em">步进电机 →</a>
+</div>
+
+</body></html>

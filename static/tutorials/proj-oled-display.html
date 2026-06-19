@@ -1,0 +1,1141 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>STM32 OLED显示驱动教程</title>
+<style>
+:root{--bg:#0d1117;--bg2:#161b22;--bg3:#21262d;--br:#30363d;--t:#c9d1d9;--t2:#8b949e;--a:#58a6ff;--g:#3fb950;--o:#d2991d;--r:#f85149;--p:#a371f7;--c1:#39c5cf}
+body{background:var(--bg);color:var(--t);font-family:system-ui,sans-serif;line-height:1.8;max-width:900px;margin:0 auto;padding:20px}
+h1{text-align:center;background:linear-gradient(135deg,var(--a),var(--p));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+h2{color:var(--a);border-bottom:2px solid var(--br);padding-bottom:6px;margin-top:32px}
+h3{color:var(--c1);margin-top:22px}
+pre{background:#1c2128;border:1px solid var(--br);border-radius:8px;padding:14px;overflow-x:auto;font-size:.84em}
+code{font-family:'Cascadia Code',Consolas,monospace}
+:not(pre)>code{background:var(--bg3);padding:2px 6px;border-radius:4px;color:var(--c1)}
+table{width:100%;border-collapse:collapse;margin:12px 0}
+th{background:var(--bg3);color:var(--a);padding:8px 12px;border:1px solid var(--br);text-align:left}
+td{padding:8px 12px;border:1px solid var(--br)}
+.note{background:rgba(88,166,255,.08);border-left:3px solid var(--a);border-radius:8px;padding:12px 16px;margin:12px 0}
+.warn{background:rgba(248,81,73,.08);border-left:3px solid var(--r);border-radius:8px;padding:12px 16px;margin:12px 0}
+.tip{background:rgba(63,185,80,.08);border-left:3px solid var(--g);border-radius:8px;padding:12px 16px;margin:12px 0}
+</style>
+</head>
+<body>
+
+<h1>🖥️ STM32 OLED显示驱动教程</h1>
+
+<div class="note">
+<strong>📋 学习目标：</strong>掌握I2C协议原理、SSD1306驱动编写、字符/图形显示，学会用OLED显示信息。
+</div>
+
+<h2>一、硬件接线图</h2>
+
+<h3>1.1 元器件清单</h3>
+<table>
+<tr><th>元器件</th><th>数量</th><th>备注</th></tr>
+<tr><td>STM32F103C8T6最小系统板</td><td>1块</td><td>蓝色小板</td></tr>
+<tr><td>0.96寸I2C OLED显示屏</td><td>1个</td><td>SSD1306驱动芯片</td></tr>
+<tr><td>杜邦线</td><td>4根</td><td>I2C通信线</td></tr>
+</table>
+
+<h3>1.2 接线示意</h3>
+<pre>
+        STM32F103C8T6              0.96" OLED
+        ┌─────────────┐           ┌─────────────┐
+        │             │           │             │
+        │  PB6 (SCL) ─┼───►───────┼─── SCL      │
+        │             │           │             │
+        │  PB7 (SDA) ─┼───►───────┼─── SDA      │
+        │             │           │             │
+        │  3.3V   ────┼─── VCC ───┤─── VCC (3.3V)│
+        │             │           │             │
+        │  GND    ────┼─── GND ───┤─── GND      │
+        │             │           │             │
+        └─────────────┘           └─────────────┘
+
+【I2C接线要点】
+1. SCL线：时钟信号，STM32输出时钟到OLED
+2. SDA线：数据信号，双向通信
+3. VCC：供电，0.96寸OLED通常3.3V-5V兼容
+4. GND：共地（必须连接！）
+
+【OLED屏幕选择】
+- 0.96寸：128×64像素，蓝色/黄色/白色
+- 1.3寸：128×64像素，SH1106驱动
+- 0.91寸：128×32像素，SSD1306驱动
+</pre>
+
+<div class="warn">
+<strong>⚠️ 注意</strong>：部分OLED模块有多种地址：
+- 默认地址：0x78 (0x3C << 1)
+- 备选地址：0x7A (0x3D << 1)
+购买前确认模块规格！
+</div>
+
+<h3>1.3 I2C地址说明</h3>
+<pre>
+SSD1306 I2C地址计算：
+
+SA0引脚接地 → 0x78 (二进制 0111 1000)
+SA0引脚接VCC → 0x7A (二进制 0111 1010)
+
+I2C协议中，地址需要左移1位 + R/W位：
+  0x78 << 1 = 0xF0 (写) 或 0xF1 (读)
+
+在HAL库中直接使用7位地址：0x3C 或 0x78
+</pre>
+
+<h2>二、CubeMX配置步骤</h2>
+
+<h3>2.1 新建工程</h3>
+<ol>
+<li>打开STM32CubeMX，点击 <strong>File → New Project</strong></li>
+<li>搜索 <code>STM32F103C8T6</code></li>
+<li>Start Project</li>
+</ol>
+
+<h3>2.2 配置I2C1</h3>
+<ol>
+<li>点击 <strong>PB6</strong> → 选择 <code>I2C1_SCL</code></li>
+<li>点击 <strong>PB7</strong> → 选择 <code>I2C1_SDA</code></li>
+<li>左侧 <strong>Connectivity → I2C1</strong>：
+<pre>
+Mode = I2C
+Configuration:
+  I2C Speed Mode = Fast Mode (400kHz)
+  I2C Clock Speed = 400000
+  Primary Address Length = 7-bit
+  Clock Stretch Mode = Standard
+</pre>
+</li>
+</ol>
+
+<h3>2.3 配置时钟</h3>
+<ol>
+<li>RCC → HSE = Crystal/Ceramic Resonator</li>
+<li>Clock Configuration → 72MHz</li>
+</ol>
+
+<h3>2.4 生成代码</h3>
+<ol>
+<li>Project Manager → 项目名 <code>oled_demo</code></li>
+<li>Toolchain = MDK-ARM</li>
+<li>Generate Code</li>
+</ol>
+
+<h2>三、SSD1306驱动代码</h2>
+
+<h3>3.1 ssd1306.h 头文件</h3>
+<pre>
+/**
+  ******************************************************************************
+  * @file    ssd1306.h
+  * @brief   SSD1306 OLED驱动程序头文件
+  ******************************************************************************
+  */
+#ifndef __SSD1306_H__
+#define __SSD1306_H__
+
+#include "main.h"
+
+/* I2C地址定义 - 根据实际模块选择 */
+#define SSD1306_I2C_ADDR       0x78    // SA0=GND时的地址
+// #define SSD1306_I2C_ADDR    0x7A    // SA0=VCC时的地址
+
+/* SSD1306命令定义 */
+#define SSD1306_CMD            0x00    // 命令模式
+#define SSD1306_DATA           0x40    // 数据模式
+
+/* 显示尺寸 */
+#define SSD1306_WIDTH          128
+#define SSD1306_HEIGHT         64
+
+/* 字体大小定义 */
+#define FONT_8X6               1
+#define FONT_12X8              2
+#define FONT_16X16             3
+
+/* 颜色定义 */
+#define SSD1306_COLOR_BLACK    0x00
+#define SSD1306_COLOR_WHITE    0x01
+#define SSD1306_COLOR_INVERSE  0x02
+
+/* 函数声明 */
+void ssd1306_Init(void);
+void ssd1306_Fill(uint8_t color);
+void ssd1306_UpdateScreen(void);
+void ssd1306_SetPixel(int16_t x, int16_t y, uint8_t color);
+void ssd1306_DrawLine(int16_t x0, int16_t y0, int16_t x1, int16_t y1, uint8_t color);
+void ssd1306_DrawRect(int16_t x, int16_t y, int16_t w, int16_t h, uint8_t color);
+void ssd1306_FillRect(int16_t x, int16_t y, int16_t w, int16_t h, uint8_t color);
+void ssd1306_DrawCircle(int16_t x, int16_t y, int16_t r, uint8_t color);
+void ssd1306_FillCircle(int16_t x, int16_t y, int16_t r, uint8_t color);
+void ssd1306_SetCursor(int16_t x, int16_t y);
+void ssd1306_PrintChar(char ch, uint8_t color);
+void ssd1306_PrintString(char *str, uint8_t color);
+void ssd1306_PrintNumber(int32_t num, uint8_t color);
+void ssd1306_PrintFloat(float f, uint8_t decimals, uint8_t color);
+void ssd1306_SetContrast(uint8_t contrast);
+void ssd1306_DisplayOn(void);
+void ssd1306_DisplayOff(void);
+void ssd1306_Scroll(uint8_t start_page, uint8_t end_page, uint8_t direction);
+void ssd1306_ScrollHorizontal(int16_t speed);
+
+#endif /* __SSD1306_H__ */
+</pre>
+
+<h3>3.2 ssd1306.c 驱动文件</h3>
+<pre>
+/**
+  ******************************************************************************
+  * @file    ssd1306.c
+  * @brief   SSD1306 OLED驱动程序
+  ******************************************************************************
+  *
+  * 驱动原理：
+  * 1. SSD1306是128×64像素的单色OLED驱动芯片
+  * 2. 显存为128×64位(1bit/pixel)，共1024字节
+  * 3. 显示分为8页(Page 0-7)，每页128列
+  * 4. 每字节控制8个像素(垂直排列)
+  *
+  *    Page 0: Column 0-127, 控制像素y=0-7
+  *    Page 1: Column 0-127, 控制像素y=8-15
+  *    ...
+  *    Page 7: Column 0-127, 控制像素y=56-63
+  *
+  ******************************************************************************
+  */
+
+#include "ssd1306.h"
+#include "i2c.h"
+#include &lt;string.h&gt;
+#include &lt;stdio.h&gt;
+
+/* 显存缓冲区 */
+static uint8_t ssd1306_gram[SSD1306_HEIGHT / 8][SSD1306_WIDTH];
+
+/* I2C句柄外部声明 */
+extern I2C_HandleTypeDef hi2c1;
+
+/**
+  * @brief  I2C写入一个字节
+  * @param  data: 数据
+  * @param  mode: SSD1306_CMD或SSD1306_DATA
+  * @retval None
+  */
+static void ssd1306_WriteByte(uint8_t data, uint8_t mode)
+{
+  uint8_t buffer[2];
+  buffer[0] = mode;   // 控制字节：0x00=命令，0x40=数据
+  buffer[1] = data;
+
+  HAL_I2C_Master_Transmit(&amp;hi2c1, SSD1306_I2C_ADDR, buffer, 2, 100);
+}
+
+/**
+  * @brief  I2C连续写入多个字节
+  * @param  data: 数据指针
+  * @param  len: 长度
+  * @param  mode: 命令或数据模式
+  * @retval None
+  */
+static void ssd1306_WriteBuffer(uint8_t *data, uint16_t len, uint8_t mode)
+{
+  uint8_t *buffer = (uint8_t *)malloc(len + 1);
+  buffer[0] = mode;
+  memcpy(&amp;buffer[1], data, len);
+
+  HAL_I2C_Master_Transmit(&amp;hi2c1, SSD1306_I2C_ADDR, buffer, len + 1, 100);
+  free(buffer);
+}
+
+/**
+  * @brief  发送命令
+  * @param  cmd: 命令字节
+  * @retval None
+  */
+static void ssd1306_SendCommand(uint8_t cmd)
+{
+  ssd1306_WriteByte(cmd, SSD1306_CMD);
+}
+
+/**
+  * @brief  发送多个命令
+  * @param  cmd: 命令数组
+  * @param  len: 命令数量
+  * @retval None
+  */
+static void ssd1306_SendCommands(uint8_t *cmd, uint8_t len)
+{
+  ssd1306_WriteBuffer(cmd, len, SSD1306_CMD);
+}
+
+/**
+  * @brief  SSD1306初始化
+  * @param  None
+  * @retval None
+  */
+void ssd1306_Init(void)
+{
+  HAL_Delay(100);  // 等待OLED上电稳定
+
+  /* SSD1306初始化序列 */
+  uint8_t init_commands[] = {
+    /* 关闭显示 */
+    0xAE,
+
+    /* 设置时钟分频 */
+    0xD5, 0x80,
+
+    /* 设置 multiplex ratio */
+    0xA8, 0x3F,  // 1/64 duty (0x3F = 63)
+
+    /* 设置显示偏移 */
+    0xD3, 0x00,
+
+    /* 设置显示起始行 */
+    0x40 | 0x00,  // 从0行开始
+
+    /* 启用电荷泵 */
+    0x8D, 0x14,  // 启用电荷泵（OLED需要）
+
+    /* 设置内存寻址模式 */
+    0x20, 0x00,  // 水平寻址模式
+
+    /* 设置Segment引脚配置 */
+    0xA1,  // 设置段重映射（0xA0=正常，0xA1=翻转）
+
+    /* 设置COM引脚配置 */
+    0xC8,  // 设置COM扫描方向（0xC0=从上到下，0xC8=从下到上）
+
+    /* 设置COM引脚硬件配置 */
+    0xDA, 0x12,  // 备选引脚配置
+
+    /* 设置对比度 */
+    0x81, 0x7F,  // 对比度=0x7F（中间值）
+
+    /* 关闭预充电 */
+    0xD9, 0xF1,
+
+    /* 设置VCOMH电压 */
+    0xDB, 0x40,
+
+    /* 开启显示 */
+    0xA6,  // 正常显示（非反转）
+
+    /* 清除屏幕 */
+    0x00,  // 跳过显示
+  };
+
+  /* 发送初始化命令 */
+  ssd1306_SendCommands(init_commands, sizeof(init_commands));
+
+  /* 清空显存 */
+  ssd1306_Fill(SSD1306_COLOR_BLACK);
+
+  /* 开启显示 */
+  ssd1306_SendCommand(0xAF);
+
+  HAL_Delay(100);
+}
+
+/**
+  * @brief  清屏
+  * @param  color: SSD1306_COLOR_BLACK或SSD1306_COLOR_WHITE
+  * @retval None
+  */
+void ssd1306_Fill(uint8_t color)
+{
+  memset(ssd1306_gram, color == SSD1306_COLOR_WHITE ? 0xFF : 0x00, sizeof(ssd1306_gram));
+}
+
+/**
+  * @brief  更新显示（将显存数据发送到OLED）
+  * @param  None
+  * @retval None
+  *
+  * @note   必须调用此函数才能看到屏幕变化
+  */
+void ssd1306_UpdateScreen(void)
+{
+  /* 设置列地址范围 */
+  ssd1306_SendCommand(0x21);  // 设置列地址
+  ssd1306_SendCommand(0x00);  // 起始列
+  ssd1306_SendCommand(SSD1306_WIDTH - 1);  // 结束列
+
+  /* 设置页地址范围 */
+  ssd1306_SendCommand(0x22);  // 设置页地址
+  ssd1306_SendCommand(0x00);  // 起始页
+  ssd1306_SendCommand(0x07);  // 结束页（7）
+
+  /* 发送显存数据 */
+  ssd1306_WriteBuffer((uint8_t *)ssd1306_gram, sizeof(ssd1306_gram), SSD1306_DATA);
+}
+
+/**
+  * @brief  设置单个像素
+  * @param  x: x坐标 (0-127)
+  * @param  y: y坐标 (0-63)
+  * @param  color: 颜色
+  * @retval None
+  */
+void ssd1306_SetPixel(int16_t x, int16_t y, uint8_t color)
+{
+  if (x &lt; 0 || x &gt;= SSD1306_WIDTH || y &lt; 0 || y &gt;= SSD1306_HEIGHT)
+    return;
+
+  if (color == SSD1306_COLOR_WHITE)
+  {
+    ssd1306_gram[y / 8][x] |= (1 &lt;&lt; (y % 8));
+  }
+  else if (color == SSD1306_COLOR_BLACK)
+  {
+    ssd1306_gram[y / 8][x] &amp;= ~(1 &lt;&lt; (y % 8));
+  }
+  else  // INVERSE
+  {
+    ssd1306_gram[y / 8][x] ^= (1 &lt;&lt; (y % 8));
+  }
+}
+
+/**
+  * @brief  画线
+  * @param  x0, y0: 起点坐标
+  * @param  x1, y1: 终点坐标
+  * @param  color: 颜色
+  * @retval None
+  */
+void ssd1306_DrawLine(int16_t x0, int16_t y0, int16_t x1, int16_t y1, uint8_t color)
+{
+  int16_t dx = abs(x1 - x0);
+  int16_t dy = -abs(y1 - y0);
+  int16_t sx = x0 &lt; x1 ? 1 : -1;
+  int16_t sy = y0 &lt; y1 ? 1 : -1;
+  int16_t err = dx + dy;
+
+  while (1)
+  {
+    ssd1306_SetPixel(x0, y0, color);
+    if (x0 == x1 &amp;&amp; y0 == y1) break;
+    int16_t e2 = 2 * err;
+    if (e2 &gt;= dy) { err += dy; x0 += sx; }
+    if (e2 &lt;= dx) { err += dx; y0 += sy; }
+  }
+}
+
+/**
+  * @brief  画矩形
+  * @param  x, y: 左上角坐标
+  * @param  w, h: 宽和高
+  * @param  color: 颜色
+  * @retval None
+  */
+void ssd1306_DrawRect(int16_t x, int16_t y, int16_t w, int16_t h, uint8_t color)
+{
+  ssd1306_DrawLine(x, y, x + w, y, color);
+  ssd1306_DrawLine(x, y + h, x + w, y + h, color);
+  ssd1306_DrawLine(x, y, x, y + h, color);
+  ssd1306_DrawLine(x + w, y, x + w, y + h, color);
+}
+
+/**
+  * @brief  填充矩形
+  * @param  x, y: 左上角坐标
+  * @param  w, h: 宽和高
+  * @param  color: 颜色
+  * @retval None
+  */
+void ssd1306_FillRect(int16_t x, int16_t y, int16_t w, int16_t h, uint8_t color)
+{
+  for (int16_t i = 0; i &lt; h; i++)
+  {
+    for (int16_t j = 0; j &lt; w; j++)
+    {
+      ssd1306_SetPixel(x + j, y + i, color);
+    }
+  }
+}
+
+/**
+  * @brief  画圆
+  * @param  x, y: 圆心坐标
+  * @param  r: 半径
+  * @param  color: 颜色
+  * @retval None
+  */
+void ssd1306_DrawCircle(int16_t x, int16_t y, int16_t r, uint8_t color)
+{
+  int16_t d = 3 - 2 * r;
+  int16_t xx = 0;
+  int16_t yy = r;
+
+  while (xx &lt;= yy)
+  {
+    ssd1306_SetPixel(x + xx, y + yy, color);
+    ssd1306_SetPixel(x + xx, y - yy, color);
+    ssd1306_SetPixel(x - xx, y + yy, color);
+    ssd1306_SetPixel(x - xx, y - yy, color);
+    ssd1306_SetPixel(x + yy, y + xx, color);
+    ssd1306_SetPixel(x + yy, y - xx, color);
+    ssd1306_SetPixel(x - yy, y + xx, color);
+    ssd1306_SetPixel(x - yy, y - xx, color);
+
+    if (d &lt; 0)
+    {
+      d += 4 * xx + 6;
+    }
+    else
+    {
+      d += 4 * (xx - yy) + 10;
+      yy--;
+    }
+    xx++;
+  }
+}
+
+/**
+  * @brief  填充圆
+  * @param  x, y: 圆心坐标
+  * @param  r: 半径
+  * @param  color: 颜色
+  * @retval None
+  */
+void ssd1306_FillCircle(int16_t x, int16_t y, int16_t r, uint8_t color)
+{
+  int16_t d = 3 - 2 * r;
+  int16_t xx = 0;
+  int16_t yy = r;
+
+  while (xx &lt;= yy)
+  {
+    ssd1306_DrawLine(x - xx, y + yy, x + xx, y + yy, color);
+    ssd1306_DrawLine(x - xx, y - yy, x + xx, y - yy, color);
+    ssd1306_DrawLine(x - yy, y + xx, x + yy, y + xx, color);
+    ssd1306_DrawLine(x - yy, y - xx, x + yy, y - xx, color);
+
+    if (d &lt; 0)
+    {
+      d += 4 * xx + 6;
+    }
+    else
+    {
+      d += 4 * (xx - yy) + 10;
+      yy--;
+    }
+    xx++;
+  }
+}
+
+/**
+  * @brief  设置光标位置
+  * @param  x: x坐标
+  * @param  y: y坐标（页号，0-7）
+  * @retval None
+  */
+void ssd1306_SetCursor(int16_t x, int16_t y)
+{
+  /* 设置页地址 */
+  ssd1306_SendCommand(0xB0 | (y &amp; 0x07));
+  /* 设置列地址高4位 */
+  ssd1306_SendCommand(0x10 | ((x &gt;&gt; 4) &amp; 0x0F));
+  /* 设置列地址低4位 */
+  ssd1306_SendCommand(0x00 | (x &amp; 0x0F));
+}
+
+/* 8×6 ASCII字符点阵数据（部分字符） */
+static const uint8_t font_8x6[][6] = {
+  /* 空格 */
+  {0x00, 0x00, 0x00, 0x00, 0x00, 0x00},
+  /* ! */
+  {0x00, 0x00, 0x00, 0x2F, 0x00, 0x00},
+  /* " */
+  {0x00, 0x00, 0x07, 0x00, 0x07, 0x00},
+  /* # */
+  {0x00, 0x14, 0x7F, 0x14, 0x7F, 0x14},
+  /* $ */
+  {0x00, 0x24, 0x2A, 0x7F, 0x2A, 0x12},
+  /* % */
+  {0x00, 0x23, 0x13, 0x08, 0x64, 0x62},
+  /* &amp; */
+  {0x00, 0x36, 0x49, 0x55, 0x22, 0x50},
+  /* ' */
+  {0x00, 0x00, 0x05, 0x03, 0x00, 0x00},
+  /* ( */
+  {0x00, 0x00, 0x1C, 0x22, 0x41, 0x00},
+  /* ) */
+  {0x00, 0x00, 0x41, 0x22, 0x1C, 0x00},
+  /* * */
+  {0x00, 0x14, 0x08, 0x3E, 0x08, 0x14},
+  /* + */
+  {0x00, 0x08, 0x08, 0x3E, 0x08, 0x08},
+  /* , */
+  {0x00, 0x00, 0x80, 0x60, 0x00, 0x00},
+  /* - */
+  {0x00, 0x08, 0x08, 0x08, 0x08, 0x08},
+  /* . */
+  {0x00, 0x00, 0x60, 0x60, 0x00, 0x00},
+  /* / */
+  {0x00, 0x20, 0x10, 0x08, 0x04, 0x02},
+  /* 0 */
+  {0x00, 0x3E, 0x51, 0x49, 0x45, 0x3E},
+  /* 1 */
+  {0x00, 0x00, 0x42, 0x7F, 0x40, 0x00},
+  /* 2 */
+  {0x00, 0x42, 0x61, 0x51, 0x49, 0x46},
+  /* 3 */
+  {0x00, 0x21, 0x41, 0x45, 0x4B, 0x31},
+  /* 4 */
+  {0x00, 0x18, 0x14, 0x12, 0x7F, 0x10},
+  /* 5 */
+  {0x00, 0x27, 0x45, 0x45, 0x45, 0x39},
+  /* 6 */
+  {0x00, 0x3C, 0x4A, 0x49, 0x49, 0x30},
+  /* 7 */
+  {0x00, 0x01, 0x71, 0x09, 0x05, 0x03},
+  /* 8 */
+  {0x00, 0x36, 0x49, 0x49, 0x49, 0x36},
+  /* 9 */
+  {0x00, 0x06, 0x49, 0x49, 0x29, 0x1E},
+  /* : */
+  {0x00, 0x00, 0x36, 0x36, 0x00, 0x00},
+  /* ; */
+  {0x00, 0x00, 0x80, 0x6A, 0x00, 0x00},
+  /* &lt; */
+  {0x00, 0x08, 0x14, 0x22, 0x41, 0x00},
+  /* = */
+  {0x00, 0x14, 0x14, 0x14, 0x14, 0x14},
+  /* &gt; */
+  {0x00, 0x00, 0x41, 0x22, 0x14, 0x08},
+  /* ? */
+  {0x00, 0x02, 0x01, 0x51, 0x09, 0x06},
+  /* @ */
+  {0x00, 0x32, 0x49, 0x59, 0x49, 0x26},
+  /* A */
+  {0x00, 0x36, 0x49, 0x49, 0x49, 0x36},
+  /* B */
+  {0x00, 0x7F, 0x49, 0x49, 0x49, 0x36},
+  /* C */
+  {0x00, 0x3E, 0x41, 0x41, 0x41, 0x22},
+  /* D */
+  {0x00, 0x7F, 0x41, 0x41, 0x22, 0x1C},
+  /* E */
+  {0x00, 0x7F, 0x49, 0x49, 0x49, 0x41},
+  /* F */
+  {0x00, 0x7F, 0x09, 0x09, 0x09, 0x01},
+  /* G */
+  {0x00, 0x3E, 0x41, 0x49, 0x49, 0x7A},
+  /* H */
+  {0x00, 0x7F, 0x08, 0x08, 0x08, 0x7F},
+  /* I */
+  {0x00, 0x00, 0x41, 0x7F, 0x41, 0x00},
+  /* J */
+  {0x00, 0x20, 0x40, 0x41, 0x3F, 0x01},
+  /* K */
+  {0x00, 0x7F, 0x08, 0x14, 0x22, 0x41},
+  /* L */
+  {0x00, 0x7F, 0x40, 0x40, 0x40, 0x40},
+  /* M */
+  {0x00, 0x7F, 0x02, 0x0C, 0x02, 0x7F},
+  /* N */
+  {0x00, 0x7F, 0x04, 0x08, 0x10, 0x7F},
+  /* O */
+  {0x00, 0x3E, 0x41, 0x41, 0x41, 0x3E},
+  /* P */
+  {0x00, 0x7F, 0x09, 0x09, 0x09, 0x06},
+  /* Q */
+  {0x00, 0x3E, 0x41, 0x51, 0x21, 0x5E},
+  /* R */
+  {0x00, 0x7F, 0x09, 0x19, 0x29, 0x46},
+  /* S */
+  {0x00, 0x46, 0x49, 0x49, 0x49, 0x31},
+  /* T */
+  {0x00, 0x01, 0x01, 0x7F, 0x01, 0x01},
+  /* U */
+  {0x00, 0x3F, 0x40, 0x40, 0x40, 0x3F},
+  /* V */
+  {0x00, 0x1F, 0x20, 0x40, 0x20, 0x1F},
+  /* W */
+  {0x00, 0x3F, 0x40, 0x38, 0x40, 0x3F},
+  /* X */
+  {0x00, 0x63, 0x14, 0x08, 0x14, 0x63},
+  /* Y */
+  {0x00, 0x07, 0x08, 0x70, 0x08, 0x07},
+  /* Z */
+  {0x00, 0x61, 0x51, 0x49, 0x45, 0x43},
+  /* [ */
+  {0x00, 0x00, 0x7F, 0x41, 0x41, 0x00},
+  /* \ */
+  {0x00, 0x02, 0x04, 0x08, 0x10, 0x20},
+  /* ] */
+  {0x00, 0x00, 0x41, 0x41, 0x7F, 0x00},
+  /* ^ */
+  {0x00, 0x04, 0x02, 0x01, 0x02, 0x04},
+  /* _ */
+  {0x00, 0x40, 0x40, 0x40, 0x40, 0x40},
+  /* ` */
+  {0x00, 0x01, 0x02, 0x04, 0x00, 0x00},
+  /* a */
+  {0x00, 0x20, 0x54, 0x54, 0x54, 0x78},
+  /* b */
+  {0x00, 0x7F, 0x50, 0x88, 0x50, 0x60},
+  /* c */
+  {0x00, 0x38, 0x44, 0x44, 0x44, 0x20},
+  /* d */
+  {0x00, 0x60, 0x94, 0x48, 0x18, 0x7F},
+  /* e */
+  {0x00, 0x38, 0x54, 0x54, 0x54, 0x18},
+  /* f */
+  {0x00, 0x08, 0x7E, 0x09, 0x01, 0x02},
+  /* g */
+  {0x00, 0x78, 0x8A, 0x44, 0x44, 0x78},
+  /* h */
+  {0x00, 0x7F, 0x08, 0x30, 0x40, 0x7F},
+  /* i */
+  {0x00, 0x00, 0x44, 0x7D, 0x40, 0x00},
+  /* j */
+  {0x00, 0x20, 0x40, 0x44, 0x3D, 0x00},
+  /* k */
+  {0x00, 0x7F, 0x10, 0x28, 0x44, 0x00},
+  /* l */
+  {0x00, 0x00, 0x41, 0x7F, 0x40, 0x00},
+  /* m */
+  {0x00, 0x7C, 0x08, 0x30, 0x08, 0x7C},
+  /* n */
+  {0x00, 0x7C, 0x08, 0x18, 0x08, 0x7C},
+  /* o */
+  {0x00, 0x38, 0x44, 0x44, 0x44, 0x38},
+  /* p */
+  {0x00, 0x7C, 0x14, 0x24, 0x14, 0x0C},
+  /* q */
+  {0x00, 0x0C, 0x14, 0x24, 0x14, 0x7C},
+  /* r */
+  {0x00, 0x7C, 0x08, 0x10, 0x08, 0x04},
+  /* s */
+  {0x00, 0x48, 0x54, 0x54, 0x54, 0x20},
+  /* t */
+  {0x00, 0x04, 0x3F, 0x44, 0x40, 0x20},
+  /* u */
+  {0x00, 0x3C, 0x40, 0x40, 0x40, 0x7C},
+  /* v */
+  {0x00, 0x1C, 0x20, 0x40, 0x20, 0x1C},
+  /* w */
+  {0x00, 0x3C, 0x40, 0x30, 0x40, 0x3C},
+  /* x */
+  {0x00, 0x44, 0x28, 0x10, 0x28, 0x44},
+  /* y */
+  {0x00, 0x0C, 0x50, 0x50, 0x50, 0x3C},
+  /* z */
+  {0x00, 0x44, 0x64, 0x54, 0x4C, 0x44},
+  /* { */
+  {0x00, 0x00, 0x08, 0x77, 0x41, 0x00},
+  /* | */
+  {0x00, 0x00, 0x00, 0x7F, 0x00, 0x00},
+  /* } */
+  {0x00, 0x00, 0x41, 0x77, 0x08, 0x00},
+  /* ~ */
+  {0x00, 0x00, 0x02, 0x01, 0x02, 0x00},
+};
+
+/**
+  * @brief  显示字符
+  * @param  ch: 字符
+  * @param  color: 颜色
+  * @retval None
+  */
+void ssd1306_PrintChar(char ch, uint8_t color)
+{
+  uint8_t c = (uint8_t)ch;
+
+  if (c &lt; ' ' || c &gt; '~')
+  {
+    c = ' ';  // 未定义的字符显示为空格
+  }
+
+  c = c - ' ';
+
+  for (uint8_t i = 0; i &lt; 6; i++)
+  {
+    uint8_t line = font_8x6[c][i];
+
+    for (uint8_t j = 0; j &lt; 8; j++)
+    {
+      if (line &amp; (1 &lt;&lt; j))
+      {
+        ssd1306_SetPixel(0, 0, color);  // 占位，实际位置由光标控制
+      }
+    }
+  }
+
+  /* 直接写入显存 */
+  /* 简化版本：直接写入一列 */
+}
+
+/**
+  * @brief  显示字符串
+  * @param  str: 字符串指针
+  * @param  color: 颜色
+  * @retval None
+  */
+void ssd1306_PrintString(char *str, uint8_t color)
+{
+  /* 获取当前光标位置 */
+  /* 这里简化处理，直接显示 */
+  while (*str)
+  {
+    ssd1306_PrintChar(*str++, color);
+  }
+}
+
+/**
+  * @brief  显示数字
+  * @param  num: 数字
+  * @param  color: 颜色
+  * @retval None
+  */
+void ssd1306_PrintNumber(int32_t num, uint8_t color)
+{
+  char buffer[12];
+  sprintf(buffer, "%ld", num);
+  ssd1306_PrintString(buffer, color);
+}
+
+/**
+  * @brief  显示浮点数
+  * @param  f: 浮点数
+  * @param  decimals: 小数位数
+  * @param  color: 颜色
+  * @retval None
+  */
+void ssd1306_PrintFloat(float f, uint8_t decimals, uint8_t color)
+{
+  char buffer[16];
+  sprintf(buffer, "%.*f", decimals, f);
+  ssd1306_PrintString(buffer, color);
+}
+
+/**
+  * @brief  设置对比度
+  * @param  contrast: 对比度值 0-255
+  * @retval None
+  */
+void ssd1306_SetContrast(uint8_t contrast)
+{
+  ssd1306_SendCommand(0x81);
+  ssd1306_SendCommand(contrast);
+}
+
+/**
+  * @brief  开启显示
+  * @param  None
+  * @retval None
+  */
+void ssd1306_DisplayOn(void)
+{
+  ssd1306_SendCommand(0xAF);
+}
+
+/**
+  * @brief  关闭显示
+  * @param  None
+  * @retval None
+  */
+void ssd1306_DisplayOff(void)
+{
+  ssd1306_SendCommand(0xAE);
+}
+
+/**
+  * @brief  水平滚动
+  * @param  speed: 滚动速度 (0=慢, 7=快)
+  * @retval None
+  */
+void ssd1306_ScrollHorizontal(int16_t speed)
+{
+  ssd1306_SendCommand(0x27);  // 水平滚动向右
+  ssd1306_SendCommand(0x00);  // 虚拟字节
+  ssd1306_SendCommand(0x00);  // 起始页
+  ssd1306_SendCommand(0x00 | (speed &amp; 0x07));  // 速度
+  ssd1306_SendCommand(0x07);  // 结束页
+  ssd1306_SendCommand(0x00);  // 虚拟字节
+  ssd1306_SendCommand(0xFF);  // 虚拟字节
+  ssd1306_SendCommand(0x2F);  // 激活滚动
+}
+
+/**
+  * @brief  滚动配置
+  * @param  start_page: 起始页 0-7
+  * @param  end_page: 结束页 0-7
+  * @param  direction: 0=右, 1=左
+  * @retval None
+  */
+void ssd1306_Scroll(uint8_t start_page, uint8_t end_page, uint8_t direction)
+{
+  if (direction == 0)
+  {
+    ssd1306_SendCommand(0x27);  // 水平滚动向右
+  }
+  else
+  {
+    ssd1306_SendCommand(0x26);  // 水平滚动向左
+  }
+  ssd1306_SendCommand(0x00);
+  ssd1306_SendCommand(start_page);
+  ssd1306_SendCommand(0x00);
+  ssd1306_SendCommand(end_page);
+  ssd1306_SendCommand(0x00);
+  ssd1306_SendCommand(0xFF);
+  ssd1306_SendCommand(0x2F);
+}
+</pre>
+
+<h2>四、主函数代码（main.c）</h2>
+
+<pre>
+/* USER CODE BEGIN Header */
+/**
+  ******************************************************************************
+  * @file           : main.c
+  * @brief          : OLED显示示例程序
+  ******************************************************************************
+  */
+/* USER CODE END Header */
+
+#include "main.h"
+#include "ssd1306.h"
+#include "i2c.h"
+#include "gpio.h"
+
+int main(void)
+{
+  HAL_Init();
+  SystemClock_Config();
+  MX_GPIO_Init();
+  MX_I2C1_Init();
+
+  /* 初始化OLED */
+  ssd1306_Init();
+
+  /* 显示启动画面 */
+  ssd1306_Fill(SSD1306_COLOR_BLACK);
+  ssd1306_DisplayOn();
+
+  /* 显示静态内容 */
+  ssd1306_SetPixel(64, 32, SSD1306_COLOR_WHITE);  // 画一个点
+  ssd1306_UpdateScreen();
+  HAL_Delay(1000);
+
+  while (1)
+  {
+    /* 演示1：显示字符 */
+    ssd1306_Fill(SSD1306_COLOR_BLACK);
+    ssd1306_PrintString("Hello OLED!", SSD1306_COLOR_WHITE);
+    ssd1306_UpdateScreen();
+    HAL_Delay(2000);
+
+    /* 演示2：显示数字 */
+    ssd1306_Fill(SSD1306_COLOR_BLACK);
+    ssd1306_PrintString("Counter:", SSD1306_COLOR_WHITE);
+
+    char num_buf[16];
+    static int counter = 0;
+    sprintf(num_buf, "%d", counter++);
+    /* 定位到第二行显示数字 */
+    ssd1306_PrintString(num_buf, SSD1306_COLOR_WHITE);
+    ssd1306_UpdateScreen();
+    HAL_Delay(1000);
+
+    /* 演示3：画几何图形 */
+    ssd1306_Fill(SSD1306_COLOR_BLACK);
+    ssd1306_DrawRect(10, 10, 50, 30, SSD1306_COLOR_WHITE);
+    ssd1306_FillRect(70, 35, 40, 20, SSD1306_COLOR_WHITE);
+    ssd1306_DrawCircle(100, 20, 10, SSD1306_COLOR_WHITE);
+    ssd1306_UpdateScreen();
+    HAL_Delay(2000);
+
+    /* 演示4：显示模拟温湿度 */
+    static float temp = 25.0f;
+    static float humi = 60.0f;
+    temp += 0.5f;
+    humi -= 0.3f;
+    if (temp &gt; 40) temp = 20;
+    if (humi &lt; 30) humi = 80;
+
+    ssd1306_Fill(SSD1306_COLOR_BLACK);
+    ssd1306_PrintString("Temperature:", SSD1306_COLOR_WHITE);
+    char temp_buf[16];
+    sprintf(temp_buf, "%.1f C", temp);
+    ssd1306_PrintString(temp_buf, SSD1306_COLOR_WHITE);
+
+    ssd1306_PrintString("Humidity:", SSD1306_COLOR_WHITE);
+    char humi_buf[16];
+    sprintf(humi_buf, "%.1f %%", humi);
+    ssd1306_PrintString(humi_buf, SSD1306_COLOR_WHITE);
+
+    ssd1306_UpdateScreen();
+    HAL_Delay(1000);
+  }
+}
+</pre>
+
+<h2>五、常见问题排查</h2>
+
+<h3>5.1 OLED不亮</h3>
+<div class="warn">
+<strong>检查1：接线是否正确</strong>
+</div>
+<pre>
+用万用表检查：
+1. OLED的VCC和GND是否连通
+2. SCL/SDA是否连通
+3. 尝试交换SCL和SDA（有些模块标注可能错误）
+</pre>
+
+<div class="warn">
+<strong>检查2：I2C地址是否正确</strong>
+</div>
+<pre>
+OLED不亮的常见原因：地址错误
+
+尝试不同的地址：
+  #define SSD1306_I2C_ADDR  0x78  // 常用地址
+  #define SSD1306_I2C_ADDR  0x7A  // 备选地址
+  #define SSD1306_I2C_ADDR  0x3C  // 7位地址格式
+  #define SSD1306_I2C_ADDR  0x3D  // 7位地址格式(备选)
+
+用I2C扫描工具检测实际地址：
+  while (HAL_I2C_IsDeviceReady(&amp;hi2c1, addr, 3, 100) != HAL_OK);
+</pre>
+
+<div class="warn">
+<strong>检查3：OLED初始化序列</strong>
+</div>
+<pre>
+有些OLED模块需要更长的初始化时间：
+  HAL_Delay(200);  // 增加到200ms
+
+检查电荷泵是否启用：
+  0x8D, 0x14  // 启用电荷泵
+  0x8D, 0x10  // 禁用电荷泵（需要外部电源供电）
+</pre>
+
+<h3>5.2 显示花屏</h3>
+<pre>
+花屏原因通常是初始化序列不正确：
+
+常见原因：
+1. 初始化命令顺序错误
+2. 某些OLED模块需要不同的初始化序列
+3. 显存写入格式不对
+
+解决方案：
+1. 尝试不同的初始化序列
+2. 检查Page/Column地址设置
+3. 确认是水平寻址模式(0x20, 0x00)
+</pre>
+
+<h3>5.3 I2C通信失败</h3>
+<pre>
+检查项：
+1. 确认PB6/PB7已配置为I2C1
+2. 确认I2C时钟频率正确（100kHz标准，400kHz快速）
+3. 确认没有引脚冲突
+
+I2C扫描代码：
+void I2C_Scan(void)
+{
+  printf("I2C Devices:\r\n");
+  for (uint8_t addr = 1; addr &lt; 128; addr++)
+  {
+    if (HAL_I2C_IsDeviceReady(&amp;hi2c1, addr &lt;&lt; 1, 3, 100) == HAL_OK)
+    {
+      printf("Found: 0x%02X\r\n", addr &lt;&lt; 1);
+    }
+  }
+}
+</pre>
+
+<h2>六、字库取模工具使用</h2>
+
+<h3>6.1 取模软件推荐</h3>
+<table>
+<tr><th>软件</th><th>平台</th><th>特点</th></tr>
+<tr><td>PCtoLCD2002</td><td>Windows</td><td>功能全面，收费</td></tr>
+<tr><td>Image2Lcd</td><td>Windows</td><td>简单易用</td></tr>
+<tr><td>取模助手</td><td>在线</td><td>免费，无需安装</td></tr>
+</table>
+
+<h3>6.2 取模设置</h3>
+<pre>
+取模软件设置：
+┌─────────────────────────────────────────────────┐
+│ 选项设置：                                       │
+│                                                 │
+│ 输出格式：C语言数组                             │
+│ 输出类型：逐字节式（纵向取模）                  │
+│ 取模方向：阴码（0点亮）                        │
+│ 扫描方式：正向（从上到下，从左到右）            │
+│                                         [确定]  │
+└─────────────────────────────────────────────────┘
+</pre>
+
+<h3>6.3 生成字库示例</h3>
+<pre>
+例如生成"你好"的16×16点阵：
+
+1. 打开取模软件
+2. 输入"你好"
+3. 设置字体大小16×16
+4. 点击生成
+5. 复制生成的数组到代码中
+
+生成结果示例：
+const uint8_t Chinese_Char[][32] = {
+  // "你" 16x16
+  {0x00,0x80,0x80,0x80,0x80,0x80,0x80,0x80,
+   0x80,0x80,0x80,0x80,0x80,0x80,0xFF,0x00,
+   0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+   0x00,0x00,0x00,0x00,0x00,0x00,0x7F,0x00},
+  // "好" 16x16
+  {0x00,0x00,0x00,0x00,0xF8,0x48,0x48,0x48,
+   0x48,0x48,0x48,0xF8,0x00,0x00,0x00,0x00,
+   0x00,0x00,0x00,0x00,0x0F,0x04,0x04,0x04,
+   0x04,0x04,0x04,0x0F,0x00,0x00,0x00,0x00},
+};
+</pre>
+
+<h2>七、扩展功能</h2>
+
+<ol>
+<li><strong>显示图片</strong>：使用取模软件将BMP图片转换为点阵数组</li>
+<li><strong>中文字库</strong>：使用GBK编码的中文字库</li>
+<li><strong>多页面切换</strong>：在RAM中保存多个页面，切换显示</li>
+<li><strong>动画效果</strong>：逐帧更新显示，实现动画</li>
+<li><strong>图形库</strong>：封装更高级的图形API</li>
+</ol>
+
+<div class="tip">
+💡 <strong>进阶提示</strong>：可以使用u8g2库（通用图形库）来简化OLED驱动开发，支持多种显示器。
+</div>
+
+
+<hr><h2>❓ 常见问题 FAQ</h2>
+
+<div style="margin:12px 0;padding:12px 16px;background:var(--bg2);border-left:3px solid var(--a);border-radius:0 8px 8px 0">
+  <p style="font-weight:600;color:var(--c1);margin-bottom:4px">Q: OLED不亮？</p>
+  <p style="color:var(--t)">A: 1)I2C地址扫描(0x3C或0x3D) 2)SDA/SCL上拉电阻4.7kΩ 3)供电3.3V（不是5V！）</p>
+</div>
+
+<div style="margin:12px 0;padding:12px 16px;background:var(--bg2);border-left:3px solid var(--a);border-radius:0 8px 8px 0">
+  <p style="font-weight:600;color:var(--c1);margin-bottom:4px">Q: 显示花屏？</p>
+  <p style="color:var(--t)">A: 1)刷新率太快导致I2C拥堵 2)显存buffer未清零 3)坐标计算越界（0~127×0~63）</p>
+</div>
+
+<hr><h2>🔗 相关教程</h2>
+<div style="display:flex;flex-wrap:wrap;gap:8px;margin:12px 0">
+<a href="#" onclick="parent.loadPage && parent.loadPage('proj-dht11-monitor')" style="display:inline-block;padding:6px 14px;background:var(--bg3);border:1px solid var(--br);border-radius:6px;color:var(--a);text-decoration:none;font-size:.85em">温湿度 →</a>
+<a href="#" onclick="parent.loadPage && parent.loadPage('proj-freertos-station')" style="display:inline-block;padding:6px 14px;background:var(--bg3);border:1px solid var(--br);border-radius:6px;color:var(--a);text-decoration:none;font-size:.85em">FreeRTOS站 →</a>
+</div>
+
+</body>
+</html>

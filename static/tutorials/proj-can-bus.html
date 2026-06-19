@@ -1,0 +1,691 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0"><title>教程12: CAN总线通信</title><style>:root{--bg:#0d1117;--bg2:#161b22;--bg3:#21262d;--br:#30363d;--t:#c9d1d9;--t2:#8b949e;--a:#58a6ff;--g:#3fb950;--o:#d29922;--r:#f85149;--p:#a371f7;--c1:#39c5cf}body{background:var(--bg);color:var(--t);font-family:system-ui,sans-serif;line-height:1.8;max-width:900px;margin:0 auto;padding:20px}h1{text-align:center;background:linear-gradient(135deg,var(--a),var(--p));-webkit-background-clip:text;-webkit-text-fill-color:transparent}h2{color:var(--a);border-bottom:2px solid var(--br);padding-bottom:6px;margin-top:32px}h3{color:var(--c1);margin-top:22px}pre{background:#1c2128;border:1px solid var(--br);border-radius:8px;padding:14px;overflow-x:auto;font-size:.84em}code{font-family:'Cascadia Code',Consolas,monospace}:not(pre)>code{background:var(--bg3);padding:2px 6px;border-radius:4px;color:var(--c1)}table{width:100%;border-collapse:collapse;margin:12px 0}th{background:var(--bg3);color:var(--a);padding:8px 12px;border:1px solid var(--br);text-align:left}td{padding:8px 12px;border:1px solid var(--br)}.note{background:rgba(88,166,255,.08);border-left:3px solid var(--a);border-radius:8px;padding:12px 16px;margin:12px 0}.warn{background:rgba(248,81,73,.08);border-left:3px solid var(--r);border-radius:8px;padding:12px 16px;margin:12px 0}.tip{background:rgba(63,185,80,.08);border-left:3px solid var(--g);border-radius:8px;padding:12px 16px;margin:12px 0}.step{background:var(--bg2);border:1px solid var(--br);border-radius:8px;padding:12px 16px;margin:10px 0}</style></head><body>
+
+<h1>教程12: CAN总线通信</h1>
+
+<h2>📋 项目概述</h2>
+<p>本项目使用两块 STM32F103C8T6 通过 TJA1050 CAN收发器芯片建立 CAN总线通信。深入讲解 CAN协议原理（帧格式、仲裁机制、错误处理），完成 HAL_CAN初始化、过滤器配置、双向发送接收，实现可靠的多节点工业级通信。</p>
+
+<h2>🔧 硬件清单</h2>
+<table>
+<tr><th>元件</th><th>数量</th><th>说明</th></tr>
+<tr><td>STM32F103C8T6 最小系统板</td><td>2</td><td>两块板分别作为CAN节点A和节点B</td></tr>
+<tr><td>TJA1050 CAN收发器模块</td><td>2</td><td>3.3V兼容，CANH/CANL输出</td></tr>
+<tr><td>120Ω终端电阻</td><td>2</td><td>CAN总线两端各一个</td></tr>
+<tr><td>双绞线(0.5~1m)</td><td>1</td><td>CANH/CANL连接线</td></tr>
+<tr><td>USB转TTL模块(CH340)</td><td>2</td><td>串口调试</td></tr>
+<tr><td>杜邦线</td><td>若干</td><td>3.3V电平连接</td></tr>
+</table>
+
+<h2>🔌 接线图</h2>
+<h3>接线总表</h3>
+<table>
+<tr><th>STM32节点A</th><th>TJA1050</th><th>STM32节点B</th><th>说明</th></tr>
+<tr><td>PB8 (CAN_RX)</td><td>RXD</td><td>PB8 (CAN_RX)</td><td>CAN接收</td></tr>
+<tr><td>PB9 (CAN_TX)</td><td>TXD</td><td>PB9 (CAN_TX)</td><td>CAN发送</td></tr>
+<tr><td>—</td><td>CANH</td><td>—</td><td>CAN高信号线</td></tr>
+<tr><td>—</td><td>CANL</td><td>—</td><td>CAN低信号线</td></tr>
+<tr><td>3.3V</td><td>VCC</td><td>3.3V</td><td>供电(3.3V)</td></tr>
+<tr><td>GND</td><td>GND</td><td>GND</td><td>共地</td></tr>
+<tr><td>—</td><td>120Ω电阻</td><td>—</td><td>两端各一个终端电阻</td></tr>
+</table>
+
+<div class="note">
+<strong>📝 接线文字描述：</strong><br>
+两块STM32F103C8T6板和两个TJA1050模块各自独立供电，但所有GND必须连接在一起（CAN总线的共地非常重要！）。TJA1050模块放在总线两端，每个模块的VCC接3.3V，GND接公共地线。节点A的PB9连TJA1050-A的TXD，PB8连RXD；节点B同理。CANH和CANL通过双绞线连接：CANH→CANH，CANL→CANL。两端各接一个120Ω终端电阻（短接在TJA1050的CANH/CANL引脚之间，或使用插针式终端电阻模块）。两根双绞线建议使用不同颜色区分，避免接反。
+</div>
+
+<h3>关键接线细节</h3>
+<pre><code>节点A (Node A)                    节点B (Node B)
+┌─────────────┐  双绞线(不同颜色)  ┌─────────────┐
+│  STM32F103  │═══════════════════│  STM32F103  │
+│   PB9→TXD   │  CANH (黄/橙)     │   PB9→TXD   │
+│   PB8←RXD   │═══════════════════│   PB8←RXD   │
+│  ┌──────┐   │  CANL (绿/蓝)    │  ┌──────┐   │
+│  │TJA1050│  │═══════════════════│  │TJA1050│  │
+│  └──────┘   │                   │  └──────┘   │
+│   3.3V供电  │   120Ω     120Ω   │   3.3V供电  │
+│   共地 GND──│─── GND ── GND ────│─── GND     │
+└─────────────┘                   └─────────────┘
+</code></pre>
+
+<h2>📚 CAN协议原理</h2>
+
+<h3>CAN帧格式</h3>
+<table>
+<tr><th>字段</th><th>长度</th><th>说明</th></tr>
+<tr><td>SOF</td><td>1bit</td><td>Start of Frame，显性0</td></tr>
+<tr><td>Arbitration Field</td><td>12/32bit</td><td>11位ID + RTR/IDE</td></tr>
+<tr><td>Control Field</td><td>6bit</td><td>DLC(4bit) + 保留位</td></tr>
+<tr><td>Data Field</td><td>0~64bit</td><td>实际数据，DLC指定长度</td></tr>
+<tr><td>CRC Field</td><td>15+2bit</td><td>校验码</td></tr>
+<tr><td>ACK Field</td><td>2bit</td><td>确认槽</td></tr>
+<tr><td>EOF</td><td>7bit</td><td>帧结束</td></tr>
+</table>
+
+<h3>标准帧 vs 扩展帧</h3>
+<ul>
+<li><strong>标准帧：</strong>11位ID，用于普通优先级通信</li>
+<li><strong>扩展帧：</strong>29位ID，用于需要长ID的复杂系统</li>
+</ul>
+
+<h3>仲裁机制（多主总线）</h3>
+<p>当多个节点同时发送时，通过ID的逐位比较决定优先级。ID越小优先级越高（显性0优先）。低优先级节点在仲裁失败后自动转为接收模式，等待总线空闲后重发。</p>
+
+<h3>错误处理</h3>
+<table>
+<tr><th>错误类型</th><th>说明</th></tr>
+<tr><td>Bit Stuffing</td><td>连续5个相同电平后必须插入反向位，违规则报错</td></tr>
+<tr><td>CRC错误</td><td>接收方计算CRC与发送方不匹配</td></tr>
+<tr><td>ACK错误</td><td>发送方未收到ACK响应</td></tr>
+<tr><td>Form错误</td><td>固定格式字段出现非法值</td></tr>
+<tr><td>Bit Error</td><td>发送时监控总线电平与自己不符</td></tr>
+</table>
+
+<h3>波特率计算</h3>
+<pre><code>CAN波特率 = APB1时钟 / (BS1 + BS2) / Prescaler
+
+示例: APB1=36MHz, 波特率=500kbps
+Prescaler = 9-1 = 8
+BS1 = 6-1 = 5  (Tq)
+BS2 = 8-1 = 7  (Tq)
+Time Quantum (Tq) = 36MHz / 8 / (5+7+1) = 500kHz
+实际波特率 = 36MHz / 8 / 12 = 375kHz (需微调)
+→ 调整为: Prescaler=4, BS1=9, BS2=8
+实际波特率 = 36MHz / 4 / 18 = 500kHz ✓
+
+Time quantum (Tq) 分配:
+[ SYNC ][  BS1  ][  BS2  ]
+1Tq      6-16Tq  5-8Tq
+</code></pre>
+
+<h2>🛠️ 分步骤操作指引</h2>
+
+<div class="step">
+<strong>步骤1：硬件检查</strong><br>
+1. 确认TJA1050模块为3.3V兼容版本（不能用5V版本）<br>
+2. 检查终端电阻是否为120Ω<br>
+3. 确认双绞线已正确连接CANH/CANL<br>
+4. 用万用表测量总线两端电阻应为60Ω（两个120Ω并联）
+</div>
+
+<div class="step">
+<strong>步骤2：CubeMX配置（两块板相同）</strong><br>
+1. SYS → Debug: Serial Wire<br>
+2. RCC → HSE: Crystal<br>
+3. Clock: APB1=36MHz（CAN挂载在APB1）<br>
+4. CAN1 → Mode: bxCAN (Beta CAN)<br>
+5. Parameter Settings:<br>
+&nbsp;&nbsp;Prescaler: 9（36MHz/9=4MHz）<br>
+&nbsp;&nbsp;Time Quantum: 4MHz<br>
+&nbsp;&nbsp;BS1: 6 Tq<br>
+&nbsp;&nbsp;BS2: 7 Tq<br>
+&nbsp;&nbsp;SAM: Single Sample（一般选这个）<br>
+&nbsp;&nbsp;NVIC → CAN1 TX/RX interrupts: Enabled<br>
+6. PB8 → CAN_RX, PB9 → CAN_TX<br>
+7. USART1 → Asynchronous, 115200（调试用）
+</div>
+
+<div class="step">
+<strong>步骤3：配置过滤器</strong><br>
+1. 过滤器决定接收哪些CAN帧<br>
+2. 每块板设置不同ID过滤或广播过滤<br>
+3. Filter Bank 0: 接收所有帧（ID=0x000）<br>
+4. 或 Filter Bank 0: 只接收指定ID范围
+</div>
+
+<div class="step">
+<strong>步骤4：节点A发送，节点B接收测试</strong><br>
+1. 节点A烧录发送代码<br>
+2. 节点B烧录接收代码<br>
+3. 打开两个串口助手，观察数据<br>
+4. 成功后交换测试
+</div>
+
+<div class="step">
+<strong>步骤5：双向通信测试</strong><br>
+1. 两块板都烧录完整代码<br>
+2. 测试双向收发<br>
+3. 测试多帧数据<br>
+4. 添加超时和错误处理
+</div>
+
+<h2>💻 完整代码</h2>
+
+<h3>can_node_a.c — 发送节点</h3>
+<pre><code>#include "main.h"
+#include "can.h"
+#include "usart.h"
+#include &lt;stdio.h&gt;
+
+CAN_TxHeaderTypeDef tx_header;
+CAN_RxHeaderTypeDef rx_header;
+uint8_t tx_data[8];
+uint8_t rx_data[8];
+uint32_t tx_mailbox;
+
+/* printf重定向 */
+int fputc(int ch, FILE *f)
+{
+    HAL_UART_Transmit(&amp;huart1, (uint8_t *)&amp;ch, 1, HAL_MAX_DELAY);
+    return ch;
+}
+
+void CAN_SendMessage(uint32_t id, uint8_t *data, uint8_t len)
+{
+    tx_header.StdId = id;
+    tx_header.ExtId = 0;
+    tx_header.IDE = CAN_ID_STD;
+    tx_header.RTR = CAN_RTR_DATA;
+    tx_header.DLC = len;
+
+    if (HAL_CAN_AddTxMessage(&amp;hcan1, &amp;tx_header, data, &amp;tx_mailbox) != HAL_OK) {
+        printf("CAN TX Error!\r\n");
+    } else {
+        printf("TX[0x%03lX]: ", id);
+        for (int i = 0; i &lt; len; i++) printf("%02X ", data[i]);
+        printf("\r\n");
+    }
+}
+
+void CAN_FilterConfig(void)
+{
+    CAN_FilterTypeDef filter;
+
+    /* 过滤器初始化：在HAL_CAN_Init之后调用 */
+    filter.FilterBank = 0;
+    filter.FilterMode = CAN_FILTERMODE_IDMASK;   // 掩码模式
+    filter.FilterScale = CAN_FILTERSCALE_32BIT; // 32位尺度
+    filter.FilterIdHigh = 0x0000;               // ID高位
+    filter.FilterIdLow  = 0x0000;                // ID低位
+    filter.FilterMaskIdHigh = 0x0000;            // 掩码高位(0=接收所有)
+    filter.FilterMaskIdLow  = 0x0000;            // 掩码低位
+    filter.FilterFIFOAssignment = CAN_FILTER_FIFO0;
+    filter.FilterActivation = CAN_FILTER_ENABLE;
+
+    if (HAL_CAN_ConfigFilter(&amp;hcan1, &amp;filter) != HAL_OK) {
+        Error_Handler();
+    }
+}
+
+void CAN_Start(void)
+{
+    /* 启动CAN */
+    if (HAL_CAN_Start(&amp;hcan1) != HAL_OK) {
+        Error_Handler();
+    }
+
+    /* 激活通知 */
+    if (HAL_CAN_ActivateNotification(&amp;hcan1,
+            CAN_IT_TX_MAILBOX_EMPTY | CAN_IT_RX_FIFO0_MSG_PENDING |
+            CAN_IT_RX_FIFO1_MSG_PENDING) != HAL_OK) {
+        Error_Handler();
+    }
+}
+
+int main(void)
+{
+    HAL_Init();
+    SystemClock_Config();
+    MX_GPIO_Init();
+    MX_USART1_UART_Init();
+    MX_CAN1_Init();
+
+    printf("CAN Node A - Sender\r\n");
+
+    CAN_FilterConfig();
+    CAN_Start();
+
+    /* 初始化发送头 */
+    tx_header.StdId = 0x123;
+    tx_header.IDE = CAN_ID_STD;
+    tx_header.RTR = CAN_RTR_DATA;
+
+    uint8_t counter = 0;
+
+    while (1) {
+        /* 构造8字节数据 */
+        tx_data[0] = 0x01;              // 节点A标识
+        tx_data[1] = counter;           // 计数器
+        tx_data[2] = 0xAA;             // 测试数据
+        tx_data[3] = 0x55;
+        tx_data[4] = (HAL_GetTick() &gt;&gt; 8) &amp; 0xFF;
+        tx_data[5] = HAL_GetTick() &amp; 0xFF;
+        tx_data[6] = 0x00;
+        tx_data[7] = 0x00;
+
+        CAN_SendMessage(0x123, tx_data, 8);
+
+        /* 每秒发送 */
+        HAL_Delay(1000);
+        counter++;
+    }
+}
+
+/* 接收回调函数 */
+void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
+{
+    if (HAL_CAN_GetRxMessage(hcan, CAN_RX_FIFO0, &amp;rx_header, rx_data) == HAL_OK) {
+        printf("RX[0x%03lX]: ", rx_header.StdId);
+        for (int i = 0; i &lt; rx_header.DLC; i++) {
+            printf("%02X ", rx_data[i]);
+        }
+        printf("\r\n");
+    }
+}
+
+void HAL_CAN_TxMailbox0CompleteCallback(CAN_HandleTypeDef *hcan)
+{
+    // 可在此记录发送成功
+}
+
+void HAL_CAN_ErrorCallback(CAN_HandleTypeDef *hcan)
+{
+    printf("CAN Error! ErrorCode: %lu\r\n", hcan-&gt;ErrorCode);
+}
+</code></pre>
+
+<h3>can_node_b.c — 接收节点</h3>
+<pre><code>#include "main.h"
+#include "can.h"
+#include "usart.h"
+#include &lt;stdio.h&gt;
+
+CAN_RxHeaderTypeDef rx_header;
+CAN_TxHeaderTypeDef tx_header;
+uint8_t tx_data[8];
+uint8_t rx_data[8];
+uint32_t tx_mailbox;
+
+int fputc(int ch, FILE *f)
+{
+    HAL_UART_Transmit(&amp;huart1, (uint8_t *)&amp;ch, 1, HAL_MAX_DELAY);
+    return ch;
+}
+
+void CAN_Reply(uint32_t id, uint8_t *data, uint8_t len)
+{
+    tx_header.StdId = id + 0x100;  // 回复ID=原ID+0x100
+    tx_header.IDE = CAN_ID_STD;
+    tx_header.RTR = CAN_RTR_DATA;
+    tx_header.DLC = len;
+
+    if (HAL_CAN_AddTxMessage(&amp;hcan1, &amp;tx_header, data, &amp;tx_mailbox) == HAL_OK) {
+        printf("REPLY[0x%03lX]: ", tx_header.StdId);
+        for (int i = 0; i &lt; len; i++) printf("%02X ", data[i]);
+        printf("\r\n");
+    }
+}
+
+void CAN_FilterConfig(void)
+{
+    CAN_FilterTypeDef filter;
+
+    /* 过滤器Bank 0: 接收所有标准帧 */
+    filter.FilterBank = 0;
+    filter.FilterMode = CAN_FILTERMODE_IDMASK;
+    filter.FilterScale = CAN_FILTERSCALE_32BIT;
+    filter.FilterIdHigh = 0x0000;
+    filter.FilterIdLow  = 0x0000;
+    filter.FilterMaskIdHigh = 0x0000;
+    filter.FilterMaskIdLow  = 0x0000;
+    filter.FilterFIFOAssignment = CAN_FILTER_FIFO0;
+    filter.FilterActivation = CAN_FILTER_ENABLE;
+
+    if (HAL_CAN_ConfigFilter(&amp;hcan1, &amp;filter) != HAL_OK) {
+        Error_Handler();
+    }
+
+    /* 过滤器Bank 1: 接收0x200~0x20F（电机控制帧）*/
+    filter.FilterBank = 1;
+    filter.FilterIdHigh = 0x200 &lt;&lt; 5;
+    filter.FilterIdLow  = 0;
+    filter.FilterMaskIdHigh = 0x7F0 &lt;&lt; 5; // 掩码：只匹配高4位
+    filter.FilterMaskIdLow  = 0;
+    filter.FilterFIFOAssignment = CAN_FILTER_FIFO1;
+    filter.FilterActivation = CAN_FILTER_ENABLE;
+
+    if (HAL_CAN_ConfigFilter(&amp;hcan1, &amp;filter) != HAL_OK) {
+        Error_Handler();
+    }
+}
+
+void CAN_Start(void)
+{
+    if (HAL_CAN_Start(&amp;hcan1) != HAL_OK) {
+        Error_Handler();
+    }
+
+    if (HAL_CAN_ActivateNotification(&amp;hcan1,
+            CAN_IT_TX_MAILBOX_EMPTY | CAN_IT_RX_FIFO0_MSG_PENDING |
+            CAN_IT_RX_FIFO1_MSG_PENDING) != HAL_OK) {
+        Error_Handler();
+    }
+}
+
+int main(void)
+{
+    HAL_Init();
+    SystemClock_Config();
+    MX_GPIO_Init();
+    MX_USART1_UART_Init();
+    MX_CAN1_Init();
+
+    printf("CAN Node B - Receiver\r\n");
+
+    CAN_FilterConfig();
+    CAN_Start();
+
+    while (1) {
+        /* 主循环可添加其他任务 */
+        HAL_Delay(100);
+    }
+}
+
+/* FIFO0接收回调（普通帧）*/
+void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
+{
+    if (HAL_CAN_GetRxMessage(hcan, CAN_RX_FIFO0, &amp;rx_header, rx_data) == HAL_OK) {
+        printf("RX0[0x%03lX]: ", rx_header.StdId);
+        for (int i = 0; i &lt; rx_header.DLC; i++) {
+            printf("%02X ", rx_data[i]);
+        }
+        printf("\r\n");
+
+        /* 如果是来自Node A的0x123帧，回复确认 */
+        if (rx_header.StdId == 0x123) {
+            tx_data[0] = 0x02; // Node B标识
+            tx_data[1] = rx_data[1]; // 回显计数器
+            tx_data[2] = 'O';
+            tx_data[3] = 'K';
+            CAN_Reply(0x123, tx_data, 4);
+        }
+    }
+}
+
+/* FIFO1接收回调（电机帧）*/
+void HAL_CAN_RxFifo1MsgPendingCallback(CAN_HandleTypeDef *hcan)
+{
+    if (HAL_CAN_GetRxMessage(hcan, CAN_RX_FIFO1, &amp;rx_header, rx_data) == HAL_OK) {
+        printf("RX1[0x%03lX]: ", rx_header.StdId);
+        for (int i = 0; i &lt; rx_header.DLC; i++) {
+            printf("%02X ", rx_data[i]);
+        }
+        printf("\r\n");
+    }
+}
+
+void HAL_CAN_ErrorCallback(CAN_HandleTypeDef *hcan)
+{
+    uint32_t err = HAL_CAN_GetError(hcan);
+    printf("CAN Error! 0x%08lX\r\n", err);
+
+    /* 尝试恢复总线 */
+    if (err &amp; (CAN_ERROR_BOFF | CAN_ERROR_EPVF)) {
+        printf("Bus-off/Error Passive - Trying to recover...\r\n");
+        HAL_CAN_Stop(hcan);
+        HAL_Delay(1000);
+        CAN_FilterConfig();
+        CAN_Start();
+    }
+}
+</code></pre>
+
+<h3>过滤器详细配置示例</h3>
+<pre><code>/* 过滤器模式详解 */
+
+/* 模式1：接收所有帧（掩码=0）*/
+filter.FilterIdHigh   = 0x0000;
+filter.FilterIdLow    = 0x0000;
+filter.FilterMaskIdHigh = 0x0000;  // 掩码0=忽略
+filter.FilterMaskIdLow  = 0x0000;
+
+/* 模式2：只接收特定ID（如0x123）*/
+filter.FilterMode = CAN_FILTERMODE_IDLIST; // 列表模式
+filter.FilterIdHigh   = 0x123 &lt;&lt; 5;
+filter.FilterIdLow    = 0x456 &lt;&lt; 5; // 第二ID
+filter.FilterMaskIdHigh = 0x123 &lt;&lt; 5;
+filter.FilterMaskIdLow  = 0x456 &lt;&lt; 5;
+
+/* 模式3：接收ID范围（如0x200~0x20F）*/
+filter.FilterMode = CAN_FILTERMODE_IDMASK;
+filter.FilterScale = CAN_FILTERSCALE_32BIT;
+filter.FilterIdHigh = 0x208 &lt;&lt; 5; // ID=0x208
+filter.FilterIdLow  = 0;
+filter.FilterMaskIdHigh = 0x7F0 &lt;&lt; 5; // 掩码：只看高7位
+filter.FilterMaskIdLow  = 0;
+
+/* 模式4：同时使用多个过滤器（不同Bank）*/
+/* STM32F103有14个过滤器Bank，可独立配置 */
+/* 0~13号Bank可分配给FIFO0或FIFO1 */
+</code></pre>
+
+<h3>扩展帧示例</h3>
+<pre><code>/* 扩展帧发送（29位ID）*/
+CAN_TxHeaderTypeDef ext_header;
+
+ext_header.ExtId = 0x1FFEABCD; // 29位扩展ID
+ext_header.IDE = CAN_ID_EXT;   // 扩展帧
+ext_header.RTR = CAN_RTR_DATA;
+ext_header.DLC = 8;
+
+uint8_t ext_data[8] = {0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88};
+
+uint32_t mailbox;
+if (HAL_CAN_AddTxMessage(&amp;hcan1, &amp;ext_header, ext_data, &amp;mailbox) == HAL_OK) {
+    printf("Extended Frame TX OK\r\n");
+}
+</code></pre>
+
+<h2>🧩 多节点网络设计</h2>
+
+<h3>节点ID分配</h3>
+<table>
+<tr><th>节点</th><th>CAN ID</th><th>功能</th></tr>
+<tr><td>Node A (主控)</td><td>0x100</td><td>主控，广播控制指令</td></tr>
+<tr><td>Node B (传感器)</td><td>0x200</td><td>上报传感器数据</td></tr>
+<tr><td>Node C (执行器)</td><td>0x300</td><td>接收执行命令</td></tr>
+<tr><td>广播</td><td>0x000</td><td>紧急停止广播</td></tr>
+</table>
+
+<h3>通信协议设计</h3>
+<pre><code>/* 数据帧格式示例 */
+
+/* 主控广播命令 0x100 */
+DLC=2: [CMD][PARAM]
+CMD=0x01: 启动  CMD=0x02: 停止  CMD=0x03: 复位
+
+/* 传感器数据 0x200 */
+DLC=4: [Temp][Humid][Press_H][Press_L]
+
+/* 执行器反馈 0x300 */
+DLC=2: [Status][Progress]
+
+/* 紧急停止 0x000 */
+DLC=1: [0xFF] (所有节点必须响应并停止运动)
+</code></pre>
+
+<h2>❓ 常见问题排查</h2>
+
+<div class="warn">
+<strong>⚠️ 问题1：两个节点不能通信</strong><br>
+<strong>现象：</strong>发送端显示TX OK，但接收端无数据<br>
+<strong>原因：</strong>波特率不一致、未共地、终端电阻缺失<br>
+<strong>解决：</strong><br>
+1. 首先确认两端CubeMX配置完全一致（Prescaler/BS1/BS2）<br>
+2. 用万用表测量总线两端电阻，应为约60Ω<br>
+3. 确认两个TJA1050的GND已连接在一起<br>
+4. 检查CANH/CANL没有接反<br>
+5. 发送端发送时用示波器/逻辑分析仪测量总线，确认有信号
+</div>
+
+<div class="warn">
+<strong>⚠️ 问题2：过滤器配置复杂</strong><br>
+<strong>现象：</strong>数据收不到或收到乱帧<br>
+<strong>原因：</strong>过滤器掩码配置不正确<br>
+<strong>解决：</strong><br>
+1. 初学者先用掩码=0接收所有帧，确认硬件正常<br>
+2. IDLIST模式比MASK模式简单，需要多个ID时优先选IDLIST<br>
+3. ID左移5位：<code>FilterId = ID &lt;&lt; 5</code>（低5位是RTR和IDE）<br>
+4. 检查是否与其他过滤器冲突<br>
+5. 两个FIFO的过滤器独立配置，可同时启用
+</div>
+
+<div class="warn">
+<strong>⚠️ 问题3：缺少120Ω终端电阻</strong><br>
+<strong>现象：</strong>通信距离超过0.5米后数据错误率高<br>
+<strong>原因：</strong>CAN总线需要特征阻抗匹配<br>
+<strong>解决：</strong><br>
+1. 总线两端各接一个120Ω终端电阻<br>
+2. 短距离测试时也建议加上终端电阻<br>
+3. 可使用插针式终端电阻模块，便于拔插<br>
+4. 确认万用表测量CANH-CANL电阻约60Ω
+</div>
+
+<div class="warn">
+<strong>⚠️ 问题4：波特率计算错误</strong><br>
+<strong>现象：</strong>偶发性接收错误或总线错误计数增加<br>
+<strong>原因：</strong>APB1时钟或分频系数计算错误<br>
+<strong>解决：</strong><br>
+1. 确认APB1实际时钟（CubeMX Clock Configuration查看）<br>
+2. 使用公式反推：<code>实际波特率 = APB1时钟 / (Prescaler × (BS1+BS2+1))</code><br>
+3. STM32F103的CAN挂载在APB1（36MHz max），不是APB2<br>
+4. 建议初学者使用标准500kbps配置，不要随意修改
+</div>
+
+<div class="warn">
+<strong>⚠️ 问题5：Bus-Off状态</strong><br>
+<strong>现象：</strong>CAN突然停止工作，HAL_CAN_ErrorCallback触发CAN_ERROR_BOFF<br>
+<strong>原因：</strong>连续发送错误过多（如总线断开）<strong>解决：</strong><br>
+1. Bus-Off是CAN控制器的保护机制，检测到严重错误后自动关闭<br>
+2. 错误处理回调中调用 <code>HAL_CAN_Stop</code> 后重新初始化<br>
+3. 检查物理层连接（断线、短路）<br>
+4. 确保两端共地
+</div>
+
+<div class="note">
+<strong>💡 调试技巧：</strong><br>
+1. 使用CAN分析仪(PCAN/USBCAN)连接电脑，实时监控总线所有帧<br>
+2. 示波器测量TXD/RXD引脚，确认波形正确<br>
+3. 先测试标准帧，熟练后再用扩展帧<br>
+4. 波特率测试：发送0x555555...（产生足够位翻转），测量实际频率<br>
+5. 注意STM32的CAN1和CAN2是独立的，本项目只用CAN1
+</div>
+
+
+
+<h2>🚗 CAN FD (Flexible Data Rate) 简介</h2>
+<p>传统CAN 2.0B最大8字节数据，1Mbps速率。CAN FD突破这些限制：</p>
+<table>
+<tr><th>特性</th><th>CAN 2.0B</th><th>CAN FD</th></tr>
+<tr><td>数据段速率</td><td>最大1 Mbps</td><td>最大8 Mbps</td></tr>
+<tr><td>数据长度</td><td>0-8 字节</td><td>0-64 字节</td></tr>
+<tr><td>CRC长度</td><td>15 bit</td><td>17/21 bit (自适应)</td></tr>
+<tr><td>兼容性</td><td>—</td><td>向下兼容CAN 2.0B节点</td></tr>
+<tr><td>BRS位</td><td>无</td><td>波特率切换标志位</td></tr>
+</table>
+
+<pre><code>// STM32G4/H7/FDCAN外设配置CAN FD
+FDCAN_TxHeaderTypeDef TxHeader;
+TxHeader.Identifier = 0x321;
+TxHeader.IdType = FDCAN_STANDARD_ID;
+TxHeader.TxFrameType = FDCAN_DATA_FRAME;
+TxHeader.DataLength = FDCAN_DLC_BYTES_64;  // 64字节!
+TxHeader.ErrorStateIndicator = FDCAN_ESI_ACTIVE;
+TxHeader.BitRateSwitch = FDCAN_BRS_ON;      // 数据段高速
+TxHeader.FDFormat = FDCAN_FD_CAN;            // CAN FD格式
+
+uint8_t tx_data[64] = {0};
+// 填充数据...
+HAL_FDCAN_AddMessageToTxFifo(&hfdcan1, &TxHeader, tx_data);</code></pre>
+
+<h2>📋 CAN总线仲裁机制详解</h2>
+<pre><code>// CAN使用CSMA/CD+AMP (载波监听多路访问/冲突检测+仲裁消息优先级)
+// 显性电平=0(主动拉低), 隐性电平=1(被动上拉)
+
+// 两个节点同时发送时的仲裁过程:
+// 节点A: ID=0x320 = 0011 0010 0000
+// 节点B: ID=0x310 = 0011 0001 0000
+//           总线: 0011 00-- (在第7bit,B发送1但读到0→知道自己优先级低→立即退出发送)
+// 节点A继续: 0011 0010 0000 → 仲裁胜出
+
+// 这也就是为什么: ID越小优先级越高! (0x000 = 最高优先级)
+// 标准帧ID范围: 0x000 - 0x7FF (11bit)
+// 扩展帧ID范围: 0x00000000 - 0x1FFFFFFF (29bit)</code></pre>
+
+<h2>🚛 SAE J1939协议概要</h2>
+<p>J1939是商用车(卡车/客车/工程机械)的事实标准，基于CAN 2.0B扩展帧：</p>
+<pre><code>// J1939使用29bit扩展ID, 结构如下:
+// [Priority:3][R/DP:1][PF:8][PS:8][SA:8] = 28bit + 保留
+// 
+// PF(PDU Format): 0-239 = PDU1(点对点), 240-255 = PDU2(广播)
+// PS(PDU Specific): PDU1时为DA(目标地址), PDU2时为GE(组扩展)
+// SA: 源地址
+
+// 常用PGN(参数组编号):
+// PGN 61444 (0xF004): 电子发动机控制器 #1 (EEC1) → 转速、扭矩
+// PGN 65262 (0xFEEE): 发动机温度
+// PGN 65265 (0xFEF1): 巡航控制/车速
+// PGN 65270 (0xFEF6): 进气/排气条件
+
+// 例: 请求发动机转速(EEC1)
+typedef struct {
+    uint8_t  prio_res;    // Priority=6 → 0x18 (6<<5=0xC0, R=0, DP=0 → 0xC0)
+    uint8_t  pdu_f;       // PF=0x00 → 0x00
+    uint8_t  pdu_s;       // PS=DA(目标地址, 0=发动机, 3=刹车)
+    uint8_t  src_addr;    // SA=源地址
+} __attribute__((packed)) J1939_ID;
+
+// 请求8字节ID + 0字节数据(远程帧)或带数据的数据帧
+// 注意: J1939的多帧传输(>8字节)使用TP(传输协议), BAM广播5秒间隔</code></pre>
+
+<h2>🛡️ CAN总线故障诊断</h2>
+<table>
+<tr><th>错误类型</th><th>现象</th><th>原因</th><th>排查方法</th></tr>
+<tr><td>ACK错误</td><td>TEC递增, 重发</td><td>总线上无其他节点</td><td>至少2个节点才能通信</td></tr>
+<tr><td>位错误</td><td>发送与回读不一致</td><td>总线短路/终端电阻缺失</td><td>检查H/L间&Omega;应在45-65&Omega;</td></tr>
+<tr><td>填充错误</td><td>6个连续相同位</td><td>时钟精度/干扰</td><td>检查晶振/SJW配置</td></tr>
+<tr><td>格式错误</td><td>固定格式位错误</td><td>CRC分隔符/Delimter被破坏</td><td>检查总线长度&le;40m@1Mbps</td></tr>
+<tr><td>Bus-Off</td><td>TEC>255</td><td>持续错误</td><td>控制器自动脱离总线</td></tr>
+</table>
+
+<div class="warn">
+<strong>CAN总线调试必备工具：</strong> USB-CAN分析仪(¥30-200) + 上位机软件(CANtest/CANoe/CANalyzer)。可以抓取总线上的所有帧，按ID过滤，统计负载率，模拟节点发送。<br>
+<strong>没有分析仪时的土办法：</strong> 用另一个STM32做CAN监听节点，接收所有帧并通过串口转发到电脑。
+</div>
+
+<h2>⚙️ CAN总线物理层要点</h2>
+<pre><code>// CAN_H和CAN_L之间的终端电阻
+// 总线两端各一个120&Omega; → 并联等效60&Omega;
+// 万用表测量CAN_H-CAN_L(断电!)应为~60&Omega;, 
+// 如果60&Omega;→两端都有终端, 120&Omega;→只有一端, 开路→没有终端
+
+// 总线长度限制:
+// 1 Mbps → max 40m
+// 500 kbps → max 100m
+// 250 kbps → max 250m
+// 125 kbps → max 500m
+// 50 kbps → max 1000m
+
+// 采样点配置 (Sample Point = (1+TSEG1)/(1+TSEG1+TSEG2)):
+// 典型值: 75%-87.5%
+// 高速: TSEG1=11, TSEG2=4, SJW=1 → SP=(1+11)/(1+11+4)=75%@1Mbps
+// 长距离: TSEG1=13, TSEG2=2, SJW=1 → SP=(1+13)/(1+13+2)=87.5%</code></pre><hr><h2>❓ 常见问题 FAQ</h2>
+
+<div style="margin:12px 0;padding:12px 16px;background:var(--bg2);border-left:3px solid var(--a);border-radius:0 8px 8px 0">
+  <p style="font-weight:600;color:var(--c1);margin-bottom:4px">Q: CAN通信不上？</p>
+  <p style="color:var(--t)">A: 1)两个节点波特率必须一致 2)CAN_H和CAN_L不要接反 3)需要120Ω终端电阻 4)至少2个节点才能正常通信</p>
+</div>
+
+<div style="margin:12px 0;padding:12px 16px;background:var(--bg2);border-left:3px solid var(--a);border-radius:0 8px 8px 0">
+  <p style="font-weight:600;color:var(--c1);margin-bottom:4px">Q: CAN过滤器怎么配？</p>
+  <p style="color:var(--t)">A: STM32 CAN过滤器有列表模式和掩码模式。初学用列表模式（精确匹配ID），高级用掩码模式（范围过滤）。</p>
+</div>
+
+<hr><h2>🔗 相关教程</h2>
+<div style="display:flex;flex-wrap:wrap;gap:8px;margin:12px 0">
+<a href="#" onclick="parent.loadPage && parent.loadPage('protocols')" style="display:inline-block;padding:6px 14px;background:var(--bg3);border:1px solid var(--br);border-radius:6px;color:var(--a);text-decoration:none;font-size:.85em">通信协议 →</a>
+<a href="#" onclick="parent.loadPage && parent.loadPage('proj-s32k144-auto')" style="display:inline-block;padding:6px 14px;background:var(--bg3);border:1px solid var(--br);border-radius:6px;color:var(--a);text-decoration:none;font-size:.85em">汽车电子 →</a>
+</div>
+
+</body></html>

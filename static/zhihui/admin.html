@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>职慧Agent 管理后台</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎓</text></svg>">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg:#0a0e1a;--surface:#111827;--surface2:#1f2937;--border:#374151;--primary:#6366f1;--primary-light:#818cf8;--text:#e5e7eb;--text2:#9ca3af;--green:#10b981;--red:#ef4444;--yellow:#f59e0b;--blue:#3b82f6}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+/* Login */
+.login-wrap{display:flex;align-items:center;justify-content:center;min-height:100vh}
+.login-box{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:48px;width:380px;text-align:center}
+.login-box h1{font-size:24px;margin-bottom:8px}
+.login-box p{color:var(--text2);margin-bottom:24px;font-size:14px}
+.login-box input{width:100%;padding:12px 16px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-size:15px;outline:none;margin-bottom:16px}
+.login-box input:focus{border-color:var(--primary)}
+.login-box button{width:100%;padding:12px;border-radius:8px;border:none;background:var(--primary);color:#fff;font-size:15px;cursor:pointer;transition:background .2s}
+.login-box button:hover{background:var(--primary-light)}
+.login-error{color:var(--red);font-size:13px;margin-bottom:12px;display:none}
+/* Layout */
+.app{display:none}
+.sidebar{position:fixed;left:0;top:0;bottom:0;width:220px;background:var(--surface);border-right:1px solid var(--border);padding:20px 0;z-index:10}
+.sidebar .logo{padding:0 20px 24px;border-bottom:1px solid var(--border);margin-bottom:16px}
+.sidebar .logo span{font-size:20px;font-weight:700}
+.sidebar .logo small{display:block;color:var(--text2);font-size:12px;margin-top:2px}
+.sidebar nav a{display:flex;align-items:center;gap:10px;padding:10px 20px;color:var(--text2);text-decoration:none;font-size:14px;transition:all .2s;border-left:3px solid transparent}
+.sidebar nav a:hover,.sidebar nav a.active{color:var(--text);background:rgba(99,102,241,.1);border-left-color:var(--primary)}
+.main{margin-left:220px;padding:24px 32px}
+.header{display:flex;justify-content:space-between;align-items:center;margin-bottom:24px}
+.header h2{font-size:22px}
+.header button{padding:8px 16px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--text2);cursor:pointer;font-size:13px}
+.header button:hover{color:var(--red);border-color:var(--red)}
+/* Cards */
+.stats{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:16px;margin-bottom:24px}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px}
+.stat-card .label{color:var(--text2);font-size:13px;margin-bottom:6px}
+.stat-card .value{font-size:28px;font-weight:700}
+.stat-card .sub{color:var(--text2);font-size:12px;margin-top:4px}
+/* Table */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:20px}
+.card h3{font-size:16px;margin-bottom:16px;display:flex;align-items:center;gap:8px}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{text-align:left;padding:8px 12px;color:var(--text2);border-bottom:1px solid var(--border);font-weight:500}
+td{padding:8px 12px;border-bottom:1px solid rgba(55,65,81,.5)}
+tr:hover td{background:rgba(99,102,241,.05)}
+.badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600}
+.badge-green{background:rgba(16,185,129,.15);color:var(--green)}
+.badge-blue{background:rgba(59,130,246,.15);color:var(--blue)}
+.badge-yellow{background:rgba(245,158,11,.15);color:var(--yellow)}
+.badge-red{background:rgba(239,68,68,.15);color:var(--red)}
+/* Pages */
+.page{display:none}
+.page.active{display:block}
+/* Chart placeholder */
+.chart-bar{display:flex;align-items:end;gap:8px;height:120px;padding-top:8px}
+.chart-bar .bar{flex:1;background:linear-gradient(to top,var(--primary),var(--primary-light));border-radius:4px 4px 0 0;min-width:20px;position:relative;transition:height .3s}
+.chart-bar .bar span{position:absolute;bottom:-20px;left:50%;transform:translateX(-50%);font-size:10px;color:var(--text2);white-space:nowrap}
+.chart-bar .bar em{position:absolute;top:-18px;left:50%;transform:translateX(-50%);font-size:10px;color:var(--text2);font-style:normal}
+.refresh-btn{padding:6px 14px;border-radius:6px;border:1px solid var(--border);background:var(--surface2);color:var(--text2);cursor:pointer;font-size:12px;float:right}
+.refresh-btn:hover{border-color:var(--primary);color:var(--primary)}
+.kb-item{padding:10px 14px;border:1px solid var(--border);border-radius:8px;margin-bottom:8px;background:var(--surface2)}
+.kb-item .title{font-weight:600;font-size:14px}
+.kb-item .meta{color:var(--text2);font-size:12px;margin-top:4px}
+</style>
+</head>
+<body>
+
+<!-- Login -->
+<div class="login-wrap" id="loginPage">
+  <div class="login-box">
+    <h1>🎓 职慧Agent</h1>
+    <p>管理后台</p>
+    <div class="login-error" id="loginError">密码错误</div>
+    <input type="password" id="loginPwd" placeholder="输入管理员密码" autocomplete="current-password">
+    <button onclick="doLogin()">登 录</button>
+  </div>
+</div>
+
+<!-- App -->
+<div class="app" id="appPage">
+  <div class="sidebar">
+    <div class="logo"><span>🎓 职慧Agent</span><small>管理后台 v1.3</small></div>
+    <nav>
+      <a href="#" class="active" data-page="dashboard">📊 数据概览</a>
+      <a href="#" data-page="visitors">👥 访客统计</a>
+      <a href="#" data-page="knowledge">📚 知识库</a>
+      <a href="#" data-page="system">⚙️ 系统信息</a>
+    </nav>
+  </div>
+  <div class="main">
+    <!-- Dashboard -->
+    <div class="page active" id="page-dashboard">
+      <div class="header"><h2>📊 数据概览</h2><button onclick="doLogout()">退出登录</button></div>
+      <div class="stats" id="statsGrid"></div>
+      <div class="card"><h3>🤖 功能模块</h3>
+        <table><thead><tr><th>模块</th><th>路径</th><th>状态</th><th>说明</th></tr></thead>
+        <tbody>
+          <tr><td>岗位能力图谱</td><td>/api/v1/skill-map</td><td><span class="badge badge-green">运行中</span></td><td>6维雷达图+技能树+关联岗位</td></tr>
+          <tr><td>学习路径</td><td>/api/v1/learn-path</td><td><span class="badge badge-green">运行中</span></td><td>学情诊断+个性化路径推荐</td></tr>
+          <tr><td>新岗发现</td><td>/api/v1/skill-map/discover</td><td><span class="badge badge-green">运行中</span></td><td>产业链新兴岗位发现</td></tr>
+          <tr><td>智能问答</td><td>/api/v1/chat</td><td><span class="badge badge-green">运行中</span></td><td>2-3轮上下文追问</td></tr>
+          <tr><td>任务转化</td><td>/api/v1/task-convert</td><td><span class="badge badge-green">运行中</span></td><td>工作任务→学习型任务</td></tr>
+          <tr><td>访客统计</td><td>/api/v1/analytics</td><td><span class="badge badge-green">运行中</span></td><td>PV/UV/设备/来源</td></tr>
+        </tbody></table>
+      </div>
+    </div>
+    <!-- Visitors -->
+    <div class="page" id="page-visitors">
+      <div class="header"><h2>👥 访客统计</h2><button class="refresh-btn" onclick="loadVisitors()">刷新</button></div>
+      <div class="card"><h3>📈 7日趋势</h3><div class="chart-bar" id="trendChart"></div><div style="height:24px"></div></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+        <div class="card"><h3>🔥 热门页面</h3><table><thead><tr><th>页面</th><th>标题</th><th>PV</th></tr></thead><tbody id="topPages"></tbody></table></div>
+        <div class="card"><h3>💻 设备分布</h3><table><thead><tr><th>设备</th><th>占比</th></tr></thead><tbody id="deviceTable"></tbody></table>
+          <h3 style="margin-top:16px">🌐 浏览器分布</h3><table><thead><tr><th>浏览器</th><th>占比</th></tr></thead><tbody id="browserTable"></tbody></table></div>
+      </div>
+      <div class="card"><h3>📋 最近访问</h3><table><thead><tr><th>时间</th><th>页面</th><th>设备</th><th>浏览器</th><th>来源</th></tr></thead><tbody id="recentTable"></tbody></table></div>
+    </div>
+    <!-- Knowledge -->
+    <div class="page" id="page-knowledge">
+      <div class="header"><h2>📚 知识库</h2><button class="refresh-btn" onclick="loadKnowledge()">刷新</button></div>
+      <div class="card" id="kbList"><p style="color:var(--text2)">加载中...</p></div>
+    </div>
+    <!-- System -->
+    <div class="page" id="page-system">
+      <div class="header"><h2>⚙️ 系统信息</h2><button class="refresh-btn" onclick="loadSystem()">刷新</button></div>
+      <div class="card" id="sysInfo"><p style="color:var(--text2)">加载中...</p></div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ---- Auth ----
+async function api(path, opts = {}) {
+  const r = await fetch(path, { ...opts, credentials: 'same-origin' });
+  if (r.status === 401) { showLogin(); throw new Error('unauth'); }
+  return r.json();
+}
+async function doLogin() {
+  const pwd = document.getElementById('loginPwd').value;
+  try {
+    const r = await fetch('/api/v1/admin/login', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password: pwd }), credentials: 'same-origin'
+    });
+    if (!r.ok) { document.getElementById('loginError').style.display = 'block'; return; }
+    showApp();
+  } catch(e) { document.getElementById('loginError').style.display = 'block'; }
+}
+async function doLogout() {
+  await api('/api/v1/admin/logout', { method: 'POST' });
+  showLogin();
+}
+function showLogin() {
+  document.getElementById('loginPage').style.display = 'flex';
+  document.getElementById('appPage').style.display = 'none';
+}
+function showApp() {
+  document.getElementById('loginPage').style.display = 'none';
+  document.getElementById('appPage').style.display = 'block';
+  loadDashboard();
+}
+document.getElementById('loginPwd').addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
+
+// ---- Navigation ----
+document.querySelectorAll('.sidebar nav a').forEach(a => {
+  a.addEventListener('click', e => {
+    e.preventDefault();
+    document.querySelectorAll('.sidebar nav a').forEach(x => x.classList.remove('active'));
+    a.classList.add('active');
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    const page = a.dataset.page;
+    document.getElementById('page-' + page).classList.add('active');
+    if (page === 'visitors') loadVisitors();
+    if (page === 'knowledge') loadKnowledge();
+    if (page === 'system') loadSystem();
+  });
+});
+
+// ---- Dashboard ----
+async function loadDashboard() {
+  try {
+    const d = await api('/api/v1/admin/stats');
+    document.getElementById('statsGrid').innerHTML = [
+      { label: '知识库条目', value: d.knowledge_base_count, sub: '标注来源', icon: '📚' },
+      { label: '今日访问', value: d.today_pv, sub: 'UV ' + d.today_uv, icon: '👁️' },
+      { label: '总访问量', value: d.total_pv, sub: '会话 ' + d.total_sessions, icon: '📊' },
+      { label: '在线用户', value: d.online_users, sub: '5分钟内活跃', icon: '🟢' },
+      { label: '图谱生成', value: d.history_count, sub: '累计次数', icon: '🗺️' },
+      { label: '版本', value: d.version, sub: 'v' + d.version, icon: '🏷️' },
+    ].map(s => '<div class="stat-card"><div class="label">' + s.icon + ' ' + s.label + '</div><div class="value">' + s.value + '</div><div class="sub">' + s.sub + '</div></div>').join('');
+  } catch(e) {}
+}
+
+// ---- Visitors ----
+async function loadVisitors() {
+  try {
+    const d = await api('/api/v1/admin/visitors?days=7');
+    // Trend chart
+    const maxPv = Math.max(...d.daily_trend.map(x => x.pv), 1);
+    document.getElementById('trendChart').innerHTML = d.daily_trend.map(x => {
+      const h = Math.round((x.pv / maxPv) * 100);
+      return '<div class="bar" style="height:' + h + '%"><em>' + x.pv + '</em><span>' + x.date.slice(5) + '</span></div>';
+    }).join('');
+    // Top pages
+    document.getElementById('topPages').innerHTML = d.top_pages.map(p => '<tr><td>' + esc(p.path) + '</td><td>' + esc(p.title) + '</td><td>' + p.pv + '</td></tr>').join('') || '<tr><td colspan="3" style="color:var(--text2)">暂无数据</td></tr>';
+    // Devices
+    const totalDev = Object.values(d.devices).reduce((a, b) => a + b, 0) || 1;
+    document.getElementById('deviceTable').innerHTML = Object.entries(d.devices).map(([k, v]) => '<tr><td>' + esc(k) + '</td><td>' + Math.round(v / totalDev * 100) + '%</td></tr>').join('') || '<tr><td colspan="2" style="color:var(--text2)">暂无</td></tr>';
+    // Browsers
+    const totalBr = Object.values(d.browsers).reduce((a, b) => a + b, 0) || 1;
+    document.getElementById('browserTable').innerHTML = Object.entries(d.browsers).map(([k, v]) => '<tr><td>' + esc(k) + '</td><td>' + Math.round(v / totalBr * 100) + '%</td></tr>').join('') || '<tr><td colspan="2" style="color:var(--text2)">暂无</td></tr>';
+    // Recent
+    document.getElementById('recentTable').innerHTML = (d.recent || []).reverse().slice(0, 20).map(r => '<tr><td>' + esc(r.time) + '</td><td>' + esc(r.title || r.path) + '</td><td>' + esc(r.device) + '</td><td>' + esc(r.browser) + '</td><td>' + esc(r.referrer || '-') + '</td></tr>').join('') || '<tr><td colspan="5" style="color:var(--text2)">暂无</td></tr>';
+  } catch(e) {}
+}
+
+// ---- Knowledge ----
+async function loadKnowledge() {
+  try {
+    const d = await api('/api/v1/admin/knowledge');
+    if (!d.items || d.items.length === 0) {
+      document.getElementById('kbList').innerHTML = '<p style="color:var(--text2)">知识库为空</p>';
+      return;
+    }
+    document.getElementById('kbList').innerHTML = '<p style="color:var(--text2);margin-bottom:12px">共 ' + d.total + ' 条（显示前20条）</p>' +
+      d.items.map((item, i) => '<div class="kb-item"><div class="title">' + (i + 1) + '. ' + esc(item.skill || item.knowledge || item.topic || '条目') + '</div><div class="meta">分类: ' + esc(item.category || '-') + ' | 来源: ' + esc(item.reference || '-') + '</div></div>').join('');
+  } catch(e) {}
+}
+
+// ---- System ----
+async function loadSystem() {
+  try {
+    const d = await api('/api/v1/admin/system');
+    let html = '<h3>环境信息</h3><table><thead><tr><th>项目</th><th>值</th></tr></thead><tbody>';
+    html += '<tr><td>Python</td><td>' + esc(d.python_version) + '</td></tr>';
+    html += '<tr><td>平台</td><td>' + esc(d.platform) + '</td></tr>';
+    html += '<tr><td>路由模块</td><td>' + d.routes.join(', ') + '</td></tr>';
+    html += '<tr><td>数据文件</td><td>' + d.data_files.join(', ') + '</td></tr>';
+    html += '</tbody></table>';
+    html += '<h3 style="margin-top:16px">环境变量</h3><table><thead><tr><th>变量</th><th>值</th></tr></thead><tbody>';
+    for (const [k, v] of Object.entries(d.env_vars)) {
+      html += '<tr><td>' + esc(k) + '</td><td><code>' + esc(v) + '</code></td></tr>';
+    }
+    html += '</tbody></table>';
+    document.getElementById('sysInfo').innerHTML = html;
+  } catch(e) {}
+}
+
+function esc(s) { if (!s) return ''; const d = document.createElement('div'); d.textContent = String(s); return d.innerHTML; }
+
+// Auto-check auth on load
+(async function() {
+  try {
+    const d = await api('/api/v1/admin/stats');
+    showApp();
+  } catch(e) {
+    showLogin();
+  }
+})();
+</script>
+</body>
+</html>

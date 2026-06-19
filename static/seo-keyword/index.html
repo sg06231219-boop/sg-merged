@@ -1,0 +1,96 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SEO关键词分析器 - SG智能建站</title>
+<link rel="stylesheet" href="/static/tool-shared/style.css">
+<style>:root{--accent1:#4facfe;--accent2:#00f2fe}</style>
+</head>
+<body>
+<div class="container">
+<a href="/" class="back">← 返回首页</a>
+<div class="header"><h1>🔍 SEO关键词分析器</h1><p>AI驱动，一键生成出海关键词策略</p></div>
+
+<div class="quota"><span>今日免费额度</span><span class="rem" id="quotaText">加载中...</span></div>
+
+<div class="glass">
+<h2>📝 输入信息</h2>
+<div class="field"><label class="fl">行业/产品描述</label><textarea id="industry" placeholder="如：跨境电商宠物用品、SaaS项目管理工具..."></textarea></div>
+<div class="row">
+<div class="field"><label class="fl">目标市场语言</label><select id="lang"><option value="en">English (英语)</option><option value="zh">中文</option><option value="es">Español (西语)</option><option value="de">Deutsch (德语)</option><option value="ja">日本語</option><option value="fr">Français (法语)</option></select></div>
+<div class="field"><label class="fl">竞品参考（可选）</label><input id="competitor" placeholder="如：Shopify, Ahrefs"></div>
+</div>
+<div class="chips" id="styleChips"><span class="chip active" data-val="ecommerce">🛒 电商出海</span><span class="chip" data-val="saas">💻 SaaS工具</span><span class="chip" data-val="content">📝 内容媒体</span><span class="chip" data-val="local">📍 本地服务</span><span class="chip" data-val="b2b">🏢 B2B企业</span></div>
+<button class="btn btn-primary" id="genBtn" data-action="generate">🔍 开始分析</button>
+</div>
+
+<div id="progressArea" class="glass hidden"><h2>⏳ 分析进度</h2><div id="steps" class="steps"></div></div>
+<div id="resultArea" class="glass hidden"><h2>🎉 分析结果</h2><div id="resultContent"></div><div class="export-bar"><button class="btn-sm" data-action="copyAll">📋 复制文本</button><button class="btn-sm" data-action="exportJSON">💾 导出JSON</button></div></div>
+<div id="errorArea" class="glass hidden"><div class="error" id="errorMsg"></div></div>
+
+<div class="glass"><h2>📖 使用说明</h2><div class="steps"><div class="step"><div class="dot">1</div><div class="txt">输入你的行业或产品描述</div></div><div class="step"><div class="dot">2</div><div class="txt">选择业务类型和目标市场语言</div></div><div class="step"><div class="dot">3</div><div class="txt">AI生成关键词矩阵、长尾词、内容计划和SEO建议</div></div></div></div>
+</div>
+
+<script src="/static/tool-shared/base.js"></script>
+<script>
+var tool = new SG.ToolBase({apiBase:'/api/v1/seo-tool', stepTexts:['提交任务...','AI分析关键词中...','整理分析结果...']});
+tool.getButtonLabel = function(){ return '🔍 开始分析'; };
+tool.onResult = function(r) {
+  tool._lastResult = r;
+  SG.$('errorArea').classList.add('hidden');
+  SG.$('progressArea').classList.add('hidden');
+  SG.$('resultArea').classList.remove('hidden');
+  if(!r) return;
+  var h = '';
+  if(r.summary) h += '<div class="result-card" style="border-color:var(--accent1);background:rgba(79,172,254,.06)"><h3>📊 策略总览</h3><p>' + SG.escHtml(r.summary) + '</p></div>';
+  if(r.keyword_matrix && r.keyword_matrix.length) {
+    h += '<div class="result-card"><h3>🔑 关键词矩阵</h3>';
+    r.keyword_matrix.forEach(function(k){
+      var diff = k.difficulty === 'high' ? 'tag-warn' : k.difficulty === 'low' ? 'tag-success' : 'tag-info';
+      h += '<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border)">';
+      h += '<div><strong>' + SG.escHtml(k.keyword) + '</strong><br><span style="font-size:.75rem;color:var(--text2)">' + SG.escHtml(k.search_intent) + ' · <span class="tag ' + diff + '">' + SG.escHtml(k.difficulty) + '</span> · 优先级' + (k.priority||'-') + '</span></div>';
+      h += '<div style="text-align:right;font-size:.8rem;color:var(--accent1)">' + (k.volume||'') + '/月<br><span style="color:var(--text2);font-size:.7rem">' + SG.escHtml(k.content_type||'') + '</span></div>';
+      h += '</div>';
+    });
+    h += '</div>';
+  }
+  if(r.long_tail && r.long_tail.length) {
+    h += '<div class="result-card"><h3>🎯 长尾关键词</h3><ul>';
+    r.long_tail.forEach(function(k){ h += '<li>' + SG.escHtml(k.keyword) + ' — ' + SG.escHtml(k.intent||'') + ' (' + (k.volume||'') + '/月)</li>'; });
+    h += '</ul></div>';
+  }
+  if(r.content_plan && r.content_plan.length) {
+    h += '<div class="result-card"><h3>📋 内容计划</h3><ul>';
+    r.content_plan.forEach(function(c){ h += '<li><strong>' + SG.escHtml(c.title) + '</strong> → ' + SG.escHtml(c.keyword) + ' [' + SG.escHtml(c.type||'') + '] <span class="tag tag-info">P' + (c.priority||3) + '</span></li>'; });
+    h += '</ul></div>';
+  }
+  if(r.competitor_gaps && r.competitor_gaps.length) {
+    h += '<div class="result-card"><h3>💡 竞品差距机会</h3><ul>';
+    r.competitor_gaps.forEach(function(g){ h += '<li>' + SG.escHtml(g) + '</li>'; });
+    h += '</ul></div>';
+  }
+  if(r.technical_tips && r.technical_tips.length) {
+    h += '<div class="result-card"><h3>⚙️ 技术SEO建议</h3><ul>';
+    r.technical_tips.forEach(function(t){ h += '<li>' + SG.escHtml(t) + '</li>'; });
+    h += '</ul></div>';
+  }
+  SG.$('resultContent').innerHTML = h;
+};
+
+SG.initChips('styleChips');
+
+document.addEventListener('click', function(e) {
+  if(e.target.closest('[data-action="generate"]') && !tool.generating) {
+    var industry = SG.$('industry').value.trim();
+    if(!industry) { SG.showToast('请输入行业/产品描述','error'); return; }
+    tool.submit('/analyze', {industry:industry, style:SG.getActiveChip('styleChips'), lang:SG.$('lang').value, competitor:SG.$('competitor').value.trim()}, '分析中...');
+  }
+  if(e.target.closest('[data-action="copyAll"]')) tool.copyResult();
+  if(e.target.closest('[data-action="exportJSON"]')) tool.exportJSON();
+});
+
+tool.syncQuota();
+</script>
+</body>
+</html>

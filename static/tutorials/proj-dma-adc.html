@@ -1,0 +1,728 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0"><title>教程17: DMA双缓冲ADC采集</title><style>:root{--bg:#0d1117;--bg2:#161b22;--bg3:#21262d;--br:#30363d;--t:#c9d1d9;--t2:#8b949e;--a:#58a6ff;--g:#3fb950;--o:#d29922;--r:#f85149;--p:#a371f7;--c1:#39c5cf}body{background:var(--bg);color:var(--t);font-family:system-ui,sans-serif;line-height:1.8;max-width:900px;margin:0 auto;padding:20px}h1{text-align:center;background:linear-gradient(135deg,var(--a),var(--p));-webkit-background-clip:text;-webkit-text-fill-color:transparent}h2{color:var(--a);border-bottom:2px solid var(--br);padding-bottom:6px;margin-top:32px}h3{color:var(--c1);margin-top:22px}pre{background:#1c2128;border:1px solid var(--br);border-radius:8px;padding:14px;overflow-x:auto;font-size:.84em}code{font-family:'Cascadia Code',Consolas,monospace}:not(pre)>code{background:var(--bg3);padding:2px 6px;border-radius:4px;color:var(--c1)}table{width:100%;border-collapse:collapse;margin:12px 0}th{background:var(--bg3);color:var(--a);padding:8px 12px;border:1px solid var(--br);text-align:left}td{padding:8px 12px;border:1px solid var(--br)}.note{background:rgba(88,166,255,.08);border-left:3px solid var(--a);border-radius:8px;padding:12px 16px;margin:12px 0}.warn{background:rgba(248,81,73,.08);border-left:3px solid var(--r);border-radius:8px;padding:12px 16px;margin:12px 0}.tip{background:rgba(63,185,80,.08);border-left:3px solid var(--g);border-radius:8px;padding:12px 16px;margin:12px 0}.step{background:var(--bg2);border:1px solid var(--br);border-radius:8px;padding:12px 16px;margin:10px 0}</style></head><body>
+
+<h1>📊 教程17: DMA双缓冲ADC采集</h1>
+
+<h2>📋 项目概述</h2>
+<p>本教程将带你实现基于DMA双缓冲的ADC连续采集系统。通过双缓冲技术，CPU可以在处理一个缓冲区的数据时，DMA同时在填充另一个缓冲区，实现"零丢点"的不间断采集，并通过串口输出简单的波形数据。</p>
+
+<div class="note">
+<strong>为什么要双缓冲？</strong>单缓冲模式下，DMA写完整个缓冲区后需要CPU立即处理，否则下一轮DMA传输会覆盖数据。双缓冲让CPU有足够的时间处理数据，同时DMA无间断地继续采集，真正实现"边采边处理"。
+</div>
+
+<h2>🔧 硬件准备</h2>
+<table>
+<tr><th>元件</th><th>数量</th><th>说明</th></tr>
+<tr><td>STM32F103C8T6 最小系统板</td><td>1</td><td>或STM32F407开发板</td></tr>
+<tr><td>10K电位器</td><td>1</td><td>模拟信号源</td></tr>
+<tr><td>USB转TTL串口模块</td><td>1</td><td>用于串口输出波形</td></tr>
+<tr><td>杜邦线</td><td>若干</td><td>连接用</td></tr>
+<tr><td>0.96寸OLED(可选)</td><td>1</td><td>实时波形显示</td></tr>
+</table>
+
+<h2>📐 接线图</h2>
+<pre>
+ADC采集接线：
+┌──────────────────────────────────────────────┐
+│                                              │
+│  3.3V ────┤ 电位器 ├─── GND                 │
+│              │                               │
+│              ├── PA0(ADC1_IN0)               │
+│              │   (电位器中点输出)             │
+│                                              │
+│  串口接线:                                   │
+│  PA9(TX) ─── USB转TTL RXD                   │
+│  PA10(RX)─── USB转TTL TXD                   │
+│  GND ─────── USB转TTL GND                   │
+│                                              │
+│  双缓冲原理图:                               │
+│  ┌─────────────┐    ┌─────────────┐         │
+│  │  Buffer A    │    │  Buffer B    │         │
+│  │  [0..N-1]   │    │  [0..N-1]   │         │
+│  └──────┬──────┘    └──────┬──────┘         │
+│         │                  │                 │
+│    DMA写入 ←──切换──→ DMA写入              │
+│    CPU处理 ←──切换──→ CPU处理              │
+│                                              │
+└──────────────────────────────────────────────┘
+</pre>
+
+<div class="tip">
+<strong>💡 信号源选择：</strong><br>
+- 电位器：最简单，旋转改变电压，适合验证功能<br>
+- 函数信号发生器：需要加偏置到0-3.3V范围<br>
+- 传感器输出：实际应用场景<br>
+- PWM低通滤波：用另一个IO输出PWM，经RC滤波后输入ADC
+</div>
+
+<h2>📖 知识讲解</h2>
+
+<h3>DMA双缓冲工作原理</h3>
+<pre>
+时间轴:
+─────────────────────────────────────────────→
+
+DMA: [===写Buffer A===][===写Buffer B===][===写Buffer A===]...
+CPU:                  [处理Buffer A    ][处理Buffer B    ]...
+                      ↑                ↑
+                 HalfCplt回调    Cplt回调
+
+关键回调:
+- HAL_ADC_ConvHalfCpltCallback: DMA写满前半段时触发
+  → CPU可以安全处理前半段数据
+- HAL_ADC_ConvCpltCallback: DMA写满整个缓冲区时触发
+  → CPU可以安全处理后半段数据
+
+这种方式下，CPU和DMA永远不会同时访问同一段数据！
+</pre>
+
+<h3>采样率计算</h3>
+<div class="note">
+<strong>STM32F103 ADC时钟和采样率：</strong><br>
+- ADC时钟最大14MHz(APB2的2分频=36MHz → 再2分频=18MHz或4分频=9MHz)<br>
+- 采样时间：1.5+12.5=14个ADC时钟周期(最小)<br>
+- 采样率 = ADC时钟 / 采样周期<br>
+- 例：ADC时钟12MHz，采样周期14 → 采样率 = 12M/14 ≈ 857Ksps<br>
+- 但实际上受DMA和总线带宽限制，连续采样建议不超过1Msps
+</div>
+
+<h2>💻 完整代码</h2>
+
+<h3>DMA双缓冲ADC采集 (main.c)</h3>
+<pre>
+/* ============================================
+ * DMA双缓冲ADC采集 - 完整示例
+ * MCU: STM32F103C8T6
+ * 功能: ADC连续采样 + DMA双缓冲 + 串口波形输出
+ * ============================================ */
+
+#include "main.h"
+#include &lt;stdio.h&gt;
+#include &lt;string.h&gt;
+
+/* 配置常量 */
+#define ADC_BUF_LEN       256      /* 总缓冲区长度(半缓冲=128) */
+#define SAMPLE_RATE_HZ    10000    /* 目标采样率10KHz */
+#define WAVEFORM_SEND_EN  1        /* 1=串口发送波形, 0=不发送 */
+
+/* 私有变量 */
+ADC_HandleTypeDef hadc1;
+DMA_HandleTypeDef hdma_adc1;
+UART_HandleTypeDef huart1;
+TIM_HandleTypeDef htim3;
+
+/* 双缓冲区 - DMA循环模式使用一个大数组的前半和后半 */
+ALIGN_32BYTES(uint16_t adc_buffer[ADC_BUF_LEN]);
+
+/* 处理缓冲区 */
+uint16_t process_buffer[ADC_BUF_LEN / 2];
+volatile uint8_t data_ready = 0;      /* 数据就绪标志 */
+volatile uint8_t process_half = 0;    /* 0=前半, 1=后半 */
+volatile uint32_t sample_count = 0;   /* 采样计数 */
+
+/* 串口发送缓冲区 */
+char uart_buf[256];
+
+/* 函数声明 */
+void SystemClock_Config(void);
+static void MX_GPIO_Init(void);
+static void MX_DMA_Init(void);
+static void MX_ADC1_Init(void);
+static void MX_USART1_UART_Init(void);
+static void MX_TIM3_Init(void);
+static void Process_ADC_Data(uint16_t *buf, uint16_t len);
+static void Send_Waveform(uint16_t *buf, uint16_t len);
+static void Print_Statistics(uint16_t *buf, uint16_t len);
+
+int main(void)
+{
+    /* HAL初始化 */
+    HAL_Init();
+    SystemClock_Config();
+
+    /* 外设初始化 - 注意DMA必须先于ADC初始化! */
+    MX_GPIO_Init();
+    MX_DMA_Init();     /* DMA必须先初始化 */
+    MX_USART1_UART_Init();
+    MX_TIM3_Init();
+    MX_ADC1_Init();
+
+    printf("\r\n=== DMA双缓冲ADC采集 ===\r\n");
+    printf("采样率: %d Hz\r\n", SAMPLE_RATE_HZ);
+    printf("缓冲区: %d 样本(半缓冲 %d)\r\n", ADC_BUF_LEN, ADC_BUF_LEN/2);
+    printf("ADC分辨率: 12位 (0-4095)\r\n\r\n");
+
+    /* 启动ADC DMA连续采集 */
+    /* DMA_CIRCULAR模式: DMA写到末尾后自动回到开头继续写 */
+    if (HAL_ADC_Start_DMA(&amp;hadc1, (uint32_t*)adc_buffer, ADC_BUF_LEN) != HAL_OK)
+    {
+        printf("ADC DMA启动失败!\r\n");
+        Error_Handler();
+    }
+
+    /* 启动定时器(如果使用定时器触发) */
+    HAL_TIM_Base_Start(&amp;htim3);
+
+    while (1)
+    {
+        if (data_ready)
+        {
+            data_ready = 0;
+
+            /* 复制数据到处理缓冲区(避免DMA在处理时覆盖) */
+            uint16_t *src = process_half ?
+                            &amp;adc_buffer[ADC_BUF_LEN / 2] :
+                            &amp;adc_buffer[0];
+            memcpy(process_buffer, src, (ADC_BUF_LEN / 2) * sizeof(uint16_t));
+
+            /* 处理数据 */
+            Process_ADC_Data(process_buffer, ADC_BUF_LEN / 2);
+        }
+
+        /* 主循环可以做其他事情 */
+        HAL_Delay(100);
+    }
+}
+
+/* ============ ADC数据处理 ============ */
+static void Process_ADC_Data(uint16_t *buf, uint16_t len)
+{
+    sample_count += len;
+
+#if WAVEFORM_SEND_EN
+    /* 发送波形数据到串口(供上位机显示) */
+    Send_Waveform(buf, len);
+#endif
+
+    /* 每10次处理打印一次统计信息 */
+    static uint8_t print_counter = 0;
+    print_counter++;
+    if (print_counter >= 10)
+    {
+        print_counter = 0;
+        Print_Statistics(buf, len);
+    }
+}
+
+/* ============ 发送波形数据(简单文本格式) ============ */
+static void Send_Waveform(uint16_t *buf, uint16_t len)
+{
+    /* 格式: "W:val1,val2,val3,...\r\n"
+     * 上位机收到后可以绘制波形图 */
+
+    uint16_t i;
+    uint16_t pos = 0;
+
+    uart_buf[pos++] = 'W';
+    uart_buf[pos++] = ':';
+
+    for (i = 0; i &lt; len &amp;&amp; pos &lt; sizeof(uart_buf) - 10; i++)
+    {
+        /* 降采样: 每4个点取1个，减少串口传输量 */
+        if (i % 4 == 0)
+        {
+            pos += snprintf(&amp;uart_buf[pos], sizeof(uart_buf) - pos,
+                           "%u,", buf[i]);
+        }
+    }
+
+    /* 替换最后的逗号为换行 */
+    if (pos > 0 &amp;&amp; uart_buf[pos-1] == ',')
+    {
+        uart_buf[pos-1] = '\r';
+        uart_buf[pos] = '\n';
+        pos++;
+    }
+
+    HAL_UART_Transmit(&amp;huart1, (uint8_t*)uart_buf, pos, 100);
+}
+
+/* ============ 打印统计信息 ============ */
+static void Print_Statistics(uint16_t *buf, uint16_t len)
+{
+    uint32_t sum = 0;
+    uint16_t min_val = 0xFFFF;
+    uint16_t max_val = 0;
+    float voltage;
+
+    for (uint16_t i = 0; i &lt; len; i++)
+    {
+        sum += buf[i];
+        if (buf[i] &lt; min_val) min_val = buf[i];
+        if (buf[i] > max_val) max_val = buf[i];
+    }
+
+    uint16_t avg = sum / len;
+    voltage = (avg * 3.3f) / 4096.0f;
+
+    printf("ADC统计: Avg=%u Min=%u Max=%u V=%.2fV Samples=%lu\r\n",
+           avg, min_val, max_val, voltage, sample_count);
+}
+
+/* ============ DMA半传输完成回调 ============ */
+/* DMA写完前半段时触发，此时后半段正在被写入
+ * 前半段数据安全，可以处理 */
+void HAL_ADC_ConvHalfCpltCallback(ADC_HandleTypeDef *hadc)
+{
+    process_half = 0;  /* 标记：前半段数据就绪 */
+    data_ready = 1;
+}
+
+/* ============ DMA传输完成回调 ============ */
+/* DMA写完整整个缓冲区时触发，即将从头开始写
+ * 后半段数据安全，可以处理 */
+void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc)
+{
+    process_half = 1;  /* 标记：后半段数据就绪 */
+    data_ready = 1;
+}
+
+/* ============ ADC初始化 ============ */
+static void MX_ADC1_Init(void)
+{
+    ADC_ChannelConfTypeDef sConfig = {0};
+
+    hadc1.Instance = ADC1;
+    hadc1.Init.ScanConvMode = ADC_SCAN_DISABLE;         /* 单通道，不扫描 */
+    hadc1.Init.ContinuousConvMode = ENABLE;              /* 连续转换 */
+    hadc1.Init.DiscontinuousConvMode = DISABLE;
+    hadc1.Init.ExternalTrigConv = ADC_SOFTWARE_START;    /* 软件触发(或定时器) */
+    hadc1.Init.DataAlign = ADC_DATAALIGN_RIGHT;
+    hadc1.Init.NbrOfConversion = 1;
+
+    if (HAL_ADC_Init(&amp;hadc1) != HAL_OK)
+    {
+        Error_Handler();
+    }
+
+    /* 配置ADC通道0(PA0) */
+    sConfig.Channel = ADC_CHANNEL_0;
+    sConfig.Rank = ADC_REGULAR_RANK_1;
+    sConfig.SamplingTime = ADC_SAMPLETIME_55CYCLES_5;   /* 55.5个周期 */
+
+    if (HAL_ADC_ConfigChannel(&amp;hadc1, &amp;sConfig) != HAL_OK)
+    {
+        Error_Handler();
+    }
+}
+
+/* ============ DMA初始化(必须在ADC之前!) ============ */
+static void MX_DMA_Init(void)
+{
+    /* DMA控制器初始化 */
+    __HAL_RCC_DMA1_CLK_ENABLE();
+
+    /* DMA中断配置 */
+    HAL_NVIC_SetPriority(DMA1_Channel1_IRQn, 0, 0);
+    HAL_NVIC_EnableIRQ(DMA1_Channel1_IRQn);
+}
+
+/* ============ 定时器初始化(用于精确采样率) ============ */
+static void MX_TIM3_Init(void)
+{
+    htim3.Instance = TIM3;
+    /* 定时器频率 = 72MHz / (PSC+1) / (ARR+1)
+     * 目标采样率: 10KHz
+     * 72MHz / 72 / 100 = 10KHz */
+    htim3.Init.Prescaler = 72 - 1;     /* 72分频 → 1MHz */
+    htim3.Init.CounterMode = TIM_COUNTERMODE_UP;
+    htim3.Init.Period = 100 - 1;        /* 100分频 → 10KHz */
+    htim3.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+
+    if (HAL_TIM_Base_Init(&amp;htim3) != HAL_OK)
+    {
+        Error_Handler();
+    }
+}
+
+/* ============ ADC HAL MSP初始化(回调) ============ */
+void HAL_ADC_MspInit(ADC_HandleTypeDef *hadc)
+{
+    GPIO_InitTypeDef GPIO_InitStruct = {0};
+
+    if (hadc->Instance == ADC1)
+    {
+        /* 使能时钟 */
+        __HAL_RCC_ADC1_CLK_ENABLE();
+        __HAL_RCC_GPIOA_CLK_ENABLE();
+
+        /* PA0: ADC1_IN0 模拟输入 */
+        GPIO_InitStruct.Pin = GPIO_PIN_0;
+        GPIO_InitStruct.Mode = GPIO_MODE_ANALOG;
+        HAL_GPIO_Init(GPIOA, &amp;GPIO_InitStruct);
+
+        /* 配置DMA */
+        hdma_adc1.Instance = DMA1_Channel1;
+        hdma_adc1.Init.Direction = DMA_PERIPH_TO_MEMORY;
+        hdma_adc1.Init.PeriphInc = DMA_PINC_DISABLE;
+        hdma_adc1.Init.MemInc = DMA_MINC_ENABLE;
+        hdma_adc1.Init.PeriphDataAlignment = DMA_PDATAALIGN_HALFWORD;  /* 16bit */
+        hdma_adc1.Init.MemDataAlignment = DMA_MDATAALIGN_HALFWORD;     /* 16bit */
+        hdma_adc1.Init.Mode = DMA_CIRCULAR;       /* 循环模式: 双缓冲的关键! */
+        hdma_adc1.Init.Priority = DMA_PRIORITY_HIGH;
+
+        if (HAL_DMA_Init(&amp;hdma_adc1) != HAL_OK)
+        {
+            Error_Handler();
+        }
+
+        __HAL_LINKDMA(hadc, DMA_Handle, hdma_adc1);
+    }
+}
+
+/* ============ DMA中断处理 ============ */
+void DMA1_Channel1_IRQHandler(void)
+{
+    HAL_DMA_IRQHandler(&amp;hdma_adc1);
+}
+
+/* ============ USART初始化 ============ */
+static void MX_USART1_UART_Init(void)
+{
+    huart1.Instance = USART1;
+    huart1.Init.BaudRate = 115200;
+    huart1.Init.WordLength = UART_WORDLENGTH_8B;
+    huart1.Init.StopBits = UART_STOPBITS_1;
+    huart1.Init.Parity = UART_PARITY_NONE;
+    huart1.Init.Mode = UART_MODE_TX_RX;
+    huart1.Init.HwFlowCtl = UART_HWCONTROL_NONE;
+
+    if (HAL_UART_Init(&amp;huart1) != HAL_OK)
+    {
+        Error_Handler();
+    }
+}
+
+/* ============ GPIO初始化 ============ */
+static void MX_GPIO_Init(void)
+{
+    __HAL_RCC_GPIOA_CLK_ENABLE();
+}
+
+/* ============ 系统时钟 ============ */
+void SystemClock_Config(void)
+{
+    RCC_OscInitTypeDef RCC_OscInitStruct = {0};
+    RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
+
+    RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSE;
+    RCC_OscInitStruct.HSEState = RCC_HSE_ON;
+    RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
+    RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
+    RCC_OscInitStruct.PLL.PLLMUL = RCC_PLLMUL_9;
+    if (HAL_RCC_OscConfig(&amp;RCC_OscInitStruct) != HAL_OK) Error_Handler();
+
+    RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK | RCC_CLOCKTYPE_SYSCLK |
+                                  RCC_CLOCKTYPE_PCLK1 | RCC_CLOCKTYPE_PCLK2;
+    RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
+    RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
+    RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV2;
+    RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1;
+    if (HAL_RCC_ClockConfig(&amp;RCC_ClkInitStruct, FLASH_LATENCY_2) != HAL_OK)
+        Error_Handler();
+}
+
+/* printf重定向 */
+#ifdef __GNUC__
+int __io_putchar(int ch)
+{
+    HAL_UART_Transmit(&amp;huart1, (uint8_t*)&amp;ch, 1, HAL_MAX_DELAY);
+    return ch;
+}
+#endif
+</pre>
+
+<h3>上位机Python波形显示脚本</h3>
+<pre>
+#!/usr/bin/env python3
+"""DMA ADC串口波形显示工具"""
+import serial
+import matplotlib.pyplot as plt
+import matplotlib.animation as animation
+
+PORT = 'COM3'
+BAUD = 115200
+
+ser = serial.Serial(PORT, BAUD, timeout=1)
+
+fig, ax = plt.subplots()
+line, = ax.plot([], [])
+ax.set_ylim(0, 4096)
+ax.set_title('ADC Waveform')
+ax.set_xlabel('Sample')
+ax.set_ylabel('ADC Value')
+
+def update(frame):
+    data_str = ser.readline().decode('utf-8', errors='ignore')
+    if data_str.startswith('W:'):
+        values = data_str[2:].strip().split(',')
+        values = [int(v) for v in values if v.strip().isdigit()]
+        if values:
+            line.set_data(range(len(values)), values)
+            ax.set_xlim(0, len(values))
+    return line,
+
+ani = animation.FuncAnimation(fig, update, interval=50, blit=True)
+plt.show()
+</pre>
+
+<h2>📝 分步操作指引</h2>
+
+<div class="step">
+<strong>第1步：CubeMX工程配置</strong><br>
+1. 选择STM32F103C8T6<br>
+2. ADC1配置：IN0(PA0)，Continuous Conversion Mode = Enable<br>
+3. DMA配置：ADC1添加DMA，Circular模式，Half Word数据宽度<br>
+4. 开启DMA中断：DMA1 Channel1 Interrupt = Enable<br>
+5. USART1配置：115200bps，8N1<br>
+6. 生成代码
+</div>
+
+<div class="step">
+<strong>第2步：添加双缓冲代码</strong><br>
+1. 定义缓冲区：<code>uint16_t adc_buffer[256];</code><br>
+2. 启动ADC DMA：<code>HAL_ADC_Start_DMA(&amp;hadc1, adc_buffer, 256);</code><br>
+3. 实现<code>HAL_ADC_ConvHalfCpltCallback</code>处理前半段<br>
+4. 实现<code>HAL_ADC_ConvCpltCallback</code>处理后半段<br>
+5. 编译烧录
+</div>
+
+<div class="step">
+<strong>第3步：验证基本功能</strong><br>
+1. 串口助手打开，115200bps<br>
+2. 旋转电位器，观察ADC统计值变化<br>
+3. 确认Avg/Min/Max随电位器变化<br>
+4. 计算电压值：ADC值 × 3.3 / 4096
+</div>
+
+<div class="step">
+<strong>第4步：波形显示</strong><br>
+1. 安装Python环境：pip install pyserial matplotlib<br>
+2. 修改COM口号，运行Python脚本<br>
+3. 旋转电位器，观察实时波形<br>
+4. 尝试输入不同信号(正弦波、方波)
+</div>
+
+<div class="step">
+<strong>第5步：调整采样率</strong><br>
+1. 修改定时器PSC和ARR值调整采样率<br>
+2. 注意：连续转换模式下采样率由ADC时钟和采样周期决定<br>
+3. 定时器触发模式可以精确控制采样率<br>
+4. 观察不同采样率下的波形质量
+</div>
+
+<h2>❓ 常见问题排查</h2>
+
+<h3>问题1：DMA半传输回调不触发</h3>
+<div class="warn">
+<strong>原因：</strong>DMA中断未正确配置或未使能半传输中断。
+</div>
+<p><strong>排查步骤：</strong></p>
+<ol>
+<li>确认DMA中断在NVIC中已使能</li>
+<li>确认DMA模式为<code>DMA_CIRCULAR</code>(循环模式)</li>
+<li>检查CubeMX是否正确生成了DMA初始化代码</li>
+<li>手动使能半传输中断：<code>__HAL_DMA_ENABLE_IT(&amp;hdma_adc1, DMA_IT_HT);</code></li>
+</ol>
+
+<h3>问题2：采样率计算</h3>
+<pre>
+/* 采样率计算方法 */
+
+/* 方法1: 连续转换模式(软件触发) */
+/* 采样率 = ADC时钟 / (采样周期 + 转换周期) */
+/* F103: ADC时钟 = APB2/分频 = 72MHz/6 = 12MHz */
+/* 采样周期 = 55.5, 转换周期 = 12.5 → 总共68周期 */
+/* 采样率 = 12MHz / 68 ≈ 176KHz */
+
+/* 方法2: 定时器触发(精确控制) */
+/* 采样率 = 定时器频率 */
+/* TIM3: 72MHz / (PSC+1) / (ARR+1) */
+/* 例: PSC=71, ARR=99 → 72M/72/100 = 10KHz */
+/* 注意: 需要设置 ADC ExternalTrigConv = ADC_EXTERNALTRIGCONV_T3_TRGO */
+</pre>
+
+<h3>问题3：双缓冲切换时机</h3>
+<div class="note">
+<strong>关键原则：</strong>CPU只处理DMA当前不写入的那一半。<br><br>
+<code>ConvHalfCplt</code> → DMA正在写后半段，前半段安全 → 处理前半段<br>
+<code>ConvCplt</code> → DMA正在写前半段，后半段安全 → 处理后半段<br><br>
+<strong>注意：</strong>处理速度必须快于DMA填充速度，否则下次回调时数据已被覆盖！如果处理太慢，降低采样率或增大缓冲区。
+</div>
+
+<h3>问题4：数据被覆盖/丢点</h3>
+<table>
+<tr><th>现象</th><th>原因</th><th>解决</th></tr>
+<tr><td>波形有毛刺</td><td>处理速度跟不上DMA</td><td>增大缓冲区或降低采样率</td></tr>
+<tr><td>数据全为零</td><td>ADC未启动或DMA未配置</td><td>检查HAL_ADC_Start_DMA返回值</td></tr>
+<tr><td>前后半数据混乱</td><td>处理了错误的一半</td><td>确认process_half标志逻辑</td></tr>
+<tr><td>只有前半段有数据</td><td>DMA未配置循环模式</td><td>确认Mode = DMA_CIRCULAR</td></tr>
+</table>
+
+<h3>问题5：DMA初始化顺序</h3>
+<div class="warn">
+<strong>⚠️ DMA必须在ADC之前初始化！</strong><br>
+CubeMX生成的代码可能顺序不对，需要手动调整。<br>
+在<code>main()</code>中确保：<code>MX_DMA_Init()</code> 在 <code>MX_ADC1_Init()</code> 之前调用。<br>
+否则DMA无法正常工作，ADC数据不会被传输到内存。
+</div>
+
+<div class="note">
+<strong>💡 进阶技巧：</strong><br>
+1. 多通道扫描模式：可以同时采集多个ADC通道，设置ScanConvMode=ENABLE<br>
+2. 注入通道：在规则通道采集中插入高优先级采样(如过压检测)<br>
+3. 使用F407的DMA双缓冲模式(FIFO+Double Buffer)更高效<br>
+4. 信号处理：在Process_ADC_Data中添加FFT、滤波等算法<br>
+5. 使用DMA的M2M模式实现数据的快速搬移
+</div>
+
+
+
+<h2>🔄 DMA双缓冲 (Double Buffering) 技术</h2>
+<p>DMA采集时如果CPU读取和DMA写入同时操作同一buffer会导致数据混乱。双缓冲技术完美解决：</p>
+<pre><code>// DMA半传输完成中断 → Buffer0满, 处理Buffer0
+// DMA传输完成中断   → Buffer1满, 处理Buffer1
+// 乒乓切换, 零数据丢失
+
+#define ADC_BUFFER_SIZE 1024  // 每通道采样点
+#define ADC_CHANNELS   4
+
+uint16_t adc_buffer[2][ADC_BUFFER_SIZE * ADC_CHANNELS];
+volatile uint8_t active_buffer = 0;  // 0=处理Buf0, 1=处理Buf1
+
+// 配置DMA为循环模式 + 半传输中断
+HAL_ADC_Start_DMA(&hadc1, 
+    (uint32_t*)adc_buffer, 
+    ADC_BUFFER_SIZE * ADC_CHANNELS * 2);  // 双倍长度
+
+void HAL_ADC_ConvHalfCpltCallback(ADC_HandleTypeDef* hadc) {
+    // Buffer0 满了 → 标记处理
+    active_buffer = 0;
+    ProcessADCBlock(adc_buffer[0]);  // 处理前半段
+}
+
+void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc) {
+    // Buffer1 满了 → 标记处理
+    active_buffer = 1;
+    ProcessADCBlock(adc_buffer[1]);  // 处理后半段
+}</code></pre>
+
+<h2>⏱️ 定时器触发ADC (Timer-Triggered Sampling)</h2>
+<pre><code>// 精确控制采样率，避免HAL_ADC_Start()的软件抖动
+// 适用场景: FFT分析、振动测量、电力质量监测
+
+// 配置TIM3输出触发ADC1
+void TIM_TriggerADC_Config(uint32_t sample_rate_hz) {
+    // TIM3 → TRGO → ADC1 (需要配置ADC_ExternalTrigConv)
+    // 采样率 = TIM_CLK / ((PSC+1) * (ARR+1))
+    
+    uint32_t tim_clk = HAL_RCC_GetPCLK1Freq() * 2;  // APB1×2
+    uint32_t prescaler = 0;
+    uint32_t period = tim_clk / sample_rate_hz - 1;
+    
+    if (period > 65535) {
+        prescaler = period / 65536;  // 需要分频
+        period = period / (prescaler + 1) - 1;
+    }
+    
+    htim3.Init.Prescaler = prescaler;
+    htim3.Init.Period = period;
+    htim3.Init.CounterMode = TIM_COUNTERMODE_UP;
+    HAL_TIM_Base_Init(&htim3);
+    
+    // 配置TRGO为更新事件
+    TIM_MasterConfigTypeDef sMasterConfig = {0};
+    sMasterConfig.MasterOutputTrigger = TIM_TRGO_UPDATE;
+    sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
+    HAL_TIMEx_MasterConfigSynchronization(&htim3, &sMasterConfig);
+    
+    // ADC配置外部触发
+    sConfig.ExternalTrigConv = ADC_EXTERNALTRIGCONV_T3_TRGO;
+    // 注意: 不同STM32系列的ADC外部触发源不同!
+    // F103: ADC1→TIM1/TIM2/TIM3, F4: ADC1→TIM2/TIM3/TIM4/TIM5/TIM8
+}
+
+// 实际采样率验证:
+// 用另一个TIM做计数器，1秒后读取采样数 = 实际采样率
+// 通常实际值会比理论值偏小2-5% (DMA总线仲裁延迟)</code></pre>
+
+<h2>📊 DMA+ADC+FFT实时频谱分析</h2>
+<pre><code>// ARM CMSIS-DSP FFT流水线
+#include "arm_math.h"
+
+#define FFT_SIZE 1024
+
+float32_t fft_input[FFT_SIZE * 2];  // 实部+虚部交错
+float32_t fft_output[FFT_SIZE];
+
+void ProcessFFT(uint16_t* raw_buffer) {
+    // 1. 转浮点 + 去直流
+    float32_t mean = 0;
+    for (int i = 0; i < FFT_SIZE; i++)
+        mean += raw_buffer[i];
+    mean /= FFT_SIZE;
+    
+    for (int i = 0; i < FFT_SIZE; i++) {
+        fft_input[i * 2] = raw_buffer[i] - mean;  // 实部
+        fft_input[i * 2 + 1] = 0;                  // 虚部(0)
+    }
+    
+    // 2. FFT (使用CMSIS-DSP的RFFT, 比CFFT快50%)
+    arm_rfft_fast_instance_f32 rfft;
+    arm_rfft_fast_init_f32(&rfft, FFT_SIZE);
+    arm_rfft_fast_f32(&rfft, fft_input, fft_output, 0);
+    
+    // 3. 计算幅值
+    // fft_output[0] = 直流分量, fft_output[1] = 实部(频率1)
+    // fft_output[FFT_SIZE/2] = 虚部(频率1)
+    // 频率分辨率 = 采样率 / FFT_SIZE
+    arm_cmplx_mag_f32(fft_output, fft_input, FFT_SIZE / 2);
+    
+    // 4. 查找峰值频率
+    float32_t max_mag = 0;
+    uint32_t max_bin = 0;
+    for (int i = 1; i < FFT_SIZE / 2; i++) {  // 跳过DC
+        if (fft_input[i] > max_mag) {
+            max_mag = fft_input[i];
+            max_bin = i;
+        }
+    }
+    float32_t peak_freq = (float32_t)max_bin * sample_rate / FFT_SIZE;
+}</code></pre>
+
+<h2>⚡ DMA传输优化技巧</h2>
+<table>
+<tr><th>优化项</th><th>效果</th><th>代价</th></tr>
+<tr><td>使用DMA FIFO</td><td>减少总线占用(4→1次)</td><td>FIFO满才传输, 延迟增加</td></tr>
+<tr><td>DMA突发传输(Burst)</td><td>吞吐量翻倍</td><td>需要外设支持</td></tr>
+<tr><td>SRAM分区(D2域)</td><td>避免CPU+DMA抢总线</td><td>F4/H7才有</td></tr>
+<tr><td>DMA半传输中断</td><td>实现零拷贝双缓冲</td><td>代码复杂度+</td></tr>
+<tr><td>链接列表(BDMA)</td><td>复杂采集模式</td><td>仅G4/H7/U5</td></tr>
+</table>
+
+<div class="warn">
+<strong>DMA常见坑：</strong><br>
+1. DMA传输长度 = 外设数据宽度 × 计数，配置错误会导致少传/多传<br>
+2. ADC采样时间太短(<7.5周期) + 高频率 → DMA取走的数据是上一次的<br>
+3. Cache一致性问题(H7系列)：DMA写到SRAM，CPU读Cache → 需要SCB_CleanInvalidateDCache<br>
+4. STM32F103的DMA不能跨AHB总线 → 检查数据源和目标是否在同一总线
+</div><hr><h2>❓ 常见问题 FAQ</h2>
+
+<div style="margin:12px 0;padding:12px 16px;background:var(--bg2);border-left:3px solid var(--a);border-radius:0 8px 8px 0">
+  <p style="font-weight:600;color:var(--c1);margin-bottom:4px">Q: ADC数据跳变？</p>
+  <p style="color:var(--t)">A: 1)模拟输入阻抗太高（加运放缓冲） 2)采样时间太短（增大ADC采样周期） 3)参考电压不稳（加去耦电容） 4)数字噪声干扰（模拟地数字地分开）</p>
+</div>
+
+<div style="margin:12px 0;padding:12px 16px;background:var(--bg2);border-left:3px solid var(--a);border-radius:0 8px 8px 0">
+  <p style="font-weight:600;color:var(--c1);margin-bottom:4px">Q: DMA传输完成中断不触发？</p>
+  <p style="color:var(--t)">A: 1)检查DMA模式和通道配置 2)NVIC使能DMA中断 3)ADC连续采样模式 4)缓冲区大小是DMA传输数据量的整数倍</p>
+</div>
+
+<hr><h2>🔗 相关教程</h2>
+<div style="display:flex;flex-wrap:wrap;gap:8px;margin:12px 0">
+<a href="#" onclick="parent.loadPage && parent.loadPage('stm32')" style="display:inline-block;padding:6px 14px;background:var(--bg3);border:1px solid var(--br);border-radius:6px;color:var(--a);text-decoration:none;font-size:.85em">STM32开发 →</a>
+<a href="#" onclick="parent.loadPage && parent.loadPage('bci-2026')" style="display:inline-block;padding:6px 14px;background:var(--bg3);border:1px solid var(--br);border-radius:6px;color:var(--a);text-decoration:none;font-size:.85em">BCI 2026 →</a>
+<a href="#" onclick="parent.loadPage && parent.loadPage('proj-oscilloscope-debug')" style="display:inline-block;padding:6px 14px;background:var(--bg3);border:1px solid var(--br);border-radius:6px;color:var(--a);text-decoration:none;font-size:.85em">示波器调试 →</a>
+</div>
+
+</body></html>

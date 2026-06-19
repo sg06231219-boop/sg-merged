@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+<title>职慧Agent — 职业教育岗位技能智能体</title>
+<meta name="description" content="职慧Agent：基于AI的职业教育岗位技能智能体，提供岗位能力图谱生成、个性化学习路径规划、新岗位发现、智能问答服务。">
+<meta name="keywords" content="职业教育,岗位技能,能力图谱,学习路径,AI智能体,前端开发">
+<meta property="og:title" content="职慧Agent — 职业教育岗位技能智能体">
+<meta property="og:description" content="AI驱动的职业教育岗位技能分析平台">
+<meta property="og:type" content="website">
+<meta property="og:image" content="https://zhihui-agent.onrender.com/static/og-image.png">
+<meta name="theme-color" content="#0f172a">
+<link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+<link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+<!-- 阅读进度条 -->
+<div id="reading-progress"></div>
+<!-- 回到顶部按钮 -->
+<button id="back-to-top" title="回到顶部">↑</button>
+<div id="app">
+  <!-- 顶部导航 -->
+  <nav class="navbar">
+    <div class="logo">
+      <span class="logo-icon">🎓</span>
+      <span class="logo-text">职慧Agent</span>
+      <span class="logo-badge">XA-202603</span>
+    </div>
+    <div class="nav-tabs">
+      <button class="tab active" data-tab="skill-map">能力图谱</button>
+      <button class="tab" data-tab="learn-path">学习路径</button>
+      <button class="tab" data-tab="new-job">新岗发现</button>
+      <button class="tab" data-tab="chat">智能问答</button>
+      <button class="tab" data-tab="task-convert">任务转化</button>
+      <button class="tab api-key-tab" data-tab="api-key" title="配置AI加速">🔑</button>
+      <button class="theme-toggle" id="theme-toggle" title="切换亮/暗模式">🌓</button>
+    </div>
+  </nav>
+
+  <!-- 能力图谱页 -->
+  <section id="skill-map" class="page active">
+    <div class="hero">
+      <h1>🔬 岗位能力图谱</h1>
+      <p>输入岗位名称，AI自动生成结构化能力图谱</p>
+    </div>
+    <div class="input-area">
+      <div class="form-row">
+        <label>专业群</label>
+        <select id="major-select">
+          <option value="软件技术" selected>软件技术</option>
+          <option value="计算机网络技术">计算机网络技术</option>
+          <option value="大数据技术">大数据技术</option>
+          <option value="人工智能技术应用">人工智能技术应用</option>
+          <option value="数字媒体技术">数字媒体技术</option>
+          <option value="移动应用开发">移动应用开发</option>
+          <option value="云计算技术应用">云计算技术应用</option>
+          <option value="信息安全技术应用">信息安全技术应用</option>
+        </select>
+      </div>
+      <div class="form-row">
+        <label>目标岗位</label>
+        <input type="text" id="job-input" placeholder="如：前端开发工程师" value="前端开发工程师">
+      </div>
+      <button id="gen-map-btn" class="primary-btn">🚀 生成能力图谱</button>
+    </div>
+    <div id="map-result" class="result-area" style="display:none">
+      <div class="result-header">
+        <h2 id="result-job-name"></h2>
+        <div class="result-meta">
+          <span id="result-major"></span>
+          <span id="result-time"></span>
+          <span id="result-warning" class="warning-badge" style="display:none"></span>
+        </div>
+      </div>
+      <!-- 数据概览卡片 -->
+      <div class="stats-row" id="stats-row"></div>
+      <!-- 雷达图 -->
+      <div class="chart-section">
+        <h3>📊 能力维度雷达图</h3>
+        <canvas id="radar-chart" width="450" height="400"></canvas>
+      </div>
+      <!-- 技能树 -->
+      <div class="skill-tree-section">
+        <h3>🌳 技能树</h3>
+        <div class="skill-filter">
+          <button class="filter-btn active" data-filter="all">全部</button>
+          <button class="filter-btn" data-filter="核心能力">核心</button>
+          <button class="filter-btn" data-filter="专业技能">专业</button>
+          <button class="filter-btn" data-filter="工具技能">工具</button>
+          <button class="filter-btn" data-filter="软技能">软技能</button>
+        </div>
+        <div id="skill-tree" class="skill-tree"></div>
+      </div>
+      <!-- 知识点列表 -->
+      <div class="knowledge-section">
+        <h3>📚 知识点（标注来源）</h3>
+        <div class="knowledge-search">
+          <input type="text" id="kp-search" placeholder="搜索知识点...">
+          <span id="kp-count" class="kp-count"></span>
+        </div>
+        <div id="knowledge-list" class="knowledge-list"></div>
+      </div>
+      <!-- 成长路径 -->
+      <div class="career-section">
+        <h3>🛤️ 成长路径</h3>
+        <div id="career-path" class="career-path"></div>
+      </div>
+      <!-- 关联岗位 -->
+      <div class="related-section">
+        <h3>🔗 关联岗位</h3>
+        <div id="related-jobs" class="related-jobs"></div>
+      </div>
+    </div>
+    <div id="map-skeleton" class="skeleton-container" style="display:none">
+      <div class="skeleton-map">
+        <div class="skeleton skeleton-stat"></div>
+        <div class="skeleton skeleton-stat"></div>
+        <div class="skeleton skeleton-stat"></div>
+        <div class="skeleton skeleton-stat"></div>
+      </div>
+      <div class="skeleton skeleton-chart"></div>
+      <div class="skeleton skeleton-section"></div>
+      <div class="skeleton skeleton-section"></div>
+    </div>
+    <div id="map-loading" class="loading" style="display:none">
+      <div class="spinner"></div>
+      <p>AI正在生成能力图谱，请稍候...</p>
+      <p class="loading-hint">首次生成可能需要10-15秒</p>
+    </div>
+  </section>
+
+  <!-- 学习路径页 -->
+  <section id="learn-path" class="page">
+    <div class="hero">
+      <h1>📖 个性化学习路径</h1>
+      <p>诊断学情差距，AI推荐学习路径</p>
+    </div>
+    <div class="input-area">
+      <h3>Step 1: 填写你的技能画像</h3>
+      <div class="form-row">
+        <label>目标岗位</label>
+        <input type="text" id="lp-target-job" value="前端开发工程师">
+      </div>
+      <div class="form-row">
+        <label>已掌握技能（逗号分隔）</label>
+        <input type="text" id="lp-skills" placeholder="HTML,CSS,JavaScript基础">
+      </div>
+      <div class="form-row">
+        <label>项目经验</label>
+        <textarea id="lp-experience" placeholder="描述你做过的项目，如：做过一个个人博客网站" rows="3"></textarea>
+      </div>
+      <div class="form-row">
+        <label>学习周期（周）</label>
+        <input type="number" id="lp-weeks" value="12" min="4" max="24">
+      </div>
+      <button id="gen-path-btn" class="primary-btn">🔍 开始诊断</button>
+    </div>
+    <div id="path-result" class="result-area" style="display:none">
+      <div class="diagnosis-card">
+        <h3>📋 诊断结果</h3>
+        <div class="match-score">
+          <div class="score-circle" id="score-circle">
+            <span id="score-value">0</span>
+            <span class="score-label">匹配度</span>
+          </div>
+        </div>
+        <div id="gap-analysis" class="gap-analysis"></div>
+      </div>
+      <div class="path-card">
+        <h3>🗺️ 学习路径</h3>
+        <div id="learning-path" class="learning-path"></div>
+      </div>
+      <div class="trajectory-card">
+        <h3>📈 成长轨迹预测</h3>
+        <canvas id="trajectory-chart" width="600" height="200"></canvas>
+      </div>
+    </div>
+    <div id="path-skeleton" class="skeleton-container" style="display:none">
+      <div class="skeleton skeleton-diagnosis"></div>
+      <div class="skeleton-path">
+        <div class="skeleton skeleton-phase"></div>
+        <div class="skeleton skeleton-phase"></div>
+        <div class="skeleton skeleton-phase"></div>
+      </div>
+    </div>
+    <div id="path-loading" class="loading" style="display:none">
+      <div class="spinner"></div>
+      <p>AI正在诊断学情...</p>
+      <p class="loading-hint">学情诊断 + 路径规划约需15-20秒</p>
+    </div>
+  </section>
+
+  <!-- 新岗发现页 -->
+  <section id="new-job" class="page">
+    <div class="hero">
+      <h1>🔭 新岗位发现</h1>
+      <p>基于技术趋势，AI发现并定义新兴岗位</p>
+    </div>
+    <div class="input-area">
+      <div class="form-row">
+        <label>技术趋势关键词（逗号分隔）</label>
+        <input type="text" id="trend-input" placeholder="如：AI大模型,低代码,Web3">
+      </div>
+      <div class="trend-tags">
+        <span class="trend-tag" data-val="AI大模型,智能体,Agent">🤖 AI+智能体</span>
+        <span class="trend-tag" data-val="低代码,AI编程,Copilot">💻 AI辅助开发</span>
+        <span class="trend-tag" data-val="Web3,区块链,去中心化">🌐 Web3</span>
+        <span class="trend-tag" data-val="Rust,WebAssembly,性能">⚡ 高性能Web</span>
+      </div>
+      <button id="gen-newjob-btn" class="primary-btn">🧪 发现新岗位</button>
+    </div>
+    <div id="newjob-result" class="result-area" style="display:none">
+      <div class="newjob-card" id="newjob-card"></div>
+    </div>
+    <div id="newjob-loading" class="loading" style="display:none">
+      <div class="spinner"></div>
+      <p>AI正在分析技术趋势...</p>
+    </div>
+  </section>
+
+  <!-- 智能问答页 -->
+  <section id="chat" class="page">
+    <div class="hero">
+      <h1>💬 智能问答</h1>
+      <p>关于岗位能力、学习路径的任何问题，尽管问！</p>
+    </div>
+    <div class="chat-container">
+      <div id="chat-messages" class="chat-messages">
+        <div class="chat-msg assistant">
+          <div class="msg-avatar">🎓</div>
+          <div class="msg-content">你好！我是职慧Agent，可以回答关于前端开发岗位能力要求、学习方法、职业规划等问题。支持2-3轮追问哦！请问有什么可以帮你的？</div>
+        </div>
+      </div>
+      <div class="quick-questions">
+        <span class="quick-q" data-q="前端开发需要掌握哪些核心技能？">核心技能</span>
+        <span class="quick-q" data-q="Vue3和React哪个更适合初学者？">Vue vs React</span>
+        <span class="quick-q" data-q="前端面试常考什么？">面试指南</span>
+        <span class="quick-q" data-q="前端开发的薪资水平怎么样？">薪资参考</span>
+      </div>
+      <div class="chat-input-area">
+        <input type="text" id="chat-input" placeholder="输入你的问题，支持2-3轮追问..." maxlength="500">
+        <button id="chat-send-btn" class="primary-btn">发送</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- 任务转化页 -->
+  <section id="task-convert" class="page">
+    <div class="hero">
+      <h1>🔄 任务转化</h1>
+      <p>将岗位典型工作任务转化为学习型任务，实现「以岗定教」</p>
+    </div>
+    <div class="input-area">
+      <h3>典型工作任务 → 学习型任务</h3>
+      <p class="input-hint">赛题核心方向3：将岗位典型工作任务自动生成教学用学习型工作任务</p>
+      <div class="form-row">
+        <label>岗位名称</label>
+        <input type="text" id="tc-job-name" value="前端开发工程师" placeholder="如：前端开发工程师">
+      </div>
+      <div class="form-row">
+        <label>典型工作任务</label>
+        <input type="text" id="tc-task-name" placeholder="如：开发响应式电商首页">
+      </div>
+      <div class="form-row">
+        <label>任务描述（选填）</label>
+        <textarea id="tc-task-desc" placeholder="描述该工作任务的详细内容" rows="3"></textarea>
+      </div>
+      <div class="preset-tasks-section">
+        <h4>📋 预置典型工作任务（点击填入）</h4>
+        <div id="preset-tasks-list" class="preset-tasks-list"></div>
+      </div>
+      <button id="gen-convert-btn" class="primary-btn">🔄 转化为学习型任务</button>
+    </div>
+    <div id="convert-result" class="result-area" style="display:none">
+      <div class="convert-header">
+        <h2 id="convert-task-title"></h2>
+        <div class="convert-meta">
+          <span id="convert-job-name"></span>
+          <span id="convert-total-hours"></span>
+          <span id="convert-source" class="source-badge"></span>
+          <span id="convert-warning" class="warning-badge" style="display:none"></span>
+        </div>
+        <p id="convert-description" class="convert-desc"></p>
+      </div>
+      <div class="mapped-courses">
+        <h3>📚 对应课程映射</h3>
+        <div id="mapped-courses" class="course-tags"></div>
+      </div>
+      <div class="learning-tasks-timeline">
+        <h3>📝 学习型任务拆解</h3>
+        <div id="learning-tasks" class="lt-timeline"></div>
+      </div>
+    </div>
+    <div id="convert-loading" class="loading" style="display:none">
+      <div class="spinner"></div>
+      <p>AI正在将工作任务转化为学习型任务...</p>
+    </div>
+  </section>
+
+  <!-- API Key配置页 -->
+  <section id="api-key" class="page">
+    <div class="hero">
+      <h1>🔑 AI加速配置</h1>
+      <p>配置你的智谱API Key，让AI响应从15秒降到2-3秒！</p>
+    </div>
+    <div class="input-area api-key-config">
+      <div class="api-key-explain">
+        <h3>为什么需要API Key？</h3>
+        <p>默认情况下，AI请求经海外服务器中转，延迟高(15-20秒)。配置API Key后，<strong>AI请求从你的浏览器直连智谱</strong>，响应速度提升10倍！</p>
+        <h3>如何获取？</h3>
+        <ol>
+          <li>访问 <a href="https://open.bigmodel.cn/" target="_blank">open.bigmodel.cn</a> 注册账号</li>
+          <li>进入「API Keys」页面，创建新Key</li>
+          <li>复制Key（格式：<code>xxxxx.yyyyy</code>），粘贴到下方</li>
+        </ol>
+        <p class="api-note">💡 智谱GLM-4-flash免费额度充足，个人使用基本不产生费用。Key仅存储在你的浏览器本地，不会上传服务器。</p>
+      </div>
+      <div class="form-row">
+        <label>智谱API Key</label>
+        <input type="password" id="api-key-input" placeholder="粘贴你的智谱API Key（格式: id.secret）" autocomplete="off">
+      </div>
+      <div class="api-key-actions">
+        <button id="save-api-key-btn" class="primary-btn">💾 保存Key</button>
+        <button id="test-api-key-btn" class="secondary-btn">🧪 测试连接</button>
+        <button id="clear-api-key-btn" class="secondary-btn danger-btn">🗑️ 清除Key</button>
+      </div>
+      <div id="api-key-status" class="api-key-status"></div>
+    </div>
+  </section>
+
+  <!-- 底部 -->
+  <footer class="footer">
+    <p>职慧Agent v1.3.1 · XA-202603 挑战杯揭榜挂帅参赛项目 · 基于 AI 的职业教育岗位技能智能体</p>
+  </footer>
+</div>
+
+<script src="/static/js/zhipu-api.js"></script>
+<script src="/static/js/app.js"></script>
+<script>
+// ============ 前端UX增强 ============
+
+// --- 1. 阅读进度条 ---
+(function() {
+  var progressBar = document.getElementById('reading-progress');
+  function updateProgress() {
+    var scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+    var docHeight = document.documentElement.scrollHeight - document.documentElement.clientHeight;
+    var progress = docHeight > 0 ? (scrollTop / docHeight) * 100 : 0;
+    progressBar.style.width = progress + '%';
+  }
+  window.addEventListener('scroll', updateProgress, { passive: true });
+  window.addEventListener('resize', updateProgress, { passive: true });
+  updateProgress();
+})();
+
+// --- 2. 回到顶部按钮 ---
+(function() {
+  var btn = document.getElementById('back-to-top');
+  function toggleBtn() {
+    var scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+    if (scrollTop > 400) {
+      btn.classList.add('visible');
+    } else {
+      btn.classList.remove('visible');
+    }
+  }
+  window.addEventListener('scroll', toggleBtn, { passive: true });
+  btn.addEventListener('click', function() {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  });
+  toggleBtn();
+})();
+
+// --- 3. 骨架屏加载 ---
+(function() {
+  var mapSkeleton = document.getElementById('map-skeleton');
+  var mapLoading = document.getElementById('map-loading');
+  var pathSkeleton = document.getElementById('path-skeleton');
+  var pathLoading = document.getElementById('path-loading');
+
+n  // 能力图谱骨架屏
+  var origMapBtn = document.getElementById('gen-map-btn');
+  if (origMapBtn) {
+    origMapBtn.addEventListener('click', function() {
+      mapSkeleton.style.display = 'block';
+    });
+  }
+
+  // 监听map-loading和map-result的显示变化
+  var mapObserver = new MutationObserver(function() {
+    if (mapResult.style.display !== 'none' || mapLoading.style.display !== 'none') {
+      mapSkeleton.style.display = 'none';
+    }
+  });
+  mapObserver.observe(mapResult, { attributes: true, attributeFilter: ['style'] });
+  mapObserver.observe(mapLoading, { attributes: true, attributeFilter: ['style'] });
+
+  // 学习路径骨架屏
+  var origPathBtn = document.getElementById('gen-path-btn');
+  if (origPathBtn) {
+    origPathBtn.addEventListener('click', function() {
+      pathSkeleton.style.display = 'block';
+    });
+  }
+
+  var pathResult = document.getElementById('path-result');
+  var pathObserver = new MutationObserver(function() {
+    if (pathResult.style.display !== 'none' || pathLoading.style.display !== 'none') {
+      pathSkeleton.style.display = 'none';
+    }
+  });
+  pathObserver.observe(pathResult, { attributes: true, attributeFilter: ['style'] });
+  pathObserver.observe(pathLoading, { attributes: true, attributeFilter: ['style'] });
+})();
+
+// --- 4. 亮/暗模式切换 ---
+(function() {
+  var toggleBtn = document.getElementById('theme-toggle');
+  var savedTheme = localStorage.getItem('zhihui-theme');
+
+  function applyTheme(mode) {
+    if (mode === 'light') {
+      document.body.classList.add('light-mode');
+      toggleBtn.textContent = '🌙';
+      document.querySelector('meta[name="theme-color"]').content = '#f5f7fb';
+    } else {
+      document.body.classList.remove('light-mode');
+      toggleBtn.textContent = '🌓';
+      document.querySelector('meta[name="theme-color"]').content = '#0f172a';
+    }
+  }
+
+  // 初始化
+  if (savedTheme) {
+    applyTheme(savedTheme);
+  }
+
+  toggleBtn.addEventListener('click', function() {
+    var isLight = document.body.classList.contains('light-mode');
+    var newMode = isLight ? 'dark' : 'light';
+    localStorage.setItem('zhihui-theme', newMode);
+    applyTheme(newMode);
+  });
+})();
+</script>
+<script>
+(function(){
+  var p={path:location.pathname,title:document.title,referrer:document.referrer,duration:0};
+  var d={type:/Mobi|Android|iPhone/i.test(navigator.userAgent)?"mobile":"desktop",screenWidth:screen.width};
+  var b={page:p,device:d,event:"pageview"};
+  navigator.sendBeacon?navigator.sendBeacon("/api/v1/analytics/track",JSON.stringify(b)):fetch("/api/v1/analytics/track",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(b),keepalive:true});
+  var t=Date.now();
+  window.addEventListener("beforeunload",function(){
+    var dur=Math.round((Date.now()-t)/1000);
+    navigator.sendBeacon?navigator.sendBeacon("/api/v1/analytics/track",JSON.stringify({page:{path:location.pathname,title:document.title,referrer:"",duration:dur},device:{},event:"leave"})):void 0;
+  });
+})();
+</script>
+</body>
+</html>

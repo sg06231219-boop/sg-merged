@@ -1,0 +1,6 @@
+User-agent: *
+Allow: /
+Disallow: /api/v1/admin/
+Disallow: /admin
+
+Sitemap: https://zhihui-agent.onrender.com/

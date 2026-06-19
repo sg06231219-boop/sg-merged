@@ -1,0 +1,1701 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>STM32开发 细致教程 — HAL库 + CubeMX</title>
+<style>
+/* ===== CSS Variables & Reset ===== */
+:root {
+  --bg: #0d1117;
+  --bg2: #161b22;
+  --bg3: #21262d;
+  --br: #30363d;
+  --t: #c9d1d9;
+  --t2: #8b949e;
+  --a: #58a6ff;
+  --g: #3fb950;
+  --o: #d2991d;
+  --r: #f85149;
+  --p: #a371f7;
+  --c1: #39c5cf;
+  --nav-h: 60px;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; font-size: 15px; }
+body {
+  background: var(--bg);
+  color: var(--t);
+  font-family: 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  line-height: 1.75;
+  padding-top: var(--nav-h);
+}
+a { color: var(--a); text-decoration: none; }
+a:hover { text-decoration: underline; }
+code, pre { font-family: 'Cascadia Code', 'Consolas', 'Courier New', monospace; }
+img { max-width: 100%; border-radius: 6px; }
+
+/* ===== Navigation ===== */
+.nav-top {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  height: var(--nav-h);
+  background: var(--bg2);
+  border-bottom: 1px solid var(--br);
+  display: flex;
+  align-items: center;
+  padding: 0 24px;
+  gap: 8px;
+  z-index: 1000;
+  backdrop-filter: blur(8px);
+}
+.nav-top .nav-logo {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--a);
+  white-space: nowrap;
+  margin-right: 16px;
+}
+.nav-top .nav-links {
+  display: flex;
+  gap: 4px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  flex: 1;
+}
+.nav-top .nav-links::-webkit-scrollbar { display: none; }
+.nav-top .nav-link {
+  padding: 4px 10px;
+  border-radius: 5px;
+  color: var(--t2);
+  font-size: 0.82rem;
+  white-space: nowrap;
+  transition: background 0.15s, color 0.15s;
+}
+.nav-top .nav-link:hover { background: var(--bg3); color: var(--t); text-decoration: none; }
+.nav-top .nav-link.active { background: var(--bg3); color: var(--a); }
+
+/* ===== Layout ===== */
+.container { max-width: 860px; margin: 0 auto; padding: 32px 20px 80px; }
+
+/* ===== Typography ===== */
+h1 { font-size: 2rem; color: var(--t); margin-bottom: 8px; line-height: 1.3; }
+h2 { font-size: 1.5rem; color: var(--t); margin: 48px 0 16px; padding-bottom: 8px; border-bottom: 1px solid var(--br); }
+h3 { font-size: 1.15rem; color: var(--c1); margin: 28px 0 10px; }
+h4 { font-size: 1rem; color: var(--p); margin: 18px 0 8px; }
+p { margin-bottom: 12px; }
+ul, ol { margin: 8px 0 12px 20px; }
+li { margin-bottom: 4px; }
+strong { color: var(--t); }
+hr { border: none; border-top: 1px solid var(--br); margin: 32px 0; }
+
+/* ===== Code Blocks ===== */
+pre {
+  background: var(--bg2);
+  border: 1px solid var(--br);
+  border-radius: 8px;
+  padding: 16px;
+  overflow-x: auto;
+  font-size: 0.85rem;
+  line-height: 1.6;
+  margin: 12px 0 20px;
+  position: relative;
+}
+code {
+  background: var(--bg3);
+  color: var(--c1);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 0.88em;
+}
+pre code { background: none; color: var(--t); padding: 0; font-size: inherit; }
+.code-title {
+  font-size: 0.75rem;
+  color: var(--t2);
+  margin-bottom: 4px;
+  display: block;
+}
+
+/* ===== Callout Boxes ===== */
+.note, .warn, .tip, .analogy {
+  border-left: 4px solid;
+  padding: 12px 16px;
+  border-radius: 0 8px 8px 0;
+  margin: 16px 0 20px;
+  font-size: 0.92rem;
+}
+.note   { border-color: var(--a);  background: rgba(88,166,255,0.08); }
+.warn   { border-color: var(--o);  background: rgba(210,153,29,0.08); }
+.tip    { border-color: var(--g);  background: rgba(63,185,80,0.08); }
+.analogy { border-color: var(--p); background: rgba(163,113,247,0.08); }
+.note::before   { content: "💡 说明："; font-weight: 700; color: var(--a); }
+.warn::before   { content: "⚠️ 警告："; font-weight: 700; color: var(--o); }
+.tip::before    { content: "✅ 技巧："; font-weight: 700; color: var(--g); }
+.analogy::before { content: "🔮 比喻："; font-weight: 700; color: var(--p); }
+
+/* ===== Cards ===== */
+.card {
+  background: var(--bg2);
+  border: 1px solid var(--br);
+  border-radius: 10px;
+  padding: 18px 20px;
+  margin: 16px 0;
+}
+.card h4 { margin-top: 0; }
+
+/* ===== Step Layout ===== */
+.step { margin: 20px 0; }
+.step-num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px; height: 28px;
+  background: var(--a);
+  color: #fff;
+  border-radius: 50%;
+  font-size: 0.8rem;
+  font-weight: 700;
+  margin-right: 10px;
+  flex-shrink: 0;
+}
+.step-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--t);
+  display: inline;
+}
+
+/* ===== Tags ===== */
+.tag {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  margin-right: 4px;
+}
+.tag-blue   { background: rgba(88,166,255,0.15); color: var(--a); }
+.tag-green  { background: rgba(63,185,80,0.15);  color: var(--g); }
+.tag-orange { background: rgba(210,153,29,0.15); color: var(--o); }
+.tag-red    { background: rgba(248,81,73,0.15);  color: var(--r); }
+.tag-purple { background: rgba(163,113,247,0.15);color: var(--p); }
+.tag-cyan   { background: rgba(57,197,207,0.15);color: var(--c1); }
+
+/* ===== Tables ===== */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 12px 0 20px;
+  font-size: 0.88rem;
+}
+th {
+  background: var(--bg3);
+  color: var(--c1);
+  padding: 10px 12px;
+  text-align: left;
+  border: 1px solid var(--br);
+  font-weight: 600;
+}
+td {
+  padding: 9px 12px;
+  border: 1px solid var(--br);
+  color: var(--t);
+}
+tr:nth-child(even) td { background: rgba(22,27,34,0.5); }
+
+/* ===== Breadcrumb ===== */
+.breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.82rem;
+  color: var(--t2);
+  margin-bottom: 24px;
+  padding: 10px 16px;
+  background: var(--bg2);
+  border: 1px solid var(--br);
+  border-radius: 8px;
+}
+.breadcrumb a { color: var(--t2); }
+.breadcrumb a:hover { color: var(--a); text-decoration: none; }
+.breadcrumb span { color: var(--br); }
+
+/* ===== Section Header ===== */
+.section-hero {
+  background: linear-gradient(135deg, var(--bg2) 0%, var(--bg3) 100%);
+  border: 1px solid var(--br);
+  border-radius: 12px;
+  padding: 28px 32px;
+  margin-bottom: 32px;
+}
+.section-hero .tag { margin-bottom: 8px; }
+.section-hero h1 { font-size: 1.8rem; margin-bottom: 12px; }
+.section-hero p { color: var(--t2); font-size: 0.95rem; margin: 0; }
+
+/* ===== Sidebar TOC ===== */
+.toc {
+  background: var(--bg2);
+  border: 1px solid var(--br);
+  border-radius: 10px;
+  padding: 16px 20px;
+  margin: 20px 0 28px;
+}
+.toc-title { font-size: 0.85rem; font-weight: 700; color: var(--t2); margin-bottom: 10px; text-transform: uppercase; letter-spacing: 1px; }
+.toc a { display: block; padding: 3px 0; font-size: 0.88rem; color: var(--t2); }
+.toc a:hover { color: var(--a); text-decoration: none; }
+.toc .toc-h3 { padding-left: 16px; font-size: 0.82rem; }
+
+/* ===== Diagram/Figure ===== */
+.figure {
+  background: var(--bg2);
+  border: 1px solid var(--br);
+  border-radius: 10px;
+  padding: 20px;
+  margin: 16px 0 20px;
+  text-align: center;
+}
+.figure-caption {
+  font-size: 0.8rem;
+  color: var(--t2);
+  margin-top: 10px;
+}
+
+/* ===== Scrollbar ===== */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--br); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--t2); }
+
+/* ===== Responsive ===== */
+@media (max-width: 600px) {
+  .nav-top .nav-links { display: none; }
+  .container { padding: 20px 14px 60px; }
+  h1 { font-size: 1.5rem; }
+  h2 { font-size: 1.25rem; }
+  pre { font-size: 0.78rem; }
+}
+</style>
+</head>
+<body>
+
+<!-- ========== NAV ========== -->
+<nav class="nav-top">
+  <span class="nav-logo">⚡ STM32 开发教程</span>
+  <div class="nav-links">
+    <a class="nav-link" href="#s1">芯片概览</a>
+    <a class="nav-link" href="#s2">HAL vs LL vs 寄存器</a>
+    <a class="nav-link" href="#s3">CubeMX</a>
+    <a class="nav-link" href="#s4">GPIO</a>
+    <a class="nav-link" href="#s5">UART</a>
+    <a class="nav-link" href="#s6">定时器</a>
+    <a class="nav-link" href="#s7">ADC</a>
+    <a class="nav-link" href="#s8">NVIC中断</a>
+    <a class="nav-link" href="#s9">时钟配置</a>
+    <a class="nav-link" href="#s10">常见问题</a>
+    <a class="nav-link" href="#s11">速查表</a>
+  </div>
+</nav>
+
+<!-- ========== MAIN CONTENT ========== -->
+<div class="container">
+
+<!-- ===== INTRO ===== -->
+<div class="section-hero">
+  <span class="tag tag-blue">嵌入式</span>
+  <span class="tag tag-cyan">HAL库</span>
+  <span class="tag tag-green">CubeMX</span>
+  <h1>STM32 开发 细致教程</h1>
+  <p>基于 STM32F103C8T6，从芯片架构到外设实战，面向小白的保姆级指南 🚀</p>
+</div>
+
+<div class="toc">
+  <div class="toc-title">📑 目录导航</div>
+  <a href="#s1">1. 芯片概览</a>
+  <a href="#s2">2. HAL vs LL vs 寄存器</a>
+  <a href="#s3">3. CubeMX 使用</a>
+  <a href="#s4">4. GPIO 操作</a>
+  <a href="#s5">5. UART 通信</a>
+  <a href="#s6">6. 定时器</a>
+  <a href="#s7">7. ADC</a>
+  <a href="#s8">8. NVIC 中断</a>
+  <a href="#s9">9. 时钟配置</a>
+  <a href="#s10">10. 常见问题</a>
+  <a href="#s11">11. 速查表</a>
+</div>
+
+<!-- ===== SECTION 1 ===== -->
+<section id="s1">
+<h2>1. STM32F103C8T6 芯片概览</h2>
+
+<h3>1.1 先认识这块芯片</h3>
+<p>STM32F103C8T6 是<strong>意法半导体（STMicroelectronics）</strong>推出的 32 位 ARM Cortex-M3 微控制器，"C8T6" 这几个字符包含了它的关键信息：</p>
+<ul>
+  <li><strong>C</strong> = Cortex-M 内核</li>
+  <li><strong>8</strong> = 64KB Flash 内存（对应 8×8KB，经典蓝色小板用这个）</li>
+  <li><strong>T</strong> = LQFP 封装（48 引脚）</li>
+  <li><strong>6</strong> = 工业级温度范围（-40~85°C）</li>
+</ul>
+<div class="analogy">想象一块芯片就是一个微型"电脑主板"，CPU 是大脑（72MHz），内存条是 Flash（64KB），内存是 RAM（20KB），各种外设就像 USB、网口、摄像头接口等——只不过这一切都集成在指甲盖大小的芯片里。</div>
+
+<h3>1.2 系统架构（Cortex-M3）</h3>
+<div class="figure">
+<pre style="text-align:left; font-size:0.82rem; color: var(--t2); background: none; border: none; padding: 0;">
+┌──────────────────────────────────────────────────┐
+│              <strong style="color:var(--a)">Cortex-M3 Core</strong>                      │
+│  ┌─────────┐  ┌──────────┐  ┌─────────────────┐  │
+│  │  Core   │  │  SysTick │  │   NVIC          │  │
+│  │ Register│  │  Timer   │  │  (中断控制器)   │  │
+│  └─────────┘  └──────────┘  └─────────────────┘  │
+└────────────────────┬───────────────────────────────┘
+                    │ ICode/DCode/System Bus
+         ┌──────────┴──────────┐
+         │   <strong style="color:var(--g)">AHB Bus Matrix</strong>      │
+         │  (高速总线矩阵)      │
+    ┌────┴────┐         ┌────┴────┐
+    │ APB2    │         │ APB1    │
+    │ (高速)  │         │ (低速)  │
+    │ 72MHz   │         │ 36MHz   │
+    ├─────────┤         ├─────────┤
+    │GPIO A~E │         │UART1~5  │
+    │ADC1/2   │         │SPI1~2   │
+    │EXTI     │         │I2C1~2   │
+    │Timer1/2 │         │Timer3~7 │
+    │USART1   │         │CAN      │
+    └─────────┘         └─────────┘
+</pre>
+<div class="figure-caption">STM32F103 系统架构简图（APB2 高速，APB1 低速）</div>
+</div>
+
+<h3>1.3 内存映射</h3>
+<p>ARM Cortex-M3 使用统一的 4GB 地址空间（32 位地址总线），地址分配如下：</p>
+<table>
+  <tr><th>区域</th><th>地址范围</th><th>大小</th><th>说明</th></tr>
+  <tr><td>Code 区</td><td>0x0000 0000 ~ 0x1FFF FFFF</td><td>512MB</td><td>Flash 起始于 0x0800 0000</td></tr>
+  <tr><td>SRAM 区</td><td>0x2000 0000 ~ 0x3FFF FFFF</td><td>512MB</td><td>RAM 起始于 0x2000 0000（20KB）</td></tr>
+  <tr><td>外设区</td><td>0x4000 0000 ~ 0x5FFF FFFF</td><td>512MB</td><td>GPIO、UART、TIM、ADC 等寄存器</td></tr>
+  <tr><td>内核外设</td><td>0xE000 0000 ~ 0xE00F FFFF</td><td>1MB</td><td>NVIC、SCB、SysTick（仅内核使用）</td></tr>
+</table>
+<pre><code>// 常见寄存器地址（STM32F103）
+#define FLASH_BASE     0x08000000UL  // Flash 起始地址
+#define SRAM_BASE      0x20000000UL  // SRAM 起始地址
+#define PERIPH_BASE    0x40000000UL  // 外设基地址
+
+// GPIOA 基地址
+#define GPIOA_BASE    (PERIPH_BASE + 0x00010800UL)  // = 0x40010800
+</code></pre>
+<div class="note">在寄存器开发方式下，这些地址会频繁用到。HAL 库把这些地址封装成了结构体指针，间接访问即可。</div>
+
+<h3>1.4 时钟树</h3>
+<div class="figure">
+<pre style="text-align:left; font-size:0.82rem; color:var(--t2); background:none; border:none; padding:0;">
+         ┌──────────────┐
+         │  HSI (8MHz)  │──┐
+         └──────────────┘  │
+         ┌──────────────┐  │   ┌───────┐
+         │  HSE (8MHz)  │──┼──▶│       │
+         │  (外部晶振)   │  │   │  PLL  │──▶ SYSCLK (72MHz)
+         └──────────────┘  └──▶│       │     │
+                                └───────┘     │
+                                ┌────────┐    │
+                                │  MCO   │    │
+                                │ 输出   │    ▼
+                                └────────┘  ┌────────┐
+                                             │ AHB    │──▶ APB2 (72MHz)
+  外部晶振引脚:                               │ Prescaler│──▶ APB1 (36MHz)
+  OSC_IN = PA8 (接晶振+)                      └────────┘    └▶ ADC (12MHz)
+  OSC_OUT = PC14
+</pre>
+<div class="figure-caption">时钟树简化图（SYSCLK 最大 72MHz）</div>
+</div>
+
+<h3>1.5 外设清单速览</h3>
+<table>
+  <tr><th>外设</th><th>数量</th><th>挂载总线</th><th>关键特性</th></tr>
+  <tr><td>GPIO</td><td>Port A~E</td><td>APB2</td><td>每个端口 16 个引脚，支持推挽/开漏</td></tr>
+  <tr><td>USART</td><td>3 路</td><td>APB2(1)/APB1(2,3)</td><td>最高 4.5Mbps，支持 DMA/中断</td></tr>
+  <tr><td>SPI</td><td>2 路</td><td>APB2</td><td>最高 18MHz，全双工/半双工</td></tr>
+  <tr><td>I2C</td><td>2 路</td><td>APB1</td><td>支持 SMBus/PMBus</td></tr>
+  <tr><td>TIM</td><td>4×16bit + 2×16bit+</td><td>APB2/APB1</td><td>PWM/输入捕获/输出比较</td></tr>
+  <tr><td>ADC</td><td>2×12bit</td><td>APB2</td><td>10+1 通道，1μs 转换时间</td></tr>
+  <tr><td>DMA</td><td>2 通道控制器</td><td>AHB</td><td>7 通道（DMA1）+ 5 通道（DMA2）</td></tr>
+  <tr><td>NVIC</td><td>43 中断源</td><td>内核</td><td>16 个优先级，可嵌套</td></tr>
+  <tr><td>CAN</td><td>1 路</td><td>APB1</td><td>2.0A/B 兼容，1Mbps</td></tr>
+  <tr><td>USB</td><td>1 路</td><td>APB2</td><td>2.0 全速，FS 设备</td></tr>
+</table>
+<div class="tip">初学者最常用的外设：GPIO、USART、TIM、ADC。先掌握这四个，其他按需学习。</div>
+</section>
+
+<!-- ===== SECTION 2 ===== -->
+<section id="s2">
+<h2>2. HAL 库 vs LL 库 vs 寄存器</h2>
+
+<h3>2.1 三种开发方式对比</h3>
+<table>
+  <tr><th>对比维度</th><th>寄存器</th><th>HAL 库</th><th>LL 库</th></tr>
+  <tr><td>代码层级</td><td>直接写硬件寄存器</td><td>封装层，跨平台</td><td>轻量封装，近寄存器</td></tr>
+  <tr><td>学习难度</td><td>⭐⭐⭐⭐⭐ 难</td><td>⭐⭐ 简单</td><td>⭐⭐⭐ 中等</td></tr>
+  <tr><td>代码体积</td><td>最小</td><td>较大</td><td>较小</td></tr>
+  <tr><td>执行效率</td><td>最高</td><td>中等（有开销）</td><td>接近寄存器</td></tr>
+  <tr><td>可读性</td><td>低（数字魔数多）</td><td>高（函数名语义清晰）</td><td>中等</td></tr>
+  <tr><td>CubeMX 支持</td><td>手动</td><td>✅ 完全支持</td><td>✅ 完全支持</td></tr>
+  <tr><td>典型场景</td><td>研究、极致优化</td><td>产品开发、快速原型</td><td>中等性能需求</td></tr>
+</table>
+
+<h3>2.2 代码示例对比</h3>
+<div class="card">
+<h4>方式一：直接操作寄存器（点灯）</h4>
+<pre><code>// 开启 GPIOA 时钟
+*(volatile uint32_t *)(0x40021000 + 0x18) |= (1 << 2);
+
+// 配置 PA1 为输出（推挽，50MHz）
+*(volatile uint32_t *)(0x40010800 + 0x00) &= ~(0xF << 4);   // CRL 清零
+*(volatile uint32_t *)(0x40010800 + 0x00) |=  (0x3 << 4);   // CNF=00, MODE=11
+
+// 输出高电平（点亮 LED）
+*(volatile uint32_t *)(0x40010800 + 0x0C) |= (1 << 1);
+</code></pre>
+</div>
+
+<div class="card">
+<h4>方式二：HAL 库（点灯）</h4>
+<pre><code>// 初始化
+MX_GPIO_Init();  // CubeMX 自动生成
+
+// 点灯/灭灯
+HAL_GPIO_WritePin(GPIOA, GPIO_PIN_1, GPIO_PIN_SET);   // PA1 输出高
+HAL_GPIO_WritePin(GPIOA, GPIO_PIN_1, GPIO_PIN_RESET); // PA1 输出低
+HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_1);                 // 电平翻转
+</code></pre>
+</div>
+
+<div class="card">
+<h4>方式三：LL 库（点灯）</h4>
+<pre><code>// 手动初始化
+LL_AHB2_GRP1_EnableClock(LL_AHB2_GRP1_PERIPH_GPIOA);
+LL_GPIO_SetPinMode(GPIOA, LL_GPIO_PIN_1, LL_GPIO_MODE_OUTPUT);
+LL_GPIO_SetPinSpeed(GPIOA, LL_GPIO_PIN_1, LL_GPIO_SPEED_FREQ_HIGH);
+
+// 读写
+LL_GPIO_SetOutputPin(GPIOA, LL_GPIO_PIN_1);
+LL_GPIO_ResetOutputPin(GPIOA, LL_GPIO_PIN_1);
+</code></pre>
+</div>
+
+<h3>2.3 何时用哪种？</h3>
+<div class="tip">
+  <strong>推荐学习路径：</strong>寄存器原理 → HAL 库 → LL 库<br>
+  <strong>实际工作：</strong>90% 的项目选 HAL 库，配合 CubeMX 效率最高。<br>
+  <strong>需要极致性能：</strong>中断频繁、实时性极高的场景可考虑 LL 库或寄存器。
+</div>
+<div class="note">本教程后续所有示例均使用 <strong>HAL 库 + CubeMX</strong>，这是目前最主流的入门组合。</div>
+</section>
+
+<!-- ===== SECTION 3 ===== -->
+<section id="s3">
+<h2>3. STM32CubeMX 使用详解</h2>
+
+<h3>3.1 软件安装</h3>
+<h4>需要安装的组件</h4>
+<ol>
+  <li><strong>Java 运行环境（JRE）</strong> — CubeMX 基于 Java，约 80MB</li>
+  <li><strong>STM32CubeMX</strong> — <a href="https://www.st.com/en/development-tools/stm32cubemx.html" target="_blank">官网下载</a>，安装包约 200MB</li>
+  <li><strong>STM32F1 HAL 固件包</strong> — 首次新建项目时会提示下载，或手动通过 Help → Embedded Software Packages 安装</li>
+  <li><strong>Keil MDK / IAR / VS Code + platform.io</strong> — 至少安装一个编译工具链</li>
+</ol>
+<pre><code>推荐组合（入门最优解）：
+  CubeMX 6.x + Keil MDK 5.xx + STM32F1xx_HAL_Driver
+</code></pre>
+
+<h3>3.2 新建项目</h3>
+<div class="step">
+  <span class="step-num">1</span>
+  <span class="step-title">打开 CubeMX，点击 "ACCESS TO MCU SELECTOR"</span>
+</div>
+<div class="figure">
+<pre style="text-align:left; font-size:0.82rem; color:var(--t2); background:none; border:none; padding:4px;">
+┌────────────────────────────────────────────────────────┐
+│   STM32CubeMX  —  Project Manager                      │
+│                                                        │
+│  [ ACCESS TO MCU SELECTOR ]  ← 点击这里选芯片          │
+│  [ ACCESS TO BOARD SELECTOR ]                          │
+│                                                        │
+│  Recent MCUs:  STM32F103C8Tx  ...                      │
+└────────────────────────────────────────────────────────┘
+</pre>
+</div>
+
+<div class="step">
+  <span class="step-num">2</span>
+  <span class="step-title">在 MCU Selector 搜索 "STM32F103C8T6"，双击选中</span>
+</div>
+<div class="note">搜索框输入 "F103C8" 即可。注意封装（Package）列显示 <strong>LQFP48</strong>。</div>
+
+<div class="step">
+  <span class="step-num">3</span>
+  <span class="step-title">选择芯片后，进入 Pinout & Configuration 标签页</span>
+</div>
+
+<h3>3.3 引脚配置</h3>
+<p>CubeMX 提供了<strong>点击引脚</strong>的可视化配置方式。鼠标点击芯片引脚，会弹出功能选择菜单：</p>
+<pre><code>常用配置示例：
+  PA1  → 点击 → GPIO_Output        （推挽输出，默认用于 LED）
+  PA0  → 点击 → GPIO_Input         （按键输入）
+  PA9  → 点击 → USART1_TX          （串口发送）
+  PA10 → 点击 → USART1_RX          （串口接收）
+  PA5  → 点击 → TIM2_CH1           （定时器通道）
+  PA1  → 点击 → ADC1_IN1           （ADC 通道）
+</code></pre>
+<div class="tip">也可以在左侧 <strong>System Core → GPIO</strong> 面板中批量配置所有引脚的上下拉、速度、模式。</div>
+
+<h3>3.4 时钟配置</h3>
+<p>点击 <strong>Clock Configuration</strong> 标签，进入时钟树图形配置界面：</p>
+<div class="figure">
+<pre style="text-align:left; font-size:0.78rem; color:var(--t2); background:none; border:none; padding:4px;">
+  HSI (8MHz) ──────────────────────────┐
+                                      │
+  HSE (8MHz) ──── ▶ PLL ──── SYSCLK ──▶ HCLK (72MHz)
+  (外部晶振)          │          │         │
+                      │          │    ┌─────┴─────┐
+                      │          │    │           │
+                   USB Div      APB1   APB2       ADC
+                  (48MHz)     (36Hz)  (72MHz)   (12MHz)
+</pre>
+<div class="figure-caption">时钟树：72MHz 系统时钟，HCLK=72MHz，APB1=36MHz，APB2=72MHz</div>
+</div>
+<ol>
+  <li>如果使用外部晶振（HSE），在 <strong>RCC → High Speed Clock (HSE)</strong> 下拉选 <code>Crystal/Ceramic Resonator</code></li>
+  <li>在 Clock Configuration 界面，PLL Source Mux 选 <code>HSE</code></li>
+  <li>PLL Multiplier 设置为 <code>9</code>（8MHz × 9 = 72MHz）</li>
+  <li>APB1 Prescaler 选 <code>/2</code>（因为 APB1 最大只支持 36MHz）</li>
+</ol>
+
+<h3>3.5 外设配置</h3>
+<h4>GPIO 配置</h4>
+<table>
+  <tr><th>参数</th><th>可选值</th><th>说明</th></tr>
+  <tr><td>GPIO output level</td><td>High / Low</td><td>默认输出电平</td></tr>
+  <tr><td>GPIO mode</td><td>Output Push-Pull / Output Open-Drain</td><td>推挽 vs 开漏</td></tr>
+  <tr><td>GPIO Pull-up/Pull-down</td><td>No pull-up / Pull-down / Pull-up</td><td>上下拉电阻</td></tr>
+  <tr><td>GPIO maximum output speed</td><td>Low / Medium / High / Very High</td><td>输出速度（影响 EMI 和功耗）</td></tr>
+  <tr><td>User Label</td><td>自定义字符串</td><td>生成代码中的引脚别名（如 LED_Pin）</td></tr>
+</table>
+
+<h4>USART 配置</h4>
+<pre><code>Mode:  Asynchronous（异步，不接时钟线，仅 TX/RX 两根）
+
+参数设置：
+  Baud Rate:     115200
+  Word Length:  8 Bits
+  Parity:        None
+  Stop Bits:     1
+  Data Direction: Transmit and Receive
+</code></pre>
+
+<h4>TIM 配置</h4>
+<pre><code>定时器中断基本配置（以 TIM2 为例）：
+  Prescaler:       7200-1  → PSC = 72MHz / 7200 = 10kHz 计数频率
+  Counter Period:  1000-1  → 每 1000 个计数 = 1000/10kHz = 100ms 中断一次
+  Internal Clock
+  勾选:  ✅ Global Interrupt
+</code></pre>
+
+<h4>ADC 配置</h4>
+<pre><code>模式选择：
+  Mode:  Independent mode（独立模式，使用 ADC1）
+
+参数设置：
+  Clock Prescaler:    PCLK2 / 6 （12MHz）
+  Resolution:         12-bit
+  Scan Conversion:    Enabled（多通道）
+  Continuous Conv:   Disabled（单次转换后停止）
+  DMA Continuous Req: Enabled（配合 DMA 使用）
+  勾选:  ✅ Regular Conversion(s) - Continuous Conversion Mode
+</code></pre>
+
+<h3>3.6 代码生成</h3>
+<p>点击 <strong>Project Manager</strong> 标签，设置项目：</p>
+<pre><code>Project 配置：
+  Project Name:        MyProject
+  Project Location:    D:\STM32\MyProject
+  Toolchain / IDE:     MDK-ARM (Keil) / STM32CubeIDE / Makefile
+
+  ⚠ 重要：勾选
+    ✅ Generate peripheral initialization as a pair of .c/.h files
+    ☐ Do not generate the main() function body  ← 不要勾这个
+</code></pre>
+<div class="tip">生成后，Keil 项目文件 (.uvprojx) 在 <code>MDK-ARM</code> 文件夹下，双击打开即可。</div>
+
+<h3>3.7 USER CODE 区域规则（最重要！）</h3>
+<p>CubeMX 重新生成代码时会<strong>保留</strong>标记区域内的内容，但会<strong>覆盖</strong>其他区域：</p>
+<pre><code>/* USER CODE BEGIN xxx */          ← 你写代码放这里 ✅
+void SystemClock_Config(void) {
+    // CubeMX 生成，勿手动修改
+}
+int main(void) {
+    HAL_Init();
+    SystemClock_Config();
+    MX_GPIO_Init();           // CubeMX 生成
+    MX_USART1_UART_Init();   // CubeMX 生成
+    /* USER CODE BEGIN 2 */    // ← ✅ 安全区
+    // 你的代码写这里
+    /* USER CODE END 2 */
+    while (1) {
+        /* USER CODE BEGIN 3 */
+        // 你的循环代码
+        /* USER CODE END 3 */
+    }
+}
+/* USER CODE END xxx */          ← 你写代码放这里 ✅
+</code></pre>
+<div class="warn">
+  <strong>红线警告：</strong>不要在 BEGIN/END 注释<strong>之外</strong>写自己的代码，否则下次用 CubeMX 重新生成代码时会被清空！<br>
+  <strong>安全区：</strong>所有用户代码只能写在 <code>/* USER CODE BEGIN */</code> 和 <code>/* USER CODE END */</code> 之间。
+</div>
+<div class="analogy">USER CODE 区域就像租房子——CubeMX 是房东，他负责装修框架（系统初始化），但给你留了几个房间（USER CODE 区）可以自由装修。下次房东重新装修（重新生成代码）时，只动公共区域，你租的房间完好无损。</div>
+</section>
+
+<!-- ===== SECTION 4 ===== -->
+<section id="s4">
+<h2>4. GPIO 操作</h2>
+
+<h3>4.1 推挽输出 — 点灯</h3>
+<p>GPIO 最基本的用法是输出模式，用来驱动 LED。电路通常是 LED 正极接 IO 口，负极通过电阻接地，IO 输出高时灯灭，输出低时灯亮（低电平点亮）：</p>
+<div class="card">
+<h4>CubeMX 配置</h4>
+<pre><code>PA1 → GPIO_Output
+User Label: LED_Pin  （会生成 LED_Pin 常量，代码更易读）
+
+其他参数保持默认：
+  GPIO output level:  Low（默认灭灯）
+  GPIO mode:           Output Push-Pull
+  GPIO Pull-up/Pull-down: No pull-up
+  Maximum output speed: Low（LED 不需要高速）
+</code></pre>
+</div>
+
+<div class="card">
+<h4>main.c 代码</h4>
+<pre><code>/* USER CODE BEGIN 0 */
+#include "stdio.h"  // 后面 printf 重定向用
+/* USER CODE END 0 */
+
+// --- main() 中 ---
+/* USER CODE BEGIN 2 */
+printf("LED Demo Started!\r\n");
+/* USER CODE END 2 */
+
+while (1) {
+    /* USER CODE BEGIN 3 */
+    HAL_GPIO_WritePin(GPIOA, LED_Pin, GPIO_PIN_SET);   // PA1 = 高 → 灯灭
+    HAL_Delay(500);                                     // 延时 500ms
+    HAL_GPIO_WritePin(GPIOA, LED_Pin, GPIO_PIN_RESET); // PA1 = 低 → 灯亮
+    HAL_Delay(500);
+    /* USER CODE END 3 */
+}
+</code></pre>
+</div>
+<div class="note">
+  <code>HAL_Delay()</code> 是基于 SysTick 的阻塞延时，精度不高但够用。它内部调用了 <code>HAL_IncTick()</code>，由 <code>Systick_IRQHandler</code> 每 1ms 中断驱动。
+</div>
+
+<h3>4.2 按键输入 + 软件消抖</h3>
+<p>机械按键在按下/松开瞬间会产生<strong>接触抖动</strong>（约 5~10ms），软件消抖的思路是：检测到低电平后，延时 10~20ms 再确认一次，避免误判。</p>
+<div class="card">
+<h4>CubeMX 配置</h4>
+<pre><code>PA0 → GPIO_Input
+User Label: KEY_Pin
+
+GPIO mode: External Interrupt with Falling edge trigger
+  （注意：这里选中断模式，不是普通输入模式！）
+
+Pull-up:  按键一端接地，另一端接 PA0，开启上拉 → 按下=低，松开=高
+</code></pre>
+</div>
+<div class="figure">
+<pre style="text-align:left; font-size:0.82rem; background:none; border:none; color:var(--t2); padding:4px;">
+电路接法：
+   3.3V ──┤├──── PA0（配置上拉，内部弱上拉到高）
+              │
+            KEY
+              │
+             GND
+
+按下 KEY → PA0 被短路到 GND → 低电平（按键按下）
+松开 KEY → 内部上拉电阻将 PA0 拉回高 → 高电平（按键松开）
+</pre>
+</div>
+
+<div class="card">
+<h4>按键消抖代码</h4>
+<pre><code>// --- 方式1：轮询方式（简单，但占用 CPU）---
+#define KEY_DEBOUNCE_MS  20
+
+if (HAL_GPIO_ReadPin(GPIOA, KEY_Pin) == GPIO_PIN_RESET) {
+    HAL_Delay(KEY_DEBOUNCE_MS);  // 等待抖动消失
+    if (HAL_GPIO_ReadPin(GPIOA, KEY_Pin) == GPIO_PIN_RESET) {
+        // 确认按键确实被按下
+        HAL_GPIO_TogglePin(GPIOA, LED_Pin);
+        // 等待按键松开，避免连击
+        while (HAL_GPIO_ReadPin(GPIOA, KEY_Pin) == GPIO_PIN_RESET);
+    }
+}
+
+// --- 方式2：使用标志位（更好的方式）---
+static uint8_t key_pressed = 0;
+
+if (HAL_GPIO_ReadPin(GPIOA, KEY_Pin) == GPIO_PIN_RESET && !key_pressed) {
+    HAL_Delay(20);
+    if (HAL_GPIO_ReadPin(GPIOA, KEY_Pin) == GPIO_PIN_RESET) {
+        key_pressed = 1;
+        HAL_GPIO_TogglePin(GPIOA, LED_Pin);
+    }
+} else if (HAL_GPIO_ReadPin(GPIOA, KEY_Pin) == GPIO_PIN_SET) {
+    key_pressed = 0;
+}
+</code></pre>
+</div>
+
+<h3>4.3 外部中断</h3>
+<p>当 CubeMX 配置引脚为 <strong>External Interrupt</strong> 时，需要在中断处理函数中响应事件：</p>
+
+<div class="card">
+<h4>CubeMX 配置</h4>
+<pre><code>PA0 → GPIO_Exti0（自动映射到 EXTI0 中断线）
+
+NVIC Settings：
+  ✅ EXTI0_IRQHandler  ← 勾选使能（否则不会进中断）
+</code></pre>
+</div>
+
+<div class="card">
+<h4>中断处理函数（stm32f1xx_it.c）</h4>
+<pre><code>// CubeMX 自动生成回调函数
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
+{
+    if (GPIO_Pin == KEY_Pin) {
+        // 这里写按键中断的处理逻辑
+        HAL_GPIO_TogglePin(GPIOA, LED_Pin);
+    }
+}
+
+// CubeMX 生成的底层中断服务程序（不要修改）
+void EXTI0_IRQHandler(void)
+{
+    HAL_GPIO_EXTI_IRQHandler(KEY_Pin);  // 会调用上面的 Callback
+}
+</code></pre>
+</div>
+<div class="warn">中断回调函数中 <strong>不要使用 HAL_Delay()</strong>！因为 HAL_Delay 本身依赖 SysTick 中断，如果在中断中调用，而该中断优先级 ≤ SysTick，可能导致死锁。</div>
+
+<h3>4.4 复用功能（AFIO）</h3>
+<p>STM32 的 GPIO 引脚可以通过<strong>复用功能（Alternate Function）</strong>连接到片上外设：</p>
+<pre><code>GPIO 引脚的工作模式（共 8 种）：
+
+输入模式：
+  - 浮空输入        GPIO_Mode_IN_FLOATING
+  - 上拉输入        GPIO_Mode_IPU
+  - 下拉输入        GPIO_Mode_IPD
+  - 模拟输入        GPIO_Mode_AIN    （ADC 用）
+
+输出模式：
+  - 推挽输出        GPIO_Mode_Out_PP
+  - 开漏输出        GPIO_Mode_Out_OD
+
+复用模式：
+  - 复用推挽输出    GPIO_Mode_AF_PP   （外设控制，如 USART TX）
+  - 复用开漏输出    GPIO_Mode_AF_OD
+</code></pre>
+<div class="note">CubeMX 配置引脚功能后，会自动配置对应的复用功能，无需手动设置 AFIO 寄存器。</div>
+</section>
+
+<!-- ===== SECTION 5 ===== -->
+<section id="s5">
+<h2>5. UART 通信</h2>
+
+<h3>5.1 基础概念</h3>
+<div class="analogy">UART（通用异步收发传输器）就像两个人隔空喊话，不需要约定说话节奏（异步），但需要说同一种方言（相同的波特率）。TX 发送，RX 接收，接线时交叉连接（TX 接对方的 RX）。</div>
+<table>
+  <tr><th>参数</th><th>常见值</th><th>说明</th></tr>
+  <tr><td>波特率</td><td>9600 / 115200</td><td>每秒传输的位数，最常用 115200</td></tr>
+  <tr><td>数据位</td><td>8 / 9</td><td>一帧中的有效数据位数</td></tr>
+  <tr><td>停止位</td><td>1 / 2</td><td>表示一帧结束</td></tr>
+  <tr><td>校验位</td><td>None / Odd / Even</td><td>奇偶校验</td></tr>
+</table>
+
+<h3>5.2 初始化</h3>
+<div class="card">
+<h4>CubeMX 配置</h4>
+<pre><code>USART1：
+  Mode: Asynchronous
+  Baud Rate: 115200
+  Word Length: 8 Bits
+  Parity: None
+  Stop Bits: 1
+
+引脚自动配置：
+  PA9  → USART1_TX
+  PA10 → USART1_RX
+
+NVIC Settings：
+  ✅ USART1_IRQHandler  ← 勾选（使用中断时需要）
+</code></pre>
+</div>
+
+<div class="card">
+<h4>CubeMX 生成的初始化（main.c）</h4>
+<pre><code>void MX_USART1_UART_Init(void)
+{
+    huart1.Instance = USART1;
+    huart1.Init.BaudRate = 115200;
+    huart1.Init.WordLength = UART_WORDLENGTH_8B;
+    huart1.Init.StopBits = UART_STOPBITS_1;
+    huart1.Init.Parity = UART_PARITY_NONE;
+    huart1.Init.Mode = UART_MODE_TX_RX;
+    huart1.Init.HwFlowCtl = UART_HWCONTROL_NONE;
+    huart1.Init.OverSampling = UART_OVERSAMPLING_16;
+    if (HAL_UART_Init(&huart1) != HAL_OK) {
+        Error_Handler();
+    }
+}
+</code></pre>
+</div>
+
+<h3>5.3 发送与接收（阻塞方式）</h3>
+<pre><code>// 发送一个字符串（阻塞，直到发送完成）
+char msg[] = "Hello STM32!\r\n";
+HAL_UART_Transmit(&huart1, (uint8_t *)msg, strlen(msg), HAL_MAX_DELAY);
+
+// 发送单个字符
+HAL_UART_Transmit(&huart1, (uint8_t *)"A", 1, 100);
+
+// 接收一个字符（阻塞，直到接收到数据）
+uint8_t ch;
+HAL_UART_Receive(&huart1, &ch, 1, HAL_MAX_DELAY);
+</code></pre>
+
+<h3>5.4 中断接收（非阻塞）</h3>
+<p>使用中断接收可以避免 CPU 阻塞等待，当数据到来时自动触发中断：</p>
+<pre><code>/* USER CODE BEGIN 0 */
+// 定义接收缓冲区
+#define RX_BUF_SIZE 64
+uint8_t rx_buffer[RX_BUF_SIZE];
+volatile uint8_t rx_index = 0;
+/* USER CODE END 0 */
+
+// --- main() 初始化后开启第一次中断接收 ---
+/* USER CODE BEGIN 2 */
+HAL_UART_Receive_IT(&huart1, &rx_buffer[rx_index], 1);
+/* USER CODE END 2 */
+
+// --- 实现接收中断回调函数 ---
+/* USER CODE BEGIN 4 */
+void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
+{
+    if (huart->Instance == USART1) {
+        // 接收到换行符表示一帧数据结束
+        if (rx_buffer[rx_index] == '\n') {
+            rx_buffer[rx_index] = '\0';  // 字符串结束
+            printf("Received: %s\r\n", rx_buffer);
+            rx_index = 0;  // 清空缓冲区，准备下一帧
+        } else {
+            rx_index++;
+            if (rx_index >= RX_BUF_SIZE) rx_index = 0;  // 防止溢出
+        }
+        // 继续接收下一个字节
+        HAL_UART_Receive_IT(&huart1, &rx_buffer[rx_index], 1);
+    }
+}
+/* USER CODE END 4 */
+</code></pre>
+<div class="warn">每次调用 <code>HAL_UART_Receive_IT()</code> 只接收 <strong>1 个字节</strong>，收到后需要<strong>再次调用</strong>才能继续接收下一字节。</div>
+
+<h3>5.5 DMA 接收（最高效）</h3>
+<p>DMA（直接内存访问）允许外设直接和内存交换数据，不占用 CPU：</p>
+<pre><code>// CubeMX 配置：
+// DMA Settings → USART1_RX → Request: USART1_RX
+//   Mode: Circular（循环模式）或 Normal（一次）
+//   Increment Address: Memory ✓
+
+// --- DMA 初始化（CubeMX 自动生成）---
+/* USER CODE BEGIN 0 */
+#define RX_DMA_BUF_SIZE  100
+uint8_t dma_rx_buf[RX_DMA_BUF_SIZE];
+/* USER CODE END 0 */
+
+// --- 启动 DMA 接收（main 中）---
+/* USER CODE BEGIN 2 */
+memset(dma_rx_buf, 0, RX_DMA_BUF_SIZE);
+HAL_UART_Receive_DMA(&huart1, dma_rx_buf, RX_DMA_BUF_SIZE);
+__HAL_UART_ENABLE_IT(&huart1, UART_IT_IDLE);  // 开启空闲中断检测帧结束
+/* USER CODE END 2 */
+
+// --- USART1 中断处理函数（stm32f1xx_it.c）---
+void USART1_IRQHandler(void)
+{
+    HAL_UART_IRQHandler(&huart1);
+    // 空闲中断回调
+    if (__HAL_UART_GET_FLAG(&huart1, UART_FLAG_IDLE)) {
+        __HAL_UART_CLEAR_IDLEFLAG(&huart1);
+        // 计算接收到的数据长度
+        uint16_t len = RX_DMA_BUF_SIZE - __HAL_DMA_GET_COUNTER(huart1.hdmarx);
+        printf("DMA received %d bytes: %s\r\n", len, dma_rx_buf);
+        memset(dma_rx_buf, 0, RX_DMA_BUF_SIZE);
+    }
+}
+</code></pre>
+
+<h3>5.6 printf 重定向（最常用）</h3>
+<p>有了 printf，就可以像在 PC 上编程一样输出调试信息了：</p>
+<pre><code>/* USER CODE BEGIN 0 */
+#include "stdio.h"
+#include "string.h"
+/* USER CODE END 0 */
+
+/* USER CODE BEGIN 4 */
+// 重写 fgetc（如果需要 scanf）
+// 重写 fputc（printf 输出到串口）
+int fputc(int ch, FILE *f)
+{
+    HAL_UART_Transmit(&huart1, (uint8_t *)&ch, 1, HAL_MAX_DELAY);
+    return ch;
+}
+
+// 可选：重写 fgetc 实现 scanf 功能
+int fgetc(FILE *f)
+{
+    uint8_t ch;
+    HAL_UART_Receive(&huart1, &ch, 1, HAL_MAX_DELAY);
+    return ch;
+}
+/* USER CODE END 4 */
+</code></pre>
+<div class="note">加上 <code>#include "stdio.h"</code> 后，就可以在代码里使用 <code>printf("value=%d\r\n", val);</code> 了！</div>
+</section>
+
+<!-- ===== SECTION 6 ===== -->
+<section id="s6">
+<h2>6. 定时器</h2>
+
+<h3>6.1 基本概念</h3>
+<p>STM32 的定时器本质上是一个<strong>计数器</strong>，在时钟驱动下不断递增，当计数值达到预设的自动重装载值（ARR）时触发更新事件，可以产生中断或 DMA 请求：</p>
+<pre><code>定时周期计算公式：
+  Tout = (ARR + 1) × (PSC + 1) / Tclk
+
+其中：
+  Tclk  = APB 总线时钟频率（STM32F103 = 72MHz）
+  PSC   = 预分频系数（分频器，将 72MHz 降频）
+  ARR   = 自动重装载值（计数器上限）
+  Tout  = 溢出周期（秒）
+
+例如：产生 1Hz 定时（每秒中断一次）
+  Tclk = 72MHz, PSC = 7200-1, ARR = 10000-1
+  计数频率 = 72MHz / 7200 = 10kHz
+  周期 = 10000 / 10kHz = 1 秒 ✅
+</code></pre>
+
+<h3>6.2 基本定时中断</h3>
+<div class="card">
+<h4>CubeMX 配置（TIM2）</h4>
+<pre><code>Timers → TIM2：
+  Internal Clock（APB1 Timer Clocks = 72MHz）
+  Prescaler:         7200-1
+  Counter Period:     1000-1
+  ✅ Global Interrupt → TIM2_IRQn 勾选
+</code></pre>
+</div>
+
+<div class="card">
+<h4>代码实现</h4>
+<pre><code>// --- 开启定时器（在 main 初始化后）---
+/* USER CODE BEGIN 2 */
+HAL_TIM_Base_Start_IT(&htim2);  // 启动定时器，产生周期中断
+/* USER CODE END 2 */
+
+// --- 定时器中断回调 ---
+/* USER CODE BEGIN 4 */
+static uint32_t timer_count = 0;
+
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
+{
+    if (htim->Instance == TIM2) {
+        timer_count++;
+        if (timer_count >= 10) {  // 每秒（1Hz）
+            timer_count = 0;
+            HAL_GPIO_TogglePin(GPIOA, LED_Pin);  // LED 翻转
+            printf("Timer fired! LED toggled.\r\n");
+        }
+    }
+}
+/* USER CODE END 4 */
+</code></pre>
+</div>
+
+<h3>6.3 PWM 输出</h3>
+<p>PWM（脉宽调制）通过调节高电平在一个周期中所占的比例来控制设备，如调节 LED 亮度或电机转速：</p>
+<div class="figure">
+<pre style="text-align:left; font-size:0.82rem; background:none; border:none; color:var(--t2); padding:4px;">
+一个 PWM 周期：
+  ┌──────────────┬────────────┐
+  │ 高电平宽度   │ 低电平宽度 │
+  └──────────────┴────────────┘
+  |<-------- ARR + 1 -------->|
+  |< CCR ---->|  （比较寄存器值）
+
+PWM 占空比 = CCR / (ARR + 1) × 100%
+
+例如：ARR=999, CCR=500 → 50% 占空比
+      ARR=999, CCR=750 → 75% 占空比
+</pre>
+</div>
+
+<div class="card">
+<h4>CubeMX 配置（PWM 模式）</h4>
+<pre><code>Timers → TIM3 → Channel 1: PWM Generation CH1
+
+配置：
+  Prescaler:        720-1    （计数频率 = 72MHz/720 = 100kHz）
+  Counter Period:   999      （PWM 频率 = 100kHz/1000 = 100Hz）
+  PWM Mode:         Mode 1
+  Pulse (CCR):      0        （初始占空比 0%）
+  Output compare preload: Enable
+
+引脚自动分配：PA6 → TIM3_CH1
+</code></pre>
+</div>
+
+<div class="card">
+<h4>PWM 控制代码</h4>
+<pre><code>/* USER CODE BEGIN 2 */
+HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_1);  // 开启 PWM 输出
+/* USER CODE END 2 */
+
+while (1) {
+    /* USER CODE BEGIN 3 */
+    // 渐变呼吸灯效果
+    for (uint16_t duty = 0; duty <= 999; duty += 5) {
+        __HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_1, duty);
+        HAL_Delay(10);
+    }
+    for (uint16_t duty = 999; duty > 0; duty -= 5) {
+        __HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_1, duty);
+        HAL_Delay(10);
+    }
+    /* USER CODE END 3 */
+}
+</code></pre>
+<div class="note">使用 <code>__HAL_TIM_SET_COMPARE()</code> 可以在运行时<strong>动态调整</strong>占空比，无需停止定时器。</div>
+</div>
+
+<h3>6.4 输入捕获</h3>
+<p>输入捕获用于测量外部信号的<strong>频率</strong>或<strong>脉宽</strong>，例如测量编码器脉冲或 PWM 占空比：</p>
+<pre><code>应用场景：
+  - 测量正交编码器的速度
+  - 测量外部信号频率
+  - 测量 PWM 信号的占空比和周期
+</code></pre>
+
+<div class="card">
+<h4>CubeMX 配置（输入捕获）</h4>
+<pre><code>Timers → TIM4 → Channel 1: Input Capture Direct Mode
+
+Prescaler: 72-1  （计数频率 = 72MHz/72 = 1MHz，最小分辨率 1μs）
+Counter Period: 0xFFFF（最大值 65535）
+Trigger Output: Update Event（自由计数）
+
+引脚：PB6 → TIM4_CH1（需要根据原理图连接待测信号）
+</code></pre>
+</div>
+
+<div class="card">
+<h4>频率测量代码</h4>
+<pre><code>/* USER CODE BEGIN 0 */
+volatile uint32_t capture_val = 0;
+volatile uint8_t capture_done = 0;
+/* USER CODE END 0 */
+
+/* USER CODE BEGIN 2 */
+HAL_TIM_IC_Start_IT(&htim4, TIM_CHANNEL_1);
+/* USER CODE END 2 */
+
+/* USER CODE BEGIN 4 */
+void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim)
+{
+    if (htim->Instance == TIM4 && htim->Channel == HAL_TIM_ACTIVE_CHANNEL_1) {
+        capture_val = HAL_TIM_ReadCapturedValue(htim, TIM_CHANNEL_1);
+        capture_done = 1;
+    }
+}
+/* USER CODE END 4 */
+
+// --- 在主循环计算频率 ---
+/* USER CODE BEGIN 3 */
+if (capture_done) {
+    capture_done = 0;
+    // 计数频率 1MHz, capture_val 为计数值
+    float freq = 1000000.0f / capture_val;
+    printf("Frequency = %.2f Hz\r\n", freq);
+}
+/* USER CODE END 3 */
+</code></pre>
+</div>
+
+<h3>6.5 输出比较（Output Compare）</h3>
+<p>输出比较可以在计数器达到某个值时翻转引脚电平，常用于生成固定频率的方波：</p>
+<pre><code>CubeMX 配置：TIM3 → Channel 1 → Output Compare No Output
+Mode: Toggle on Match（匹配时翻转电平）
+</code></pre>
+<div class="note">输出比较和 PWM 的区别：PWM 在一个周期内自动调节占空比，输出比较只在匹配点翻转一次，不自动重装，适合生成等占空比方波。</div>
+</section>
+
+<!-- ===== SECTION 7 ===== -->
+<section id="s7">
+<h2>7. ADC（模数转换器）</h2>
+
+<h3>7.1 基本原理</h3>
+<p>ADC 将连续的模拟电压信号（0~3.3V）转换为离散的数字量（0~4095，12位分辨率）：</p>
+<pre><code>数字值 = (Vin / Vref+) × 4095
+
+例如：
+  Vin = 1.65V, Vref+ = 3.3V → ADC值 = (1.65/3.3) × 4095 = 2047
+  Vin = 0V   → ADC值 = 0
+  Vin = 3.3V → ADC值 = 4095
+
+实际电压计算：
+  Vin = ADC_value × 3.3 / 4095
+</code></pre>
+
+<h3>7.2 单次转换（最简单）</h3>
+<div class="card">
+<h4>CubeMX 配置</h4>
+<pre><code>Analog → ADC1 → IN1 (PA1)
+
+配置：
+  Scan Conversion Mode:    Disabled（单通道可关闭）
+  Continuous Conversion:   Disabled（单次转换）
+  DMA Continuous Requests: Disabled（不使用 DMA）
+
+Rank（通道顺序）：
+  Channel 1: ADC_CHANNEL_1 (PA1)
+</code></pre>
+</div>
+
+<div class="card">
+<h4>代码</h4>
+<pre><code>/* USER CODE BEGIN 0 */
+uint32_t adc_value;
+/* USER CODE END 0 */
+
+// 启动一次 ADC 转换
+HAL_ADC_Start(&hadc1);
+HAL_ADC_PollForConversion(&hadc1, 10);  // 等待转换完成，最多 10ms
+
+if (HAL_IS_BIT_SET(HAL_ADC_GetState(&hadc1), HAL_ADC_STATE_REG_EOC)) {
+    adc_value = HAL_ADC_GetValue(&hadc1);
+    float voltage = adc_value * 3.3f / 4095.0f;
+    printf("ADC=%lu, Voltage=%.3fV\r\n", adc_value, voltage);
+}
+HAL_ADC_Stop(&hadc1);
+</code></pre>
+</div>
+
+<h3>7.3 连续转换</h3>
+<pre><code>// CubeMX 配置：Continuous Conversion: Enabled
+
+// 启动后自动连续转换，无需每次手动触发
+HAL_ADC_Start(&hadc1);
+while (1) {
+    if (HAL_ADC_PollForConversion(&hadc1, 10) == HAL_OK) {
+        uint32_t val = HAL_ADC_GetValue(&hadc1);
+        printf("ADC=%lu\r\n", val);
+    }
+    HAL_Delay(100);
+}
+HAL_ADC_Stop(&hadc1);
+</code></pre>
+
+<h3>7.4 DMA + ADC（最实用）</h3>
+<p>使用 DMA 自动搬运 ADC 数据，CPU 只管读取，彻底解放：</p>
+<div class="card">
+<h4>CubeMX 配置</h4>
+<pre><code>ADC1 配置：
+  Scan Conversion Mode:    Enabled（多通道）
+  Continuous Conversion:   Enabled
+  DMA Continuous Requests: Enabled（触发 DMA）
+  Number Of Conversion:    3（3 个通道）
+
+Rank 1: Channel 1 (PA1) — 电位器
+Rank 2: Channel 2 (PA2) — 热敏电阻
+Rank 3: Channel 4 (PA4) — 光敏电阻
+
+DMA Settings → ADC1：
+  Mode: Circular（循环）
+  Increment Address: Memory ✓, Peripheral ✗
+</code></pre>
+</div>
+
+<div class="card">
+<h4>DMA 多通道采集代码</h4>
+<pre><code>/* USER CODE BEGIN 0 */
+#define ADC_CHANNEL_NUM  3
+uint16_t adc_buf[ADC_CHANNEL_NUM];  // DMA 目标缓冲区
+
+// 对应 Rank 顺序：adc_buf[0]=IN1, [1]=IN2, [2]=IN4
+/* USER CODE END 0 */
+
+// --- main() 中启动 ---
+/* USER CODE BEGIN 2 */
+HAL_ADC_Start_DMA(&hadc1, (uint32_t *)adc_buf, ADC_CHANNEL_NUM);
+/* USER CODE END 2 */
+
+// --- 主循环中直接读取 ---
+/* USER CODE BEGIN 3 */
+float v1 = adc_buf[0] * 3.3f / 4095.0f;
+float v2 = adc_buf[1] * 3.3f / 4095.0f;
+float v3 = adc_buf[2] * 3.3f / 4095.0f;
+printf("PA1=%.3fV PA2=%.3fV PA4=%.3fV\r\n", v1, v2, v3);
+HAL_Delay(500);
+/* USER CODE END 3 */
+</code></pre>
+</div>
+
+<h3>7.5 多通道扫描</h3>
+<div class="note">
+  多通道扫描时，ADC 会按 Rank 顺序依次转换所有通道，然后产生一个 EOC（转换结束）标志。如果启用 DMA，每转换完一个通道自动传输一个值，全部完成后 DMA 才触发一次中断。
+</div>
+<div class="warn">
+  <strong>注意注入通道：</strong>STM32F103 有两组 ADC 通道——规则通道（最多 16 个，通过 DMA 批量传输）和注入通道（最多 4 个，优先级更高，会打断规则通道）。初学者先用规则通道即可。
+</div>
+</section>
+
+<!-- ===== SECTION 8 ===== -->
+<section id="s8">
+<h2>8. NVIC 中断</h2>
+
+<h3>8.1 中断优先级分组</h3>
+<p>STM32 使用 <strong>4 位优先级字段</strong>（共 16 级），但 F103 只用了高 4 位，支持 0~15 共 16 个优先级，数字越小优先级越高：</p>
+<pre><code>优先级分组（通过 HAL_NVIC_SetPriorityGrouping 设置）：
+
+  NVIC_PRIORITYGROUP_0: 0 位用于抢占，4 位用于子优先级（响应）
+  NVIC_PRIORITYGROUP_1: 1 位用于抢占，3 位用于子优先级
+  NVIC_PRIORITYGROUP_2: 2 位用于抢占，2 位用于子优先级  ← CubeMX 默认
+  NVIC_PRIORITYGROUP_3: 3 位用于抢占，1 位用于子优先级
+  NVIC_PRIORITYGROUP_4: 4 位用于抢占，0 位用于子优先级
+
+CubeMX 默认使用 NVIC_PRIORITYGROUP_2（2位抢占 + 2位子优先级）：
+  - 抢占优先级: 0~3（共 4 级）
+  - 子优先级:   0~3（共 4 级）
+</code></pre>
+
+<h3>8.2 中断优先级规则</h3>
+<table>
+  <tr><th>优先级类型</th><th>规则</th><th>比喻</th></tr>
+  <tr><td>抢占优先级（Preempt）</td><td>高抢占优先级可以打断低抢占优先级的正在执行的中断</td><td>领导可以中断下属的工作</td></tr>
+  <tr><td>子优先级（Sub）</td><td>抢占优先级相同时，高的子优先级先响应</td><td>同一级别的两个人，抢答器快的赢</td></tr>
+  <tr><td>两者都相等</td><td>自然顺位（硬件中断向量号小的优先）</td><td>平局靠抽签</td></tr>
+</table>
+<div class="tip">
+  <strong>实用建议：</strong>普通外设中断（UART、TIM）用抢占=1，子优先级=0；实时性要求极高的（如 Systick）用抢占=0。日常开发记住：<strong>数字越小，优先级越高</strong>。
+</div>
+
+<h3>8.3 中断使能（CubeMX vs 代码）</h3>
+<pre><code>// 方式1：CubeMX 可视化使能（推荐）
+//   在 Pinout & Configuration → NVIC → 勾选对应中断的 Enabled 框
+//   CubeMX 会自动在 SystemClock_Config 后调用：
+HAL_NVIC_SetPriority(EXTI0_IRQn, 0, 0);   // 优先级：抢占=0，子=0（最高）
+HAL_NVIC_EnableIRQ(EXTI0_IRQn);             // 使能中断
+
+// 方式2：代码中手动使能
+HAL_NVIC_SetPriority(TIM2_IRQn, 1, 0);     // 抢占=1，子=0
+HAL_NVIC_EnableIRQ(TIM2_IRQn);
+
+// 方式3：修改已有中断优先级
+// （比如在某个场景下临时提高 TIM2 优先级）
+__HAL_RCC_TIM2_CLK_ENABLE();  // 先开时钟
+HAL_NVIC_SetPriority(TIM2_IRQn, 0, 0);     // 提高到最高
+HAL_NVIC_EnableIRQ(TIM2_IRQn);
+</code></pre>
+
+<h3>8.4 中断处理函数命名规则</h3>
+<p>HAL 库的中断处理遵循固定命名规律：</p>
+<table>
+  <tr><th>外设</th><th>中断处理函数名</th><th>HAL 回调函数</th></tr>
+  <tr><td>EXTI (GPIO外部中断)</td><td>EXTI0_IRQHandler ~ EXTI15_IRQHandler</td><td>HAL_GPIO_EXTI_Callback()</td></tr>
+  <tr><td>TIM (定时器)</td><td>TIMx_IRQHandler()</td><td>HAL_TIM_PeriodElapsedCallback()</td></tr>
+  <tr><td>USART</td><td>USARTx_IRQHandler()</td><td>HAL_UART_RxCpltCallback()</td></tr>
+  <tr><td>ADC</td><td>ADC1_2_IRQHandler()</td><td>HAL_ADC_ConvCpltCallback()</td></tr>
+  <tr><td>DMA</td><td>DMA1_Channelx_IRQHandler()</td><td>HAL_DMA_IRQHandler()</td></tr>
+</table>
+<div class="card">
+<h4>调用关系（以 USART 中断为例）</h4>
+<pre><code>硬件触发 USART 中断
+      ↓
+┌─────────────────────────────┐
+│ USART1_IRQHandler()         │ ← CubeMX 自动生成，中断入口
+│   HAL_UART_IRQHandler()     │ ← HAL 库处理，识别是哪种 USART 事件
+│     HAL_UART_RxCpltCallback()│ ← 用户回调，真正处理数据的地方
+└─────────────────────────────┘
+</code></pre>
+</div>
+
+<h3>8.5 常用中断配置示例</h3>
+<pre><code>// 设置中断优先级（main 中初始化后调用）
+// 外部中断 0（PA0 按键）
+HAL_NVIC_SetPriority(EXTI0_IRQn, 0, 0);    // 最高优先级
+HAL_NVIC_EnableIRQ(EXTI0_IRQn);
+
+// 串口 1 中断
+HAL_NVIC_SetPriority(USART1_IRQn, 2, 0);  // 中等优先级
+HAL_NVIC_EnableIRQ(USART1_IRQn);
+
+// 定时器 2 中断
+HAL_NVIC_SetPriority(TIM2_IRQn, 1, 0);     // 较高优先级
+HAL_NVIC_EnableIRQ(TIM2_IRQn);
+</code></pre>
+<div class="warn">
+  <strong>中断中禁止的操作：</strong><br>
+  1. 不要在中断中调用 <code>HAL_Delay()</code><br>
+  2. 不要在中断中做大量计算或 IO 操作（影响实时性）<br>
+  3. 共享资源需要使用 <code>__HAL_UART_ENABLE_IT()</code> 等原子操作<br>
+  4. 标志位建议用 <code>volatile</code> 声明
+</div>
+</section>
+
+<!-- ===== SECTION 9 ===== -->
+<section id="s9">
+<h2>9. 时钟配置</h2>
+
+<h3>9.1 三种时钟源</h3>
+<table>
+  <tr><th>时钟源</th><th>频率</th><th>精度</th><th>适用场景</th></tr>
+  <tr><td>HSI</td><td>8MHz（内部）</td><td>±1%（受温度影响）</td><td>默认、低成本、精度要求不高</td></tr>
+  <tr><td>HSE</td><td>4~25MHz（外部晶振）</td><td>高（晶振决定）</td><td>串口通信、CAN、USB（需要精确频率）</td></tr>
+  <tr><td>PLL</td><td>倍频后最大 72MHz</td><td>继承输入源</td><td>系统主频（SYSCLK）</td></tr>
+</table>
+<div class="analogy">HSI 就像手机的自动调频 CPU，便宜但会随温度漂移；HSE 就像外接了一个精准的节拍器，保证你唱歌不跑调；PLL 就是扩音器，把输入频率放大到需要的值。</div>
+
+<h3>9.2 SystemClock_Config 详解</h3>
+<p>这是 CubeMX 生成的时钟配置函数，手动修改容易出错，建议通过 CubeMX 图形界面配置后重新生成：</p>
+<pre><code>void SystemClock_Config(void)
+{
+    RCC_OscInitTypeDef RCC_OscInitStruct = {0};
+    RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
+
+    // ===== 第1步：配置振荡器 =====
+    RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSE
+                                     | RCC_OSCILLATORTYPE_HSI;
+    RCC_OscInitStruct.HSEState = RCC_HSE_ON;            // 开启外部晶振
+    RCC_OscInitStruct.HSEPredivValue = RCC_HSE_PREDIV_DIV1; // 预分频=1（不用额外分）
+    RCC_OscInitStruct.HSIState = RCC_HSI_ON;            // 开启内部晶振（备用）
+    RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;        // 开启 PLL
+    RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;// PLL 输入=HSE
+    RCC_OscInitStruct.PLL.PLLMUL = RCC_PLL_MUL9;         // 8MHz × 9 = 72MHz
+    if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK) {
+        Error_Handler();
+    }
+
+    // ===== 第2步：配置时钟分配 =====
+    RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK   // 总线时钟类型
+                                | RCC_CLOCKTYPE_SYSCLK
+                                | RCC_CLOCKTYPE_PCLK1
+                                | RCC_CLOCKTYPE_PCLK2;
+    RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK; // SYSCLK=PLL输出
+    RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;        // HCLK=72MHz
+    RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV2;         // APB1=36MHz ⚠️
+    RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1;         // APB2=72MHz
+    if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_2) != HAL_OK) {
+        Error_Handler();
+    }
+}
+</code></pre>
+<div class="warn">
+  <strong>APB1 总线频率不能超过 36MHz！</strong><br>
+  STM32F103 的 APB1 外设（UART2/3、SPI2/3、I2C1/2、TIM3~7）最高只支持 36MHz。<br>
+  如果 SYSCLK=72MHz，APB1 分频系数必须 ≥2，即 <code>RCC_HCLK_DIV2</code>。
+</div>
+
+<h3>9.3 各总线时钟频率</h3>
+<pre><code>典型配置（SYSCLK=72MHz）：
+
+  SYSCLK (系统时钟)      = 72MHz  ← PLL 输出
+       │
+       ├── AHB Prescaler /1 ──▶ HCLK = 72MHz  (内核、Flash、DMA、总线矩阵)
+       │                              │
+       │                              ├── APB2 Prescaler /1 ──▶ APB2 = 72MHz
+       │                              │    (GPIOA~E, ADC1/2, USART1, SPI1, TIM1)
+       │                              │
+       │                              └── APB1 Prescaler /2 ──▶ APB1 = 36MHz ⚠️
+       │                                   (USART2/3, SPI2/3, I2C1/2, TIM2~7)
+       │
+       └── ADC Prescaler /6 ──▶ ADC Clock = 12MHz  (最大 14MHz，推荐 12MHz)
+
+外设挂载规律：
+  APB2（高速）: GPIO, USART1, SPI1, ADC, TIM1, TIM8, EXTI
+  APB1（低速）: USART2/3, SPI2/3, I2C1/2, TIM2~7, CAN, USB
+  AHB:         内核、DMA、Flash、SRAM
+</code></pre>
+
+<h3>9.4 MCO 输出（验证时钟）</h3>
+<pre><code>// PA8 可以输出内部时钟信号，用示波器/逻辑分析仪测量验证
+// CubeMX: System Core → RCC → MCO → PLL/2
+
+HAL_RCC_MCOConfig(RCC_MCO1, RCC_MCO1SOURCE_PLLCLK_DIV2, RCC_MCODIV_2);
+// PA8 输出 = SYSCLK / 2 / 2 = 72MHz / 4 = 18MHz
+</code></pre>
+<div class="tip">如果项目出现奇怪的问题（如串口乱码、定时不准），先检查 MCO 输出，确认实际频率是否和预期一致。</div>
+</section>
+
+<!-- ===== SECTION 10 ===== -->
+<section id="s10">
+<h2>10. 常见问题（FAQ）</h2>
+
+<h3>❌ 问题1：HAL_Delay 死锁 / 程序卡死</h3>
+<div class="card">
+<strong>现象：</strong>程序运行到某处后完全卡死，或者定时器/PWM 不工作。<br>
+<strong>根因：</strong><code>HAL_Delay()</code> 依赖 SysTick 中断，如果 SysTick 中断被更高优先级的中断长期阻塞，或者在中断中调用 HAL_Delay，就会死锁。
+</div>
+<div class="warn">
+  <strong>死锁场景举例：</strong><br>
+  1. 在 USART1 中断中（优先级高于 SysTick）调用 <code>HAL_Delay()</code> → 卡死<br>
+  2. 在某中断中关闭全局中断 <code>__disable_irq()</code> 后调用 <code>HAL_Delay()</code> → 卡死<br>
+  3. 使用 FreeRTOS 时，在中断优先级高于 configMAX_SYSCALL_INTERRUPT_PRIORITY 的中断中调用 HAL API → 系统崩溃
+</div>
+<pre><code>// ✅ 正确做法：在中断中绝对不要调用 HAL_Delay()
+// ✅ 使用标志位替代延时逻辑
+
+volatile uint32_t tick_flag = 0;
+
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
+    tick_flag = 1;  // 只设置标志，不做耗时操作
+}
+
+while (1) {
+    if (tick_flag) {
+        tick_flag = 0;
+        HAL_GPIO_TogglePin(GPIOA, LED_Pin);  // 主循环处理，不在中断中
+    }
+    // 可以在此做其他工作
+}
+
+// ✅ 或者使用 osDelay（FreeRTOS）替代 HAL_Delay
+</code></pre>
+
+<h3>❌ 问题2：中断进不去</h3>
+<div class="card">
+<strong>现象：</strong>配置了中断，但调试时发现中断处理函数从未被调用。<br>
+<strong>根因：</strong>NVIC 中断未使能 / 时钟未开启 / 引脚配置错误
+</div>
+<pre><code>// 检查清单：
+// 1. CubeMX NVIC Settings 中是否勾选了对应中断？
+//    例：EXTI0_IRQn → ✅ Enabled
+
+// 2. 外设时钟是否开启？
+HAL_RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOA, ENABLE);  // GPIO 时钟
+HAL_RCC_APB2PeriphClockCmd(RCC_APB2Periph_AFIO, ENABLE);    // AFIO 时钟（EXTI 必须）
+
+// 3. USART 中断是否手动使能？（CubeMX 生成代码后可能需要检查）
+__HAL_UART_ENABLE_IT(&huart1, UART_IT_RXNE);  // 接收中断使能
+
+// 4. 检查优先级是否设置（优先级为 15 最低，可能被其他高优先级打断）
+HAL_NVIC_SetPriority(USART1_IRQn, 3, 0);
+HAL_NVIC_EnableIRQ(USART1_IRQn);
+
+// 5. 检查中断引脚映射是否正确
+//    例：PA0 对应 EXTI0，不是 EXTI1
+</code></pre>
+
+<h3>❌ 问题3：时钟配置错误导致串口乱码</h3>
+<div class="card">
+<strong>现象：</strong>串口输出全是乱码，波特率计算错误。<br>
+<strong>根因：</strong>USART 波特率由 APB 时钟决定，如果配置的和代码计算的不一致，就会乱码。
+</div>
+<pre><code>// 波特率计算公式（USARTDIV）：
+// USARTDIV = PCLK / (16 × 波特率)
+//
+// 例：APB1 = 36MHz, 波特率 = 115200
+// USARTDIV = 36MHz / (16 × 115200) = 19.53
+//
+// 对应的 BRR 寄存器值 = 19.53 → 小数部分 × 16 = 0.53×16 = 8.5 ≈ 8
+// BRR = 0x134 (0x13<<4 | 0x8) = 304
+//
+// 常见错误：
+//  1. 串口挂在 APB1，但代码中按 APB2 时钟计算波特率 → 乱码
+//  2. 使用 HSI（8MHz）时钟但 PLL 配置错误 → 时钟不对 → 乱码
+//  3. 晶振频率写错（如外部晶振 8MHz 写成 12MHz）→ 乱码
+//
+// ✅ 解决：在 CubeMX 中正确配置时钟树，重新生成代码
+
+// ✅ 验证方法：用示波器/MCO 测量 PA8 输出，确认 SYSCLK 实际值
+HAL_RCC_MCOConfig(RCC_MCO1, RCC_MCO1SOURCE_PLLCLK_DIV2, RCC_MCODIV_1);
+// PA8 输出 PLLCLK / 2 = 36MHz → 用示波器量一下
+</code></pre>
+
+<h3>❌ 问题4：引脚冲突</h3>
+<div class="card">
+<strong>现象：</strong>多个外设同时使用时报错，或者引脚状态不对。<br>
+<strong>根因：</strong>同一引脚被多次分配功能，或多个外设共享同一时钟未开启。
+</div>
+<pre><code>// 常见冲突：
+
+// 1. PA9/PA10 被占用
+//    USART1_TX = PA9, USART1_RX = PA10
+//    如果同时配置 SWD 调试口（PA13/14 默认 SWD），可能冲突
+//    ✅ CubeMX: SYS → Debug → Serial Wire（只占用 PA13/14，不占 PA9/10）
+
+// 2. TIM1 和 TIM3 都想用 PA6
+//    CubeMX 中同时开启两个定时器的同一引脚会报错
+//    ✅ 解决：选择不同的引脚或不同的定时器
+
+// 3. GPIO 和 ADC 复用引脚
+//    例：PA1 配置为 GPIO_Output 后又想作为 ADC 通道
+//    ✅ GPIO 和 ADC 通道是复用的，在 CubeMX 中选择功能即可
+
+// 4. ADC 时钟超过 14MHz
+//    如果 PCLK2 = 72MHz, ADC_Prescaler = /4 → ADC=18MHz > 14MHz（超规格）
+//    ✅ 改 ADC_Prescaler = /6 → ADC=12MHz
+</code></pre>
+
+<h3>❌ 问题5：DMA 不工作</h3>
+<pre><code>// 检查清单：
+
+// 1. DMA 时钟是否开启？
+__HAL_RCC_DMA1_CLK_ENABLE();  // DMA1 时钟，F103 只有 DMA1
+
+// 2. CubeMX 中 DMA 模式是否选对？
+//    例：UART_RX 的 DMA 方向 = Peripheral To Memory
+
+// 3. DMA 中断是否使能？（如果使用 DMA 中断）
+__HAL_DMA1_ENABLE_IT(&hdma_usart1_rx, DMA_IT_TC);  // 传输完成中断
+
+// 4. 缓冲区地址是否对齐？（DMA 要求半字/字对齐）
+uint8_t dma_buf[64] __attribute__((aligned(4)));  // 4 字节对齐
+
+// 5. 是否在 CubeMX 中正确分配了 DMA Request？
+//    USART1_RX → DMA1 Channel 5
+//    ADC1      → DMA1 Channel 1
+</code></pre>
+</section>
+
+<!-- ===== SECTION 11 ===== -->
+<section id="s11">
+<h2>11. 速查表</h2>
+
+<h3>11.1 常用 HAL 函数速查</h3>
+<table>
+  <tr><th>功能</th><th>函数</th></tr>
+  <tr><td>GPIO 写高/低</td><td><code>HAL_GPIO_WritePin(GPIOx, Pin, SET/RESET)</code></td></tr>
+  <tr><td>GPIO 翻转</td><td><code>HAL_GPIO_TogglePin(GPIOx, Pin)</code></td></tr>
+  <tr><td>GPIO 读取</td><td><code>HAL_GPIO_ReadPin(GPIOx, Pin)</code></td></tr>
+  <tr><td>GPIO 中断回调</td><td><code>HAL_GPIO_EXTI_Callback(Pin)</code></td></tr>
+  <tr><td>阻塞延时</td><td><code>HAL_Delay(ms)</code></td></tr>
+  <tr><td>UART 发送（阻塞）</td><td><code>HAL_UART_Transmit(&huart, buf, len, timeout)</code></td></tr>
+  <tr><td>UART 接收（中断）</td><td><code>HAL_UART_Receive_IT(&huart, buf, len)</code></td></tr>
+  <tr><td>UART 接收（DMA）</td><td><code>HAL_UART_Receive_DMA(&huart, buf, len)</code></td></tr>
+  <tr><td>定时器启动（中断）</td><td><code>HAL_TIM_Base_Start_IT(&htim)</code></td></tr>
+  <tr><td>PWM 启动</td><td><code>HAL_TIM_PWM_Start(&htim, channel)</code></td></tr>
+  <tr><td>设置 PWM 占空比</td><td><code>__HAL_TIM_SET_COMPARE(&htim, channel, value)</code></td></tr>
+  <tr><td>输入捕获启动</td><td><code>HAL_TIM_IC_Start_IT(&htim, channel)</code></td></tr>
+  <tr><td>读取捕获值</td><td><code>HAL_TIM_ReadCapturedValue(&htim, channel)</code></td></tr>
+  <tr><td>ADC 轮询启动</td><td><code>HAL_ADC_Start(&hadc)</code></td></tr>
+  <tr><td>ADC DMA 启动</td><td><code>HAL_ADC_Start_DMA(&hadc, buf, len)</code></td></tr>
+  <tr><td>ADC 获取值</td><td><code>HAL_ADC_GetValue(&hadc)</code></td></tr>
+  <tr><td>设置中断优先级</td><td><code>HAL_NVIC_SetPriority(IRQn, pre, sub)</code></td></tr>
+  <tr><td>使能中断</td><td><code>HAL_NVIC_EnableIRQ(IRQn)</code></td></tr>
+  <tr><td>清除中断标志</td><td><code>__HAL_GPIO_EXTI_CLEAR_IT(Pin)</code></td></tr>
+</table>
+
+<h3>11.2 引脚功能复用速查</h3>
+<table>
+  <tr><th>引脚</th><th>复用功能 1</th><th>复用功能 2</th><th>复用功能 3</th></tr>
+  <tr><td>PA0</td><td>WKUP / ADC_IN0</td><td>EXTI0</td><td>TIM2_CH1_ETR</td></tr>
+  <tr><td>PA1</td><td>ADC_IN1</td><td>EXTI1</td><td>TIM2_CH2</td></tr>
+  <tr><td>PA5</td><td>ADC_IN5</td><td>TIM2_CH1</td><td>SPI1_MOSI</td></tr>
+  <tr><td>PA6</td><td>ADC_IN6</td><td>TIM3_CH1</td><td>SPI1_MISO</td></tr>
+  <tr><td>PA9</td><td>USART1_TX</td><td>TIM1_CH2</td><td>—</td></tr>
+  <tr><td>PA10</td><td>USART1_RX</td><td>TIM1_CH3</td><td>—</td></tr>
+  <tr><td>PB6</td><td>I2C1_SCL</td><td>TIM4_CH1</td><td>USART1_TX</td></tr>
+  <tr><td>PB7</td><td>I2C1_SDA</td><td>TIM4_CH2</td><td>USART1_RX</td></tr>
+  <tr><td>PA8</td><td>MCO</td><td>TIM1_CH1</td><td>USART1_CK</td></tr>
+  <tr><td>PA13</td><td>SWDIO（调试）</td><td>—</td><td>—</td></tr>
+  <tr><td>PA14</td><td>SWCLK（调试）</td><td>—</td><td>—</td></tr>
+</table>
+
+<h3>11.3 时钟与定时计算速查</h3>
+<pre><code>公式速记：
+  PWM 频率 = Tclk / ((PSC+1) × (ARR+1))
+  PWM 占空比 = CCR / (ARR+1) × 100%
+  ADC 电压 = ADC_val × Vref / 4095
+  UART 波特率误差 = |实际 - 期望| / 期望 × 100%
+  定时周期 = (PSC+1) × (ARR+1) / Tclk
+
+常用参数组合（72MHz SYSCLK）：
+  APB1 = 36MHz (÷2), APB2 = 72MHz (÷1)
+  ADC  = 12MHz (APB2 ÷6)
+  TIM2 计数频率 = 72MHz / (PSC+1)
+    PSC=7199 → 10kHz, ARR=9999 → 1Hz
+    PSC=719  → 100kHz, ARR=999 → 100Hz PWM
+    PSC=71   → 1MHz,   ARR=999 → 1kHz PWM
+</code></pre>
+
+<h3>11.4 CubeMX USER CODE 安全区速查</h3>
+<pre><code>所有用户代码必须写在这些区间内：
+
+  /* USER CODE BEGIN 0 */         ← 全局变量/头文件
+  /* USER CODE END 0 */
+
+  /* USER CODE BEGIN 1 */         ← System Clock 配置之前
+  /* USER CODE END 1 */
+
+  /* USER CODE BEGIN 2 */         ← main() 初始化后主循环前 ✅最常用
+  /* USER CODE END 2 */
+
+  /* USER CODE BEGIN 3 */         ← while(1) 循环内 ✅最常用
+  /* USER CODE END 3 */
+
+  /* USER CODE BEGIN 4 */         ← 回调函数（中断/UART/TIM等）
+  /* USER CODE END 4 */
+
+  /* USER CODE BEGIN PD */        ← 预处理器定义
+  /* USER CODE END PD */
+</code></pre>
+
+<h3>11.5 错误代码速查</h3>
+<table>
+  <tr><th>HAL 返回值</th><th>含义</th><th>常见原因</th></tr>
+  <tr><td>HAL_OK</td><td>成功</td><td>—</td></tr>
+  <tr><td>HAL_ERROR</td><td>参数错误</td><td>传入 NULL 指针或无效参数</td></tr>
+  <tr><td>HAL_BUSY</td><td>忙</td><td>外设正在使用，中断中重复调用</td></tr>
+  <tr><td>HAL_TIMEOUT</td><td>超时</td><td>超时未完成（如 ADC 轮询超时）</td></tr>
+</table>
+</section>
+
+<!-- ===== BREADCRUMB ===== -->
+<div class="breadcrumb">
+  <a href="#">📚 嵌入式工具箱</a>
+  <span>/</span>
+  <span>STM32 开发 细致教程</span>
+</div>
+
+</div><!-- /container -->
+
+<script>
+// 滚动时高亮当前导航链接
+const sections = document.querySelectorAll('section[id]');
+const navLinks = document.querySelectorAll('.nav-link');
+
+window.addEventListener('scroll', () => {
+  let current = '';
+  sections.forEach(section => {
+    const top = section.offsetTop - 80;
+    if (scrollY >= top) current = section.getAttribute('id');
+  });
+  navLinks.forEach(link => {
+    link.classList.remove('active');
+    if (link.getAttribute('href') === '#' + current) {
+      link.classList.add('active');
+    }
+  });
+});
+</script>
+
+</body>
+</html>

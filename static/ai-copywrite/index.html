@@ -1,0 +1,86 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI营销文案工坊 - SG智能建站</title>
+<link rel="stylesheet" href="/static/tool-shared/style.css">
+<style>:root{--accent1:#f093fb;--accent2:#f5576c}</style>
+</head>
+<body>
+<div class="container">
+<a href="/" class="back">← 返回首页</a>
+<div class="header"><h1>✍️ AI营销文案工坊</h1><p>输入产品，AI一键生成多平台营销文案</p></div>
+
+<div class="quota"><span>今日免费额度</span><span class="rem" id="quotaText">加载中...</span></div>
+
+<div class="glass">
+<h2>📝 输入信息</h2>
+<div class="field"><label class="fl">产品/品牌描述</label><textarea id="product" placeholder="如：一款AI驱动的简历优化工具，帮助求职者通过ATS筛选..."></textarea></div>
+<div class="row">
+<div class="field"><label class="fl">文案语调</label><select id="tone"><option value="professional">专业严谨</option><option value="casual">轻松活泼</option><option value="luxury">高端大气</option><option value="urgent">紧迫促销</option><option value="emotional">情感共鸣</option></select></div>
+<div class="field"><label class="fl">目标受众（可选）</label><input id="audience" placeholder="如：25-35岁职场女性"></div>
+</div>
+<div class="field"><label class="fl">输出语言</label><select id="lang"><option value="zh">中文</option><option value="en">English</option><option value="ja">日本語</option></select></div>
+<div class="chips" id="styleChips"><span class="chip active" data-val="ad">📢 广告语</span><span class="chip" data-val="social">📱 社媒文案</span><span class="chip" data-val="email">📧 邮件营销</span><span class="chip" data-val="landing">🖥️ 着陆页</span><span class="chip" data-val="product">📦 产品描述</span></div>
+<button class="btn btn-primary" id="genBtn" data-action="generate">✍️ 开始生成</button>
+</div>
+
+<div id="progressArea" class="glass hidden"><h2>⏳ 生成进度</h2><div id="steps" class="steps"></div></div>
+<div id="resultArea" class="glass hidden"><h2>🎉 生成结果</h2><div id="resultContent"></div><div class="export-bar"><button class="btn-sm" data-action="copyAll">📋 复制文本</button><button class="btn-sm" data-action="exportJSON">💾 导出JSON</button></div></div>
+<div id="errorArea" class="glass hidden"><div class="error" id="errorMsg"></div></div>
+
+<div class="glass"><h2>📖 文案类型说明</h2><div class="steps"><div class="step"><div class="dot">📢</div><div class="txt">广告语 — 50字内，适合广告位/海报</div></div><div class="step"><div class="dot">📱</div><div class="txt">社媒文案 — 100-300字，含钩子+CTA+标签</div></div><div class="step"><div class="dot">📧</div><div class="txt">邮件营销 — 开发信/促销/Newsletter</div></div><div class="step"><div class="dot">🖥️</div><div class="txt">着陆页 — Hero+Features+CTA完整结构</div></div><div class="step"><div class="dot">📦</div><div class="txt">产品描述 — 电商详情页文案</div></div></div></div>
+</div>
+
+<script src="/static/tool-shared/base.js"></script>
+<script>
+var tool = new SG.ToolBase({apiBase:'/api/v1/copywrite', stepTexts:['提交任务...','AI创作文案中...','整理文案内容...']});
+tool.getButtonLabel = function(){ return '✍️ 开始生成'; };
+tool.onResult = function(r) {
+  tool._lastResult = r;
+  SG.$('errorArea').classList.add('hidden');
+  SG.$('progressArea').classList.add('hidden');
+  SG.$('resultArea').classList.remove('hidden');
+  if(!r) return;
+  var h = '';
+  if(r.headline) h += '<div class="result-card" style="border-color:var(--accent1);background:rgba(240,147,251,.06)"><h3>💡 核心卖点</h3><p style="font-size:1.1rem;font-weight:700">' + SG.escHtml(r.headline) + '</p></div>';
+  if(r.copies && r.copies.length) {
+    r.copies.forEach(function(c,i) {
+      h += '<div class="result-card"><h3>' + SG.escHtml(c.title || '方案'+(i+1)) + '</h3>';
+      if(c.hook) h += '<p style="color:var(--accent1);font-weight:600;margin-bottom:6px">🪝 ' + SG.escHtml(c.hook) + '</p>';
+      if(c.body) h += '<p style="white-space:pre-wrap;margin-bottom:8px">' + SG.escHtml(c.body) + '</p>';
+      if(c.cta) h += '<p><span class="tag tag-success">CTA:</span> ' + SG.escHtml(c.cta) + '</p>';
+      if(c.platform) h += '<p style="font-size:.75rem;color:var(--text2);margin-top:4px">📌 ' + SG.escHtml(c.platform) + (c.tips ? ' — ' + SG.escHtml(c.tips) : '') + '</p>';
+      h += '</div>';
+    });
+  }
+  if(r.variations && r.variations.length) {
+    h += '<div class="result-card"><h3>🔄 备选短文案</h3><ul>';
+    r.variations.forEach(function(v){ h += '<li>' + SG.escHtml(v) + '</li>'; });
+    h += '</ul></div>';
+  }
+  if(r.hashtags && r.hashtags.length) {
+    h += '<div class="result-card"><h3>#️⃣ 推荐标签</h3>';
+    r.hashtags.forEach(function(t){ h += '<span class="tag tag-info" style="margin-right:6px;margin-bottom:4px;display:inline-block;font-size:.85rem;padding:4px 10px">' + SG.escHtml(t) + '</span>'; });
+    h += '</div>';
+  }
+  SG.$('resultContent').innerHTML = h;
+};
+
+SG.initChips('styleChips');
+
+document.addEventListener('click', function(e) {
+  if(e.target.closest('[data-action="generate"]') && !tool.generating) {
+    var product = SG.$('product').value.trim();
+    if(!product) { SG.showToast('请输入产品描述','error'); return; }
+    tool.submit('/generate', {product:product, copy_type:SG.getActiveChip('styleChips'), tone:SG.$('tone').value, audience:SG.$('audience').value.trim(), lang:SG.$('lang').value}, '创作中...');
+  }
+  if(e.target.closest('[data-action="copyAll"]')) tool.copyResult();
+  if(e.target.closest('[data-action="exportJSON"]')) tool.exportJSON();
+});
+
+tool.syncQuota();
+</script>
+</body>
+</html>

@@ -1,0 +1,106 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>短视频去水印 - SG智能建站</title>
+<link rel="stylesheet" href="/static/tool-shared/style.css">
+<style>:root{--accent1:#f093fb;--accent2:#a855f7}</style>
+</head>
+<body>
+<div class="container">
+<a href="/" class="back">← 返回首页</a>
+<div class="header"><h1>🎬 短视频去水印</h1><p>识别链接平台，推荐最佳去水印工具</p></div>
+
+<div class="quota"><span>今日免费额度</span><span class="rem" id="quotaText">加载中...</span></div>
+
+<div class="glass">
+<h2>📝 粘贴视频链接</h2>
+<div class="field"><label class="fl">视频分享链接</label><textarea id="videoUrl" placeholder="粘贴抖音/快手/小红书/微博/B站的分享链接...&#10;&#10;示例：https://v.douyin.com/iRxxxxxx/" style="min-height:80px"></textarea></div>
+<button class="btn btn-primary" id="genBtn" data-action="parse">🎬 识别并解析</button>
+</div>
+
+<div id="resultArea" class="glass hidden">
+<h2>🎉 解析结果</h2>
+<div id="resultContent"></div>
+</div>
+
+<div id="errorArea" class="glass hidden"><div class="error" id="errorMsg"></div></div>
+
+<div class="glass"><h2>📖 支持平台</h2><div class="steps"><div class="step"><div class="dot">🎵</div><div class="txt">抖音 — 支持视频链接和分享口令</div></div><div class="step"><div class="dot">🎬</div><div class="txt">快手 — 支持视频和图集</div></div><div class="step"><div class="dot">📕</div><div class="txt">小红书 — 支持笔记和视频</div></div><div class="step"><div class="dot">📢</div><div class="txt">微博 — 支持微博视频</div></div><div class="step"><div class="dot">📺</div><div class="txt">B站 — 支持视频和番剧</div></div></div></div>
+
+<div class="glass" style="border-color:rgba(253,203,110,.2)">
+<h2 style="color:var(--warn)">⚠️ 使用说明</h2>
+<p style="font-size:.85rem;color:var(--text2);line-height:1.8">由于国内平台反爬策略严格，服务端直接解析成功率极低。本工具采用<strong style="color:var(--text)">智能平台识别 + 外部工具推荐</strong>模式：<br>1. 粘贴链接后自动识别来源平台<br>2. 推荐该平台最可靠的去水印工具<br>3. 复制链接到推荐工具即可下载</p>
+</div>
+</div>
+
+<script src="/static/tool-shared/base.js"></script>
+<script>
+var API = '/api/v1/watermark';
+
+function escHtml(s){ if(!s) return ''; return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+async function syncQuota() {
+  try {
+    var r = await fetch(API + '/quota');
+    if (r.ok) {
+      var d = await r.json();
+      SG.$('quotaText').textContent = '剩余 ' + d.remaining + ' / ' + d.limit + ' 次';
+      SG.$('quotaText').className = 'rem' + (d.remaining === 0 ? ' zero' : d.remaining === 1 ? ' low' : '');
+    }
+  } catch(e) { SG.$('quotaText').textContent = '免费3次/天'; }
+}
+
+document.addEventListener('click', function(e) {
+  if(e.target.closest('[data-action="parse"]')) {
+    var url = SG.$('videoUrl').value.trim();
+    if(!url) { SG.showToast('请粘贴视频链接','error'); return; }
+    
+    var btn = SG.$('genBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span>识别中...';
+    SG.$('errorArea').classList.add('hidden');
+    SG.$('resultArea').classList.add('hidden');
+    
+    fetch(API + '/parse', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({url: url})
+    }).then(function(r) {
+      if(!r.ok) return r.json().then(function(d){ throw new Error(d.detail||'解析失败'); });
+      return r.json();
+    }).then(function(d) {
+      btn.disabled = false; btn.innerHTML = '🎬 识别并解析';
+      syncQuota();
+      
+      if(d.mode === 'external') {
+        SG.$('resultArea').classList.remove('hidden');
+        var h = '<div class="result-card" style="border-color:var(--accent1);background:rgba(240,147,251,.06)">';
+        h += '<h3>' + (d.platform_name||'') + ' 链接已识别 ✅</h3>';
+        h += '<p style="margin-bottom:12px">' + escHtml(d.message) + '</p>';
+        if(d.external_tools && d.external_tools.length) {
+          h += '<div style="display:flex;flex-direction:column;gap:8px">';
+          d.external_tools.forEach(function(t) {
+            h += '<a href="'+escHtml(t.url)+'" target="_blank" rel="noopener" style="display:flex;align-items:center;gap:8px;padding:10px 14px;background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:8px;text-decoration:none;color:var(--text);transition:all .2s">';
+            h += '<span style="font-size:1.1rem">🔗</span><div><strong style="font-size:.9rem">'+escHtml(t.name)+'</strong><br><span style="font-size:.75rem;color:var(--text2)">'+escHtml(t.desc)+'</span></div>';
+            h += '<span style="margin-left:auto;color:var(--accent1);font-size:.8rem">打开 →</span></a>';
+          });
+          h += '</div>';
+        }
+        h += '<p style="margin-top:12px;font-size:.85rem;color:var(--accent1)">💡 '+escHtml(d.tip||'')+'</p>';
+        h += '</div>';
+        SG.$('resultContent').innerHTML = h;
+      }
+    }).catch(function(err) {
+      btn.disabled = false; btn.innerHTML = '🎬 识别并解析';
+      SG.$('errorArea').classList.remove('hidden');
+      SG.$('errorMsg').textContent = err.message || '网络错误';
+    });
+  }
+});
+
+syncQuota();
+</script>
+</body>
+</html>

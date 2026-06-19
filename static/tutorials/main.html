@@ -1,0 +1,2638 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>嵌入式开发 小白完全指南 v1.3</title>
+<style>
+:root{--bg:#0d1117;--bg2:#161b22;--bg3:#21262d;--br:#30363d;--t:#c9d1d9;--t2:#8b949e;--a:#58a6ff;--g:#3fb950;--o:#d2991d;--r:#f85149;--p:#a371f7;--c1:#39c5cf}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--t);line-height:1.8;max-width:880px;margin:0 auto;padding:14px}
+h1{font-size:1.55em;text-align:center;padding:16px 0;background:linear-gradient(135deg,var(--a),var(--p));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+h2{font-size:1.15em;color:var(--a);margin:30px 0 10px;padding-bottom:6px;border-bottom:2px solid var(--br)}
+h3{font-size:1.02em;color:var(--g);margin:18px 0 7px}
+h4{font-size:.95em;color:var(--o);margin:12px 0 5px}
+.card{background:var(--bg2);border:1px solid var(--br);border-radius:10px;margin:14px 0;overflow:hidden}
+.card>.h{padding:10px 14px;background:var(--bg3);display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.card>.h>.name{font-weight:700;font-size:.9em;color:var(--t);font-family:monospace}
+.card>.h>.tag{font-size:.65em;padding:2px 8px;border-radius:8px;white-space:nowrap;border:1px solid var(--br);color:var(--t2)}
+.card>.h>.tag.g{background:rgba(63,185,80,.15);border-color:var(--g);color:var(--g)}
+.card>.h>.tag.y{background:rgba(210,153,29,.15);border-color:var(--o);color:var(--o)}
+.card>.h>.tag.r{background:rgba(248,81,73,.15);border-color:var(--r);color:var(--r)}
+.card>.h>.tag.b{background:rgba(88,166,255,.15);border-color:var(--a);color:var(--a)}
+.card>.h>.tag.p{background:rgba(163,113,247,.15);border-color:var(--p);color:var(--p)}
+.card>.b{padding:10px 14px;font-size:.87em}
+.card>.b>.desc{font-size:.92em;color:var(--t2);margin-bottom:8px}
+pre{background:#1c2128;border:1px solid var(--br);border-radius:8px;padding:12px 14px;overflow-x:auto;margin:8px 0 12px;font-size:.82em;line-height:1.6;white-space:pre-wrap;word-break:break-all}
+code{font-family:'SF Mono','Fira Code',monospace}
+pre code{color:#e6edf3}
+.note{background:rgba(210,153,29,.08);border:1px solid rgba(210,153,29,.3);border-radius:8px;padding:10px 14px;margin:10px 0;font-size:.83em;color:var(--o)}
+.warn{background:rgba(248,81,73,.08);border:1px solid rgba(248,81,73,.3);border-radius:8px;padding:10px 14px;margin:10px 0;font-size:.83em;color:var(--r)}
+.tip{background:rgba(63,185,80,.06);border:1px solid rgba(63,185,80,.25);border-radius:8px;padding:10px 14px;margin:10px 0;font-size:.83em;color:var(--g)}
+.example{background:rgba(88,166,255,.06);border:1px solid rgba(88,166,255,.25);border-radius:8px;padding:10px 14px;margin:8px 0;font-size:.82em;color:var(--a)}
+.example b{color:var(--g)}
+.trouble{background:rgba(163,113,247,.06);border:1px solid rgba(163,113,247,.3);border-radius:8px;padding:10px 14px;margin:8px 0;font-size:.82em;color:var(--p)}
+.trouble b{color:var(--p)}
+table{width:100%;border-collapse:collapse;margin:10px 0;font-size:.81em;background:var(--bg2);border-radius:8px;overflow:hidden;border:1px solid var(--br)}
+td,th{padding:8px 12px;border-bottom:1px solid var(--br);text-align:left}
+th{background:var(--bg3);color:var(--a);font-weight:600}
+tr:last-child td{border-bottom:none}
+.toc{background:var(--bg2);border:1px solid var(--br);border-radius:10px;padding:14px;margin-bottom:18px}
+.toc summary{font-size:.98em;font-weight:700;cursor:pointer;color:var(--g)}
+.toc ol{padding-left:18px;margin-top:8px}
+.toc li{font-size:.84em;margin:4px 0}
+.toc a{color:var(--t2);text-decoration:none}
+.step{background:var(--bg3);border-radius:6px;padding:8px 13px;margin:6px 0;font-size:.83em}
+.step b{color:var(--a)}
+.summary{background:linear-gradient(135deg,rgba(88,166,255,.1),rgba(163,113,247,.1));border:1px solid var(--br);border-radius:10px;padding:12px 16px;margin:18px 0;font-size:.88em;color:var(--t)}
+.summary b{color:var(--a)}
+.analogy{background:rgba(57,197,207,.07);border-left:3px solid var(--c1);padding:8px 13px;margin:8px 0;font-size:.82em;color:var(--c1);border-radius:0 6px 6px 0}
+.analogy b{color:var(--c1)}
+@media(max-width:480px){body{padding:10px}h1{font-size:1.3em}h2{font-size:1.05em}pre{font-size:.75em}}
+.ch-nav{display:flex;justify-content:space-between;margin:25px 0 10px;gap:10px}
+.ch-nav a{flex:1;text-align:center;padding:10px 8px;background:var(--bg2);border:1px solid var(--br);border-radius:8px;color:var(--a);text-decoration:none;font-size:.85em;transition:background .2s}
+.ch-nav a:hover{background:var(--bg3)}
+.ch-nav a:only-child{max-width:50%}
+pre{position:relative}
+.copy-btn{position:absolute;top:4px;right:4px;padding:3px 10px;background:var(--bg3);border:1px solid var(--br);border-radius:5px;color:var(--t2);font-size:.72em;cursor:pointer;opacity:0;transition:opacity .2s}
+pre:hover .copy-btn{opacity:1}
+.copy-btn:hover{background:var(--a);color:var(--bg)}
+.copy-btn.copied{background:var(--g);color:var(--bg);border-color:var(--g)}
+.example-block{background:rgba(88,166,255,.06);border:1px solid rgba(88,166,255,.25);border-radius:8px;padding:12px 14px;margin:12px 0}
+.example-block .ex-title{color:var(--a);font-weight:700;font-size:.9em;margin-bottom:6px}
+.example-block .ex-input{color:var(--o);font-family:monospace;font-size:.85em}
+.example-block .ex-output{color:var(--g);font-family:monospace;font-size:.85em;white-space:pre}
+</style>
+</head>
+<body>
+
+<h1>🔧 嵌入式开发 小白完全指南</h1>
+<p style="text-align:center;color:var(--t2);font-size:.85em;margin:4px 0 18px;">从零开始，搭建环境 → 点亮LED → 独立做项目</p>
+
+<div class="toc">
+<details open><summary>📋 14章目录（点击折叠）</summary>
+<ol>
+<li><a href="#ch0">环境搭建 — Windows嵌入式开发环境配置</a></li>
+<li><a href="#ch1">ARM GCC编译工具链 — 交叉编译器详解</a></li>
+<li><a href="#ch2">CMake构建系统 — 现代构建工具</a></li>
+<li><a href="#ch3">Makefile实战 — 经典构建脚本</a></li>
+<li><a href="#ch4">串口通信 — 单片机与电脑对话</a></li>
+<li><a href="#ch5">烧录与调试 — 把程序写进芯片 + GDB调试</a></li>
+<li><a href="#ch6">STM32开发实战 — GPIO/UART/TIM/ADC</a></li>
+<li><a href="#ch7">ESP32开发实战 — WiFi/BLE物联网</a></li>
+<li><a href="#ch8">FreeRTOS入门 — 多任务操作系统</a></li>
+<li><a href="#ch9">通信协议详解 — I2C/SPI/CAN</a></li>
+<li><a href="#ch10">PCB与硬件基础 — 读图/焊接/量测</a></li>
+<li><a href="#ch11">调试技巧大全 — printf/GDB/HardFault</a></li>
+<li><a href="#ch12">项目实战：环境监测站 — DHT11+OLED完整项目</a></li>
+<li><a href="#ch13">常用代码速查 — 启动文件/Linker Script/GDB命令</a></li>
+</ol>
+</details>
+</div>
+
+<div class="card">
+<div class="h"><span class="name">🗺️ 学习路线建议</span><span class="tag g">1周入门</span><span class="tag b">1月精通</span></div>
+<div class="b">
+<div class="desc">不要一口气读14章！按下面的节奏来：</div>
+<table>
+<tr><th>阶段</th><th>时间</th><th>章节</th><th>目标</th></tr>
+<tr><td>🔥 点亮LED</td><td>第1天</td><td>第0+1+2章<b>或</b>第3章</td><td>搭环境→编译→烧录→灯亮（CMake和Makefile二选一）</td></tr>
+<tr><td>💬 串口对话</td><td>第2天</td><td>第4+5章</td><td>printf输出→串口看到数据</td></tr>
+<tr><td>⏱️ 定时+中断</td><td>第3-4天</td><td>第6+11章</td><td>定时器中断→调试技巧</td></tr>
+<tr><td>📡 通信协议</td><td>第5-7天</td><td>第9章</td><td>I2C读传感器+SPI驱动屏</td></tr>
+<tr><td>🚀 完整项目</td><td>第2周</td><td>第12章</td><td>独立完成环境监测站</td></tr>
+<tr><td>🧠 RTOS进阶</td><td>第3-4周</td><td>第8+7+10章</td><td>FreeRTOS+ESP32+硬件基础</td></tr>
+</table>
+</div></div>
+
+<div class="card">
+<div class="h"><span class="name">🎯 STM32 vs ESP32 — 先学哪个？</span><span class="tag y">决策指南</span></div>
+<div class="b">
+<div class="desc">两个都是单片机，但定位完全不同：</div>
+<table>
+<tr><th>对比项</th><th>STM32F103</th><th>ESP32</th></tr>
+<tr><td>定位</td><td>精确控制、低功耗</td><td>WiFi/蓝牙、物联网</td></tr>
+<tr><td>价格</td><td>¥5-10</td><td>¥10-20</td></tr>
+<tr><td>生态</td><td>工业级，资料最多</td><td>创客/Maker首选</td></tr>
+<tr><td>实时性</td><td>强（裸机/RTOS）</td><td>弱（WiFi栈占时间）</td></tr>
+</table>
+<p><strong>推荐：</strong>先学STM32打基础（寄存器/中断/时序概念），再学ESP32做联网项目。只会ESP32的人遇到硬件问题容易卡住。</p>
+</div></div>
+
+<!-- ====== 第0章 ====== -->
+<a id="ch0"></a>
+<div class="summary">📖 <b>第0章学完你能干啥：</b>配好Windows下的嵌入式开发环境，验证ARM GCC/CMake/Make/串口工具全部能跑，知道该买什么硬件开始练手。</div>
+
+<h2>第0章：环境搭建 — Windows嵌入式开发环境</h2>
+
+<p>嵌入式开发需要一套<strong>交叉编译工具链</strong>——因为你的电脑是x86架构，单片机是ARM架构，编译器必须在PC上运行、产出ARM机器码。就像在中国用电脑设计美国的零件，需要一套"跨国工具"。</p>
+
+<div class="analogy">💡 <b>类比：</b>嵌入式开发环境就像<strong>厨房</strong>——ARM GCC是菜刀（切菜=编译代码），CMake是菜谱模板（规划做菜流程），Make是自动炒菜机（按菜谱执行），串口工具是对讲机（和芯片对话的唯一方式）。没有这些，你连"hello world"都烧不进芯片。</div>
+
+<h3>✅ 已安装工具清单</h3>
+
+<div class="card">
+<div class="h"><span class="name">ARM GCC 14.2</span><span class="tag g">核心编译器</span><span class="tag b">C:\Program Files (x86)\Arm GNU Toolchain</span></div>
+<div class="b">
+<div class="desc">ARM官方交叉编译器，把C/C++代码编译成ARM机器码。包含gcc/g++/objcopy/objdump/size等全套工具。</div>
+<pre><code># 验证安装
+arm-none-eabi-gcc --version
+# 输出：arm-none-eabi-gcc (Arm GNU Toolchain 14.2.Rel1) 14.2.1 20241119</code></pre>
+</div></div>
+
+<div class="card">
+<div class="h"><span class="name">CMake 4.3.3</span><span class="tag g">构建系统</span><span class="tag b">C:\Program Files\CMake\</span></div>
+<div class="b">
+<div class="desc">现代构建系统，用CMakeLists.txt描述项目结构，自动生成Makefile或Ninja构建文件。</div>
+<pre><code>cmake --version
+# 输出：cmake version 4.3.3</code></pre>
+</div></div>
+
+<div class="card">
+<div class="h"><span class="name">Make 3.81</span><span class="tag g">经典构建</span><span class="tag y">GnuWin32</span></div>
+<div class="b">
+<div class="desc">经典构建工具，读取Makefile规则，按依赖关系自动编译。嵌入式项目最常用的构建方式。</div>
+<pre><code>make --version
+# 输出：GNU Make 3.81</code></pre>
+</div></div>
+
+<div class="card">
+<div class="h"><span class="name">PuTTY 0.84</span><span class="tag g">串口终端</span><span class="tag b">C:\Program Files\PuTTY\</span></div>
+<div class="b">
+<div class="desc">开源终端工具，通过串口（COM口）查看单片机的printf输出和调试信息。支持SSH/Telnet/Serial。</div>
+</div></div>
+
+<div class="card">
+<div class="h"><span class="name">VS Code + 嵌入式插件</span><span class="tag g">代码编辑器</span><span class="tag p">6个插件</span></div>
+<div class="b">
+<div class="desc">已安装插件：C/C++（智能提示+调试）、CMake Tools（构建集成）、Cortex-Debug（ARM调试）、EIDE（嵌入式IDE）、PlatformIO（一站式开发环境）、C++ Extension Pack</div>
+<pre><code># 查看已装插件
+code --list-extensions</code></pre>
+</div></div>
+
+<div class="card">
+<div class="h"><span class="name">Python 3.14 + pyserial/esptool</span><span class="tag g">脚本工具</span></div>
+<div class="b">
+<div class="desc">pyserial提供串口编程接口（命令行miniterm工具），esptool用于ESP32固件烧录。</div>
+<pre><code># 串口终端（超级好用）
+python -m serial.tools.miniterm COM3 115200
+
+# ESP32烧录
+esptool.py --chip esp32 -p COM3 write_flash 0x1000 firmware.bin</code></pre>
+</div></div>
+
+<h3>🔧 PATH环境变量配置</h3>
+
+<p>把工具加到PATH，这样在<strong>任意目录</strong>的命令行里都能直接调用，不用每次输入完整路径。</p>
+
+<div class="step"><b>步骤1：</b>Win + S 搜索"环境变量" → 打开"编辑系统环境变量"</div>
+<div class="step"><b>步骤2：</b>点"环境变量" → 选中用户变量的"Path" → 点"编辑"</div>
+<div class="step"><b>步骤3：</b>点"新建"，加入以下路径（已自动配置的跳过）：</div>
+<pre><code>C:\Program Files (x86)\Arm GNU Toolchain arm-none-eabi\14.2 rel1\bin
+C:\Program Files\CMake\bin
+C:\Program Files (x86)\GnuWin32\bin
+C:\Program Files\PuTTY
+C:\Users\LYS\AppData\Local\Python\pythoncore-3.14-64\Scripts</code></pre>
+
+<div class="tip">💡 <b>小技巧：</b>加完PATH后，<strong>重新打开</strong>所有命令行窗口才会生效。验证：打开新的PowerShell，直接输入 <code>arm-none-eabi-gcc --version</code>，能运行就说明配好了。</div>
+
+<h3>🔍 环境一键验证脚本</h3>
+
+<p>复制下面的脚本到PowerShell运行，自动检测所有工具是否配置正确：</p>
+
+<pre><code># 保存为 check_env.ps1 或直接复制运行
+# 自动检测Python命令（python/python3/python3.14等）
+$pyCmd = $null
+foreach ($cmd in @('python3.14','python3','python')) {
+    try { $null = & $cmd --version 2>&1; $pyCmd = $cmd; break } catch {}
+}
+if (-not $pyCmd) { Write-Host "❌ Python未找到，请确认已安装并加入PATH" -ForegroundColor Red }
+
+$tools = @(
+    @{name='ARM GCC'; cmd='arm-none-eabi-gcc --version'},
+    @{name='CMake'; cmd='cmake --version'},
+    @{name='Make'; cmd='make --version'},
+    @{name='Python'; cmd="$pyCmd --version"},
+    @{name='pyserial'; cmd="$pyCmd -m serial.tools.list_ports -h"},
+    @{name='esptool'; cmd="$pyCmd -m esptool version"}
+)
+
+Write-Host "`n=== 嵌入式环境检测 ===`n" -ForegroundColor Cyan
+foreach ($t in $tools) {
+    Write-Host "检测 $($t.name)... " -NoNewline
+    try {
+        $result = Invoke-Expression $t.cmd 2>&1
+        if ($LASTEXITCODE -eq 0 -or $result -match '\d') {
+            Write-Host "✅ OK" -ForegroundColor Green
+        } else {
+            Write-Host "❌ 失败" -ForegroundColor Red
+        }
+    } catch {
+        Write-Host "❌ 未安装" -ForegroundColor Red
+    }
+}
+Write-Host "`n检测完成！" -ForegroundColor Cyan</code></pre>
+
+<div class="note">⚠️ <b>注意事项：</b><br>
+• 如果Make检测失败，说明GnuWin32的bin目录未加入PATH，手动添加：<code>C:\Program Files (x86)\GnuWin32\bin</code><br>
+• Python Scripts目录也需检查：<code>C:\Users\你的用户名\AppData\Local\Programs\Python\Python3xx\Scripts</code><br>
+• pyserial和esptool装在哪个Python下，那个Scripts目录就要加PATH</div>
+
+<h3>🛒 入门硬件推荐</h3>
+
+<table>
+<tr><th>硬件</th><th>型号</th><th>价格</th><th>用途</th><th>购买</th></tr>
+<tr><td>STM32开发板</td><td>STM32F103C8T6最小系统板</td><td>¥5-10</td><td>入门首选，资源最丰富</td><td><a href="https://s.taobao.com/search?q=STM32F103C8T6+%E6%9C%80%E5%B0%8F%E7%B3%BB%E7%BB%9F%E6%9D%BF" style="color:var(--a)" target="_blank">淘宝搜索</a></td></tr>
+<tr><td>烧录器</td><td>ST-Link V2（仿版）</td><td>¥10-15</td><td>程序烧录+GDB调试</td><td><a href="https://s.taobao.com/search?q=ST-Link+V2+%E4%B8%8B%E8%BD%BD%E5%99%A8" style="color:var(--a)" target="_blank">淘宝搜索</a></td></tr>
+<tr><td>USB转TTL</td><td>CH340G模块</td><td>¥5</td><td>串口通信</td><td><a href="https://s.taobao.com/search?q=CH340+USB%E8%BD%ACTTL" style="color:var(--a)" target="_blank">淘宝搜索</a></td></tr>
+<tr><td>调试器</td><td>DAP-Link (CMSIS-DAP)</td><td>¥20</td><td>更通用，支持多种芯片</td><td><a href="https://s.taobao.com/search?q=DAP-Link+CMSIS-DAP" style="color:var(--a)" target="_blank">淘宝搜索</a></td></tr>
+<tr><td>面包板+杜邦线</td><td>830孔面包板+公对母线</td><td>¥10</td><td>接线实验</td><td><a href="https://s.taobao.com/search?q=%E9%9D%A2%E5%8C%85%E6%9D%BF+%E6%9D%9C%E9%82%A6%E7%BA%BF" style="color:var(--a)" target="_blank">淘宝搜索</a></td></tr>
+</table>
+
+<div class="note">⚠️ <b>购买提示：</b>STM32F103C8T6板 + ST-Link V2 + CH340模块，三件套约¥25，玩转本书所有STM32例子完全够用。</div>
+
+<h3>📐 STM32F103C8T6 最小系统板引脚图</h3>
+
+<p>蓝色小板子是嵌入式入门最常见的开发板，引脚排列如下：</p>
+
+<table>
+<tr><th>左侧排针（自上而下）</th><th>引脚</th><th>右侧排针（自上而下）</th><th>引脚</th></tr>
+<tr><td>3V3</td><td>3.3V输出</td><td>GND</td><td>地</td></tr>
+<tr><td>GND</td><td>地</td><td>GND</td><td>地</td></tr>
+<tr><td>PA0</td><td>ADC/KEY</td><td>5V</td><td>5V输入</td></tr>
+<tr><td>PA1</td><td>ADC</td><td>PB9</td><td>I2C1_SDA</td></tr>
+<tr><td>PA2</td><td>USART2_TX</td><td>PB8</td><td>I2C1_SCL</td></tr>
+<tr><td>PA3</td><td>USART2_RX</td><td>PB7</td><td>I2C1_SDA(重映射)</td></tr>
+<tr><td>PA4</td><td>SPI1_NSS</td><td>PB6</td><td>I2C1_SCL(重映射)</td></tr>
+<tr><td>PA5</td><td>SPI1_SCK</td><td>PB5</tdtd><td>SPI1_MOSI(重映射)</td></tr>
+<tr><td>PA6</td><td>SPI1_MISO</td><td>PB4</td><td>NJTRST</td></tr>
+<tr><td>PA7</td><td>SPI1_MOSI</td><td>PB3</td><td>JTDO</td></tr>
+<tr><td>PB0</td><td>ADC</td><td>PA15</td><td>JTDI</td></tr>
+<tr><td>PB1</td><td>ADC</td><td>PA12</td><td>USB D+</td></tr>
+<tr><td>PB10</td><td>I2C2_SCL</td><td>PA11</td><td>USB D-</td></tr>
+<tr><td>PB11</td><td>I2C2_SDA</td><td>PA10</td><td>USART1_RX</td></tr>
+<tr><td>RST</td><td>复位</td><td>PA9</td><td>USART1_TX</td></tr>
+<tr><td>3V3</td><td>3.3V</td><td>PA8</td><td>MCO</td></tr>
+<tr><td>GND</td><td>地</td><td>PB15</td><td>SPI2_MOSI</td></tr>
+<tr><td>GND</td><td>地</td><td>PB14</td><td>SPI2_MISO</td></tr>
+<tr><td>5V</td><td>5V</td><td>PB13</td><td>SPI2_SCK</td></tr>
+<tr><td>VBAT</td><td>备用电源</td><td>PB12</td><td>SPI2_NSS</td></tr>
+</table>
+
+<div class="note">⚠️ <b>关键引脚速记：</b><br>
+• <strong>PC13</strong>=板载LED（大部分蓝色小板）<br>
+• <strong>PA9/PA10</strong>=USART1（串口通信用这对）<br>
+• <strong>PB6/PB7</strong>=I2C1（OLED/传感器）<br>
+• <strong>PA4-PA7</strong>=SPI1（Flash/屏幕）<br>
+• <strong>BOOT0</strong>=跳线帽，接1进入下载模式，接0正常运行</div>
+
+<h3>❌ 需手动安装的工具</h3>
+
+<table>
+<tr><th>工具</th><th>原因</th><th>下载地址</th></tr>
+<tr><td>Wireshark</td><td>98MB，网络慢时超时</td><td>wireshark.org/download.html</td></tr>
+<tr><td>OpenOCD</td><td>GitHub下载被墙</td><td>github.com/xpack-dev-tools/openocd-xpack/releases</td></tr>
+<tr><td>MobaXterm</td><td>官方服务器慢</td><td>mobaxterm.mobatek.net</td></tr>
+<tr><td>STM32CubeMX</td><td>需注册ST账号</td><td>st.com/en/development-tools/stm32cubemx.html</td></tr>
+</table>
+
+<p><strong>以上4个工具不影响基础学习</strong>，前6章不需要。等基础打好了再装。</p>
+
+<!-- ====== 第1章 ====== -->
+<a id="ch1"></a>
+<div class="summary">📖 <b>第1章学完你能干啥：</b>理解ARM GCC工具链中每个工具的作用，知道编译的四个阶段，能手动编译一个.c文件到.bin/.hex，能看懂.map和.lst文件。</div>
+
+<h2>第1章：ARM GCC编译工具链详解</h2>
+
+<p>ARM GCC不是"一个"程序，而是一整套工具。每个工具负责编译流程的一个环节，就像一条流水线——钢材进来，汽车出去。</p>
+
+<div class="analogy">💡 <b>类比：</b>编译就像<strong>翻译一本外文小说</strong>——<em>预处理</em>=整理草稿（去掉注释、展开宏）；<em>编译</em>=逐句翻译成目标语言；<em>汇编</em>=查字典把句子变成字母编码；<em>链接</em>=把散页装订成册、补上目录和索引。</div>
+
+<h3>编译四阶段</h3>
+
+<table>
+<tr><th>阶段</th><th>工具</th><th>输入</th><th>输出</th><th>做了什么</th></tr>
+<tr><td>1. 预处理</td><td>cpp (C Preprocessor)</td><td>.c + .h</td><td>.i</td><td>展开宏、条件编译、去注释</td></tr>
+<tr><td>2. 编译</td><td>cc1 / cc1plus</td><td>.i</td><td>.s</td><td>C/C++ → ARM汇编</td></tr>
+<tr><td>3. 汇编</td><td>as (Assembler)</td><td>.s</td><td>.o</td><td>汇编 → 机器码(目标文件)</td></tr>
+<tr><td>4. 链接</td><td>ld (Linker)</td><td>.o + 库</td><td>.elf</td><td>合并目标文件、分配地址</td></tr>
+</table>
+
+<pre><code># 一步到位（最常用）
+arm-none-eabi-gcc -mcpu=cortex-m3 -mthumb -O2 -Wall main.c -o main.elf
+
+# 分步执行（学习用）
+arm-none-eabi-gcc -E main.c -o main.i          # 只预处理
+arm-none-eabi-gcc -S main.i -o main.s           # 只编译到汇编
+arm-none-eabi-as -mcpu=cortex-m3 main.s -o main.o  # 只汇编
+arm-none-eabi-ld main.o -T stm32.ld -o main.elf    # 只链接</code></pre>
+
+<h3>核心工具详解</h3>
+
+<div class="card">
+<div class="h"><span class="name">编译参数速查</span><span class="tag r">必须理解</span></div>
+<div class="b">
+<div class="desc">每次编译都会用到这些参数，搞懂它们是读懂所有构建命令的前提：</div>
+<table>
+<tr><th>参数</th><th>含义</th><th>为什么需要</th></tr>
+<tr><td><code>-mcpu=cortex-m3</code></td><td>目标CPU型号</td><td>STM32F103=M3, F407=M4, H743=M7</td></tr>
+<tr><td><code>-mthumb</code></td><td>使用Thumb指令集</td><td>代码更小（16位指令），ARM单片机必选</td></tr>
+<tr><td><code>-O2</code></td><td>优化等级</td><td>O0=不优化(调试用), O2=速度优化, Os=体积优化</td></tr>
+<tr><td><code>-Wall</code></td><td>开启所有警告</td><td>帮你提前发现Bug，必须开</td></tr>
+<tr><td><code>-ffunction-sections</code></td><td>每个函数单独section</td><td>配合<code>--gc-sections</code>删除未用函数</td></tr>
+<tr><td><code>-fdata-sections</code></td><td>每个数据单独section</td><td>同上，删除未用变量</td></tr>
+<tr><td><code>-g3</code></td><td>调试信息等级3</td><td>GDB调试需要，等级3=宏信息也包含</td></tr>
+<tr><td><code>--specs=nano.specs</code></td><td>使用精简C库</td><td>代码体积减半！嵌入式必选</td></tr>
+<tr><td><code>--specs=nosys.specs</code></td><td>无系统调用</td><td>裸机程序不需要OS接口</td></tr>
+<tr><td><code>-Wl,--gc-sections</code></td><td>链接时删除未用代码</td><td>与-ffunction-sections配合，省Flash</td></tr>
+<tr><td><code>-Wl,-Map=xx.map</code></td><td>生成map文件</td><td>查看函数地址和大小，排错利器</td></tr>
+</table>
+</div></div>
+
+<div class="card">
+<div class="h"><span class="name">arm-none-eabi-gcc</span><span class="tag g">编译器驱动</span></div>
+<div class="b">
+<div class="desc">主入口，自动调用预处理→编译→汇编→链接四个阶段。平时99%的情况用这个就够了。</div>
+<pre><code># 常用编译选项
+-mcpu=cortex-m3    # 指定CPU架构（M3/M4/M7等）
+-mthumb            # 使用Thumb指令集（代码更小）
+-O2                # 优化等级（O0/O1/O2/Os）
+-Wall              # 开启所有常见警告
+-ffunction-sections # 每个函数单独一个section（配合链接器优化）
+-ggdb3             # 生成GDB调试信息
+-I./inc            # 头文件搜索路径
+-DSTM32F103        # 定义预处理宏</code></pre>
+</div></div>
+
+<div class="card">
+<div class="h"><span class="name">arm-none-eabi-objcopy</span><span class="tag y">格式转换</span></div>
+<div class="b">
+<div class="desc">把ELF格式转成BIN/HEX，烧录器需要的是这些"纯数据"格式。</div>
+<pre><code># ELF → BIN（纯二进制，最常用）
+arm-none-eabi-objcopy -O binary main.elf main.bin
+
+# ELF → HEX（Intel HEX格式，带地址信息）
+arm-none-eabi-objcopy -O ihex main.elf main.hex
+
+# 查看各段信息
+arm-none-eabi-objcopy -O binary -j .isr_vector main.elf vector.bin</code></pre>
+</div></div>
+
+<div class="card">
+<div class="h"><span class="name">arm-none-eabi-objdump</span><span class="tag y">反汇编器</span></div>
+<div class="b">
+<div class="desc">查看目标文件的汇编代码、段信息。调试时看CPU到底在执行什么。</div>
+<pre><code># 反汇编ELF文件（带C源码对照）
+arm-none-eabi-objdump -d -S main.elf > main.lst
+
+# 查看段头部信息
+arm-none-eabi-objdump -h main.elf
+
+# 只反汇编某个函数
+arm-none-eabi-objdump -d main.elf | Select-String -Pattern "main>:" -Context 0,20</code></pre>
+</div></div>
+
+<div class="card">
+<div class="h"><span class="name">arm-none-eabi-size</span><span class="tag b">空间分析</span></div>
+<div class="b">
+<div class="desc">查看编译后的代码占多少Flash和RAM，嵌入式开发必须关注！</div>
+<pre><code>arm-none-eabi-size main.elf
+#    text    data     bss     dec     hex filename
+#   12340     120    2048   14508    38ac main.elf
+# Flash占用 = text + data = 12460 字节
+# RAM占用  = data + bss  = 2168 字节</code></pre>
+</div></div>
+
+<div class="card">
+<div class="h"><span class="name">arm-none-eabi-nm</span><span class="tag p">符号表</span></div>
+<div class="b">
+<div class="desc">列出所有符号（函数、全局变量）及其地址。</div>
+<pre><code># 按地址排序查看所有符号
+arm-none-eabi-nm -n main.elf
+
+# 只看未定义符号
+arm-none-eabi-nm -u main.elf
+
+# 查看某个函数地址
+arm-none-eabi-nm main.elf | findstr "main"</code></pre>
+</div></div>
+
+<h3>.map 文件</h3>
+
+<p>链接器输出的"地图"——每个函数、变量被放在了哪个地址，各段大小是多少。排错时非常有用。</p>
+
+<pre><code># 生成map文件
+arm-none-eabi-gcc ... -Wl,-Map=main.map main.elf
+
+# map文件关键信息：
+# .text    0x08000000    12340  ← 代码段
+# .data    0x20000000      120  ← 数据段
+# .bss     0x20000078     2048  ← BSS段
+# main     0x08000120          ← main函数地址</code></pre>
+
+<div class="trouble">🔍 <b>常见问题：编译成功但程序跑飞</b><br>
+90%是链接脚本(.ld)里Flash/RAM起始地址写错了。STM32F103C8T6的Flash从0x08000000开始，RAM从0x20000000开始。检查.map文件确认地址。</div>
+
+<div class="tip">💡 <b>小技巧：</b>编译时永远加 <code>-Wl,-Map=output.map</code> 和 <code>-g</code>，这两个选项不要省。</div>
+
+<div class="example-block">
+<div class="ex-title">📝 完整示例：编译并分析一个STM32项目</div>
+<div class="ex-input">输入命令：</div>
+<pre><code>arm-none-eabi-gcc -mcpu=cortex-m3 -mthumb -O2 -Wall -g3 \
+    -ffunction-sections -fdata-sections \
+    -I./inc -DSTM32F103 \
+    src/main.c src/stm32f1xx_it.c -T STM32F103C8Tx.ld \
+    -Wl,--gc-sections -Wl,-Map=app.map --specs=nano.specs \
+    -o app.elf
+
+arm-none-eabi-objcopy -O binary app.elf app.bin
+arm-none-eabi-size app.elf</code></pre>
+<div class="ex-output">输出结果：</div>
+<pre><code>   text    data     bss     dec     hex filename
+  12340     120    2048   14508    38ac app.elf
+
+Flash占用 = text + data = 12460 字节 (12.2KB)
+RAM占用  = data + bss  = 2168 字节 (2.1KB)
+STM32F103C8 有 64KB Flash, 20KB RAM → 充足!</pre>
+</div>
+
+<!-- ====== 第2章 ====== -->
+<a id="ch2"></a>
+<div class="summary">📖 <b>第2章学完你能干啥：</b>会写CMakeLists.txt，会用cmake命令构建项目，能配置交叉编译工具链文件，能用CMake管理完整的STM32项目。</div>
+
+<h2>第2章：CMake构建系统</h2>
+
+<p>CMake不直接编译代码——它是<strong>"构建文件生成器"</strong>。你写CMakeLists.txt描述项目结构，CMake帮你生成Makefile，再用make编译。</p>
+
+<div class="analogy">💡 <b>类比：</b>CMake就像<strong>建筑设计师</strong>，你告诉他"我要3层楼、2个卧室"（CMakeLists.txt），他画出施工图纸（Makefile），施工队（make）按图纸盖房子（编译）。</div>
+
+<h3>CMakeLists.txt 最小模板</h3>
+
+<pre><code>cmake_minimum_required(VERSION 3.20)
+project(stm32_blink C ASM)
+
+set(SOURCES src/main.c src/stm32f1xx_it.c src/system_stm32f1xx.c)
+
+include_directories(inc CMSIS)
+
+add_compile_options(-mcpu=cortex-m3 -mthumb -Wall -ffunction-sections -fdata-sections)
+
+add_link_options(-mcpu=cortex-m3 -mthumb -Wl,--gc-sections
+    -T${CMAKE_SOURCE_DIR}/STM32F103C8Tx.ld
+    -Wl,-Map=${PROJECT_NAME}.map)
+
+add_executable(${PROJECT_NAME}.elf ${SOURCES})
+
+add_custom_command(TARGET ${PROJECT_NAME}.elf POST_BUILD
+    COMMAND ${CMAKE_OBJCOPY} -O binary ${PROJECT_NAME}.elf ${PROJECT_NAME}.bin
+    COMMAND ${CMAKE_OBJCOPY} -O ihex ${PROJECT_NAME}.elf ${PROJECT_NAME}.hex
+    COMMAND ${CMAKE_SIZE} ${PROJECT_NAME}.elf)</code></pre>
+
+<h3>交叉编译工具链文件</h3>
+
+<pre><code># toolchain-arm.cmake
+set(CMAKE_SYSTEM_NAME Generic)
+set(CMAKE_SYSTEM_PROCESSOR ARM)
+
+set(TOOLCHAIN_PREFIX arm-none-eabi-)
+set(CMAKE_C_COMPILER ${TOOLCHAIN_PREFIX}gcc)
+set(CMAKE_CXX_COMPILER ${TOOLCHAIN_PREFIX}g++)
+set(CMAKE_ASM_COMPILER ${TOOLCHAIN_PREFIX}gcc)
+set(CMAKE_AR ${TOOLCHAIN_PREFIX}ar)
+set(CMAKE_OBJCOPY ${TOOLCHAIN_PREFIX}objcopy)
+set(CMAKE_OBJDUMP ${TOOLCHAIN_PREFIX}objdump)
+set(CMAKE_SIZE ${TOOLCHAIN_PREFIX}size)
+
+set(CMAKE_TRY_COMPILE_TARGET_TYPE STATIC_LIBRARY)
+set(CMAKE_FIND_ROOT_PATH_MODE_PROGRAM NEVER)
+set(CMAKE_FIND_ROOT_PATH_MODE_LIBRARY ONLY)
+set(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE ONLY)</code></pre>
+
+<h3>构建命令</h3>
+
+<pre><code># 创建build目录（保持源码干净）
+mkdir build &amp;&amp; cd build
+
+# 配置（生成Makefile）
+cmake -DCMAKE_TOOLCHAIN_FILE=../toolchain-arm.cmake -DCMAKE_BUILD_TYPE=Debug ..
+
+# 编译（4线程并行）
+cmake --build . -j4
+
+# 清理
+cmake --build . --target clean</code></pre>
+
+<div class="trouble">🔍 <b>常见问题：cmake找不到arm-none-eabi-gcc</b><br>
+工具链没加PATH。解决：把ARM GCC的bin目录加到PATH，或在toolchain文件写死路径：<br><code>set(CMAKE_C_COMPILER "C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin/arm-none-eabi-gcc.exe")</code></div>
+
+<div class="example-block">
+<div class="ex-title">📝 完整示例：CMake构建STM32项目</div>
+<div class="ex-input">项目结构 + 构建命令：</div>
+<pre><code>stm32-project/
+├── CMakeLists.txt
+├── toolchain-arm.cmake
+├── STM32F103C8Tx.ld
+├── inc/
+└── src/
+    ├── main.c
+    └── stm32f1xx_it.c
+
+# 构建步骤：
+mkdir build &amp;&amp; cd build
+cmake -DCMAKE_TOOLCHAIN_FILE=../toolchain-arm.cmake -DCMAKE_BUILD_TYPE=Debug ..
+cmake --build . -j4</code></pre>
+<div class="ex-output">输出结果：</div>
+<pre><code>-- The C compiler identification is GNU 14.2.1
+-- Configuring done
+-- Generating done
+-- Build files have been written to: /path/build
+[ 33%] Building C object CMakeFiles/stm32_blink.dir/src/main.c.o
+[ 66%] Building C object CMakeFiles/stm32_blink.dir/src/stm32f1xx_it.c.o
+[100%] Linking C executable stm32_blink.elf
+PostBuild: arm-none-eabi-objcopy -O binary stm32_blink.elf stm32_blink.bin
+PostBuild: arm-none-eabi-objcopy -O ihex stm32_blink.elf stm32_blink.hex
+   text    data     bss     dec     hex filename
+   1580      20     256    1856     740 stm32_blink.elf
+
+✅ 构建成功！烧录：st-flash write stm32_blink.bin 0x08000000</pre>
+</div>
+
+<h3>🚀 5分钟快速上手：最小可编译项目</h3>
+
+<p>跟着做，<strong>从零到一个能编译的项目</strong>，只需5分钟：</p>
+
+<div class="step"><b>步骤1：</b>创建项目目录</div>
+<pre><code>mkdir stm32-blink &amp;&amp; cd stm32-blink
+mkdir src inc</code></pre>
+
+<div class="step"><b>步骤2：</b>创建最小main.c（点灯程序，无需任何库）</div>
+<pre><code># src/main.c - 最小STM32程序（纯寄存器，无需HAL库）
+// 定义寄存器地址
+#define RCC_APB2ENR  (*(volatile uint32_t*)0x40021018)
+#define GPIOC_CRH    (*(volatile uint32_t*)0x40011004)
+#define GPIOC_ODR    (*(volatile uint32_t*)0x4001100C)
+
+void delay(volatile uint32_t count) {
+    while(count--);
+}
+
+int main(void) {
+    // 使能GPIOC时钟
+    RCC_APB2ENR |= (1 &lt;&lt; 4);
+    
+    // 配置PC13为推挽输出（50MHz）
+    GPIOC_CRH = (GPIOC_CRH &amp; ~0x00F00000) | 0x00300000;
+    
+    while(1) {
+        GPIOC_ODR ^= (1 &lt;&lt; 13);  // 翻转PC13
+        delay(500000);
+    }
+}</code></pre>
+
+<div class="step"><b>步骤3：</b>创建最小链接脚本</div>
+<pre><code>/* STM32F103C8Tx.ld - 最小版（含向量表） */
+ENTRY(Reset_Handler)
+
+_estack = ORIGIN(RAM) + LENGTH(RAM);  /* 栈顶 = RAM末尾 */
+
+MEMORY {
+  FLASH (rx) : ORIGIN = 0x08000000, LENGTH = 64K
+  RAM (rwx)  : ORIGIN = 0x20000000, LENGTH = 20K
+}
+SECTIONS {
+  .isr_vector : {
+    . = ALIGN(4);
+    KEEP(*(.isr_vector))  /* 中断向量表（必须保留！） */
+    . = ALIGN(4);
+  } > FLASH
+
+  .text : { *(.text*) } > FLASH
+  .rodata : { *(.rodata*) } > FLASH
+  .data : { *(.data*) } > RAM AT > FLASH
+  .bss : { *(.bss*) *(COMMON) } > RAM
+}
+
+/* 最小启动代码（添加到main.c底部） */
+/*
+__attribute__((section(".isr_vector")))
+void (* const g_pfnVectors[])(void) = {
+    (void *)&_estack,     // 初始栈指针
+    Reset_Handler,         // 复位向量
+};
+
+void Reset_Handler(void) {
+    // 复制.data段从Flash到RAM
+    extern uint32_t _sdata, _edata, _sidata;
+    uint32_t *src = &_sidata, *dst = &_sdata;
+    while (dst < &_edata) *dst++ = *src++;
+    // 清零.bss段
+    extern uint32_t _sbss, _ebss;
+    dst = &_sbss;
+    while (dst < &_ebss) *dst++ = 0;
+    // 跳转到main
+    main();
+    while(1);
+}
+*/</code></pre>
+
+<div class="step"><b>步骤4：</b>创建CMakeLists.txt</div>
+<pre><code>cmake_minimum_required(VERSION 3.20)
+project(stm32_blink C)
+add_compile_options(-mcpu=cortex-m3 -mthumb -Wall -O2 -g3 -ffunction-sections -fdata-sections)
+add_link_options(-mcpu=cortex-m3 -mthumb -Wl,--gc-sections -T${CMAKE_SOURCE_DIR}/STM32F103C8Tx.ld --specs=nano.specs --specs=nosys.specs)
+add_executable(blink.elf src/main.c)
+add_custom_command(TARGET blink.elf POST_BUILD
+    COMMAND ${CMAKE_OBJCOPY} -O binary blink.elf blink.bin
+    COMMAND ${CMAKE_SIZE} blink.elf)</code></pre>
+
+<div class="step"><b>步骤4.5：</b>创建工具链文件（保存为 <code>toolchain-arm.cmake</code>，放在项目根目录）</div>
+<pre><code># toolchain-arm.cmake - 告诉CMake用ARM编译器
+set(CMAKE_SYSTEM_NAME Generic)
+set(CMAKE_SYSTEM_PROCESSOR ARM)
+set(TOOLCHAIN_PREFIX arm-none-eabi-)
+set(CMAKE_C_COMPILER ${TOOLCHAIN_PREFIX}gcc)
+set(CMAKE_CXX_COMPILER ${TOOLCHAIN_PREFIX}g++)
+set(CMAKE_ASM_COMPILER ${TOOLCHAIN_PREFIX}gcc)
+set(CMAKE_AR ${TOOLCHAIN_PREFIX}ar)
+set(CMAKE_OBJCOPY ${TOOLCHAIN_PREFIX}objcopy)
+set(CMAKE_OBJDUMP ${TOOLCHAIN_PREFIX}objdump)
+set(CMAKE_SIZE ${TOOLCHAIN_PREFIX}size)
+set(CMAKE_TRY_COMPILE_TARGET_TYPE STATIC_LIBRARY)
+set(CMAKE_FIND_ROOT_PATH_MODE_PROGRAM NEVER)
+set(CMAKE_FIND_ROOT_PATH_MODE_LIBRARY ONLY)
+set(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE ONLY)</code></pre>
+
+<div class="step"><b>步骤5：</b>构建！</div>
+<pre><code>mkdir build &amp;&amp; cd build
+cmake -DCMAKE_TOOLCHAIN_FILE=../toolchain-arm.cmake ..
+cmake --build .</code></pre>
+
+<div class="example-block">
+<div class="ex-title">📝 构建成功输出</div>
+<div class="ex-output">预期结果：</div>
+<pre><code>-- The C compiler identification is GNU 14.2.1
+-- Configuring done
+-- Generating done
+[ 50%] Building C object CMakeFiles/blink.dir/src/main.c.o
+[100%] Linking C executable blink.elf
+PostBuild: arm-none-eabi-objcopy -O binary blink.elf blink.bin
+   text    data     bss     dec     hex filename
+    120       0       0     120     78 blink.elf
+
+✅ 编译成功！blink.bin就是你的固件，可以烧录了！</pre>
+</div>
+
+<div class="tip">💡 <b>为什么用纯寄存器不用HAL库？</b>因为这个项目<strong>不依赖任何外部文件</strong>，你能直接编译通过！等熟悉了流程，再用CubeMX生成HAL库工程（第6章会教）。</div>
+
+<!-- ====== 第3章 ====== -->
+<a id="ch3"></a>
+<div class="summary">📖 <b>第3章学完你能干啥：</b>能读懂和编写Makefile，理解规则/变量/自动变量/模式规则，能写完整STM32 Makefile。</div>
+
+<h2>第3章：Makefile实战</h2>
+
+<p>Makefile是嵌入式项目最经典的构建方式——虽然CMake更现代，但大量开源项目仍在用Makefile，<strong>必须会读会写</strong>。</p>
+
+<div class="analogy">💡 <b>类比：</b>Makefile就像<strong>菜谱</strong>——target=菜名（"红烧肉"），prerequisites=食材（五花肉、酱油），recipe=做法（切肉→焯水→炖煮）。make就是你雇的厨师，按菜谱一步步做。</div>
+
+<h3>Makefile基本规则</h3>
+
+<pre><code># 格式（recipe必须用TAB缩进！）
+target: prerequisites
+	recipe
+
+# 例子
+main.o: main.c main.h
+	arm-none-eabi-gcc -c -mcpu=cortex-m3 -mthumb main.c -o main.o</code></pre>
+
+<h3>变量与自动变量</h3>
+
+<pre><code>CC = arm-none-eabi-gcc
+CFLAGS = -mcpu=cortex-m3 -mthumb -Wall -O2 -g
+TARGET = myproject
+
+# 自动变量
+# $@ = 目标名    $&lt; = 第一个依赖    $^ = 所有依赖
+main.o: main.c main.h
+	$(CC) $(CFLAGS) -c $&lt; -o $@</code></pre>
+
+<h3>模式规则</h3>
+
+<pre><code># 通用规则：所有.c → .o
+%.o: %.c
+	$(CC) $(CFLAGS) -c $&lt; -o $@
+
+# 链接：所有.o → .elf
+$(TARGET).elf: $(OBJS)
+	$(CC) $(LDFLAGS) $^ -o $@</code></pre>
+
+<h3>完整STM32 Makefile模板</h3>
+
+<pre><code># ====== STM32F103 Makefile ======
+CC = arm-none-eabi-gcc
+OBJCOPY = arm-none-eabi-objcopy
+SIZE = arm-none-eabi-size
+TARGET = blink
+MCU = cortex-m3
+
+C_SOURCES = $(wildcard src/*.c)
+INCLUDES = -Iinc -Idrivers/CMSIS
+
+CFLAGS  = -mcpu=$(MCU) -mthumb -Wall -O2 -g3
+CFLAGS += -ffunction-sections -fdata-sections $(INCLUDES)
+CFLAGS += -DSTM32F103C8T6
+
+LDFLAGS  = -mcpu=$(MCU) -mthumb -Wl,--gc-sections
+LDFLAGS += -TSTM32F103C8Tx.ld -Wl,-Map=$(TARGET).map
+LDFLAGS += --specs=nano.specs --specs=nosys.specs
+
+OBJS = $(C_SOURCES:.c=.o)
+
+.PHONY: all clean flash
+
+all: $(TARGET).bin $(TARGET).hex
+	@echo "Build complete!"
+	$(SIZE) $(TARGET).elf
+
+$(TARGET).elf: $(OBJS)
+	$(CC) $(LDFLAGS) $^ -o $@
+
+$(TARGET).bin: $(TARGET).elf
+	$(OBJCOPY) -O binary $&lt; $@
+
+$(TARGET).hex: $(TARGET).elf
+	$(OBJCOPY) -O ihex $&lt; $@
+
+%.o: %.c
+	$(CC) $(CFLAGS) -c $&lt; -o $@
+
+clean:
+	powershell -Command "Remove-Item src/*.o $(TARGET).elf $(TARGET).bin $(TARGET).hex $(TARGET).map -ErrorAction SilentlyContinue"
+# 注：嵌入式Makefile通常在Windows PowerShell环境运行
+# 如果你在Linux/WSL下，改用：
+# 	rm -f $(OBJS) $(TARGET).elf $(TARGET).bin $(TARGET).hex $(TARGET).map
+
+flash: $(TARGET).bin
+	st-flash write $(TARGET).bin 0x08000000</code></pre>
+
+<div class="note">⚠️ <b>重要：</b>Makefile中recipe行<strong>必须用TAB缩进</strong>，不能用空格！这是最常见的坑。复制粘贴后如果报"missing separator"，把空格替换成TAB。</div>
+
+<div class="trouble">🔍 <b>常见问题：make报"missing separator"</b><br>
+recipe行用了空格而非TAB。解决：VS Code中打开Makefile，确保右下角显示"Tabs"而非"Spaces"。</div>
+
+<div class="tip">💡 <b>小技巧：</b><br>
+• <code>make -n</code> 干跑（只打印不执行）<br>
+• <code>make -j4</code> 4线程并行编译<br>
+• <code>make -B</code> 强制重新编译全部<br>
+• <code>make V=1</code> 显示完整编译命令</div>
+
+<div class="example-block">
+<div class="ex-title">📝 完整示例：用Makefile构建STM32项目</div>
+<div class="ex-input">项目目录：</div>
+<pre><code>stm32-blink/
+├── Makefile
+├── STM32F103C8Tx.ld
+├── inc/
+│   └── main.h
+└── src/
+    ├── main.c
+    ├── stm32f1xx_it.c
+    └── system_stm32f1xx.c</code></pre>
+<div class="ex-input">运行命令：</div>
+<pre><code>cd stm32-blink
+make clean &amp;&amp; make -j4</code></pre>
+<div class="ex-output">输出结果：</div>
+<pre><code>arm-none-eabi-gcc -c -mcpu=cortex-m3 -mthumb -Wall -O2 -g3 ... -o src/main.o
+arm-none-eabi-gcc -c -mcpu=cortex-m3 -mthumb -Wall -O2 -g3 ... -o src/stm32f1xx_it.o
+arm-none-eabi-gcc -c -mcpu=cortex-m3 -mthumb -Wall -O2 -g3 ... -o src/system_stm32f1xx.o
+arm-none-eabi-gcc ... -o blink.elf
+arm-none-eabi-objcopy -O binary blink.elf blink.bin
+arm-none-eabi-objcopy -O ihex blink.elf blink.hex
+   text    data     bss     dec     hex filename
+   1580      20     256    1856     740 blink.elf
+
+Build complete!</pre>
+</div>
+
+<!-- ====== 第4章 ====== -->
+<a id="ch4"></a>
+<div class="summary">📖 <b>第4章学完你能干啥：</b>理解串口通信原理，会配置波特率/数据位，能用pyserial和PuTTY收发串口数据，知道USB转TTL驱动怎么装。</div>
+
+<h2>第4章：串口通信 — 单片机与电脑对话</h2>
+
+<p>串口(UART)是嵌入式开发<strong>最基础、最常用</strong>的通信方式。单片机的printf输出、调试信息、AT指令控制，全靠串口。可以说：不会串口，嵌入式寸步难行。</p>
+
+<div class="analogy">💡 <b>类比：</b>串口就像<strong>两个人用对讲机通话</strong>——波特率=说话速度（必须一致才能听懂），数据位=每个词的长度，停止位=说完了喘口气，校验位=确认对方听清了。速度不一样就全是乱码，就像一个人说中文、一个说英文。</div>
+
+<h3>串口参数</h3>
+
+<table>
+<tr><th>参数</th><th>常见值</th><th>说明</th></tr>
+<tr><td>波特率(Baud Rate)</td><td>9600 / 115200</td><td>通信速度，双方必须一致</td></tr>
+<tr><td>数据位(Data Bits)</td><td>8</td><td>每个字节的有效位数</td></tr>
+<tr><td>停止位(Stop Bits)</td><td>1</td><td>帧结束标志</td></tr>
+<tr><td>校验位(Parity)</td><td>None</td><td>简单错误检测，通常不用</td></tr>
+<tr><td>流控(Flow Control)</td><td>None</td><td>硬件/软件流控，通常不用</td></tr>
+</table>
+
+<p>日常最常用的配置：<strong>115200 8N1</strong>（115200波特率，8数据位，无校验，1停止位）</p>
+
+<div class="step"><b>先确定COM口：</b>插上USB转TTL后运行：</div>
+<pre><code># 列出所有串口（python命令根据你的环境选择）
+python -m serial.tools.list_ports
+# 如果python命令不存在，试试：python3.14 -m serial.tools.list_ports
+# 如果python命令不存在，试试：
+python3.14 -m serial.tools.list_ports
+# 输出：COM3 - USB-SERIAL CH340 (COM3)
+# 记住这个COM口号，下面所有串口操作都用它</code></pre>
+
+<h3>pyserial：Python串口工具</h3>
+
+<div class="card">
+<div class="h"><span class="name">pyserial</span><span class="tag g">Python串口库</span><span class="tag b">pip install pyserial</span></div>
+<div class="b">
+<div class="desc">Python串口库，命令行工具miniterm超级好用——比PuTTY更灵活，支持十六进制显示、时间戳、日志保存。</div>
+<pre><code># 列出所有串口
+python -m serial.tools.list_ports
+
+# 打开串口终端（最常用！）
+python -m serial.tools.miniterm COM3 115200
+# 如果python命令不存在，试试：python3.14 -m serial.tools.miniterm COM3 115200
+
+# miniterm快捷键
+# Ctrl+] 退出    Ctrl+T 菜单    Ctrl+T Ctrl+H 十六进制显示
+# Ctrl+T Ctrl+T 发送换行    Ctrl+T Ctrl+R 时间戳</code></pre>
+</div></div>
+
+<div class="card">
+<div class="h"><span class="name">Python串口编程</span><span class="tag b">脚本化串口通信</span></div>
+<div class="b">
+<pre><code>import serial
+import time
+
+# 打开串口
+ser = serial.Serial('COM3', 115200, timeout=1)
+
+# 发送数据
+ser.write(b'Hello STM32!\n')
+
+# 接收数据（按行读取）
+line = ser.readline().decode('utf-8').strip()
+print(f"Received: {line}")
+
+# 接收指定字节数
+data = ser.read(10)  # 读10字节
+print(f"Hex: {data.hex()}")
+
+# 关闭
+ser.close()</code></pre>
+</div></div>
+
+<h3>PuTTY串口配置</h3>
+
+<div class="step"><b>步骤1：</b>打开PuTTY → 选择"Serial"连接类型</div>
+<div class="step"><b>步骤2：</b>Serial line填 <code>COM3</code>，Speed填 <code>115200</code></div>
+<div class="step"><b>步骤3：</b>左侧菜单 → Connection → Serial → 确认 8 data bits, 1 stop bits, None parity</div>
+<div class="step"><b>步骤4：</b>点Open连接</div>
+
+<div class="tip">💡 <b>小技巧：</b>PuTTY的串口窗口看不到输入的字符？正常——STM32通常只发不收。如果想看到本地回显：Terminal → Features → 勾选"Local echo"。</div>
+
+<h3>USB转TTL驱动</h3>
+
+<table>
+<tr><th>芯片</th><th>驱动</th><th>识别方法</th></tr>
+<tr><td>CH340/CH341</td><td>www.wch.cn 下载CH340驱动</td><td>设备管理器→端口→"USB-SERIAL CH340"</td></tr>
+<tr><td>CP2102</td><td>silabs.com 下载CP210x驱动</td><td>"Silicon Labs CP210x"</td></tr>
+<tr><td>FT232</td><td>ftdichip.com 下载VCP驱动</td><td>"USB Serial Port"</td></tr>
+<tr><td>PL2303</td><td>Prolific官网</td><td>Win10自带驱动</td></tr>
+</table>
+
+<div class="trouble">🔍 <b>常见问题：设备管理器看不到COM口</b><br>
+1. 检查USB线是否插好（有的线只能充电不能传数据！）<br>
+2. 检查驱动是否安装（设备管理器里黄色感叹号=驱动未装）<br>
+3. CH340在Win10/11有时不需要额外驱动，直接识别<br>
+4. 查看COM口号：<code>python -m serial.tools.list_ports</code>（如果python命令不存在，试试python3.14）</div>
+
+<div class="example-block">
+<div class="ex-title">📝 完整示例：Python串口通信</div>
+<div class="ex-input">安装并检测串口：</div>
+<pre><code>pip install pyserial
+python -m serial.tools.list_ports
+# 如果python命令不存在，试试：python3.14 -m serial.tools.list_ports</code></pre>
+<div class="ex-output">输出结果：</div>
+<pre><code>COM3 - USB-SERIAL CH340 (COM3)
+1 port found</code></pre>
+<div class="ex-input">打开串口终端（STM32已运行，每秒发送温度数据）：</div>
+<pre><code>python -m serial.tools.miniterm COM3 115200
+# 如果python命令不存在：python3.14 -m serial.tools.miniterm COM3 115200</code></pre>
+<div class="ex-output">串口输出：</div>
+<pre><code>--- Miniterm on COM3  115200,8,N,1 ---
+--- Quit: Ctrl+] | Menu: Ctrl+T ---
+[1234] Temperature: 25.3 C
+[2234] Temperature: 25.5 C
+[3234] Temperature: 25.4 C
+^C--- exit ---</pre>
+</div>
+
+<!-- ====== 第5章 ====== -->
+<a id="ch5"></a>
+<div class="summary">📖 <b>第5章学完你能干啥：</b>会用OpenOCD/ST-Link烧录程序，会用GDB调试（断点/单步/查看变量），能配置VS Code Cortex-Debug。</div>
+
+<h2>第5章：烧录与调试</h2>
+
+<p>编译生成.bin/.hex文件后，需要用<strong>烧录器</strong>把它写进单片机的Flash里。调试则是让程序在芯片里<strong>暂停、单步执行、查看变量</strong>，像"慢放"一样找Bug。</p>
+
+<div class="analogy">💡 <b>类比：</b>烧录=把程序<strong>刻到芯片的DNA里</strong>（写死在Flash中），调试=给程序<strong>做体检</strong>（停住→检查→继续→再检查）。</div>
+
+<h3>烧录方式对比</h3>
+
+<table>
+<tr><th>方式</th><th>工具</th><th>速度</th><th>调试支持</th><th>价格</th></tr>
+<tr><td>ST-Link</td><td>st-flash / st-util</td><td>快</td><td>✅ GDB</td><td>¥10(仿)</td></tr>
+<tr><td>J-Link</td><td>JLinkGDBServer</td><td>极快</td><td>✅ GDB+SWO</td><td>¥500+</td></tr>
+<tr><td>DAP-Link</td><td>OpenOCD</td><td>中</td><td>✅ GDB</td><td>¥20</td></tr>
+<tr><td>串口烧录</td><td>STM32 USART bootloader</td><td>慢</td><td>❌</td><td>¥0</td></tr>
+</table>
+
+<h3>OpenOCD 烧录</h3>
+
+<div class="warn">⚠️ <b>前提条件：</b>需要先安装OpenOCD。由于GitHub下载被墙，请尝试以下方式：<br>
+① 搜索"OpenOCD xpack 国内镜像"下载<br>
+② 从淘宝购买开发板卖家提供的资料包（通常包含OpenOCD）<br>
+③ 让有VPN的朋友帮忙下载<br>
+下载后解压到 <code>D:\EmbeddedTools\OpenOCD</code>，把bin目录加PATH即可。</div>
+
+<pre><code># 烧录命令
+openocd -f interface/stlink.cfg -f target/stm32f1x.cfg     -c "program build/blink.elf verify reset exit"
+
+# 只擦除
+openocd -f interface/stlink.cfg -f target/stm32f1x.cfg     -c "init; reset halt; flash erase_sector 0 0 last; reset run; shutdown"</code></pre>
+
+<h3>ST-Link 烧录（st-flash）</h3>
+
+<div class="warn">⚠️ <b>前提条件：</b>需要安装stlink工具。下载地址：<code>github.com/stlink-org/stlink/releases</code>（同GitHub，可能被墙）。替代方案：使用STM32CubeIDE自带的st-link驱动。</div>
+
+<pre><code># 安装stlink工具（需编译或下载预编译版）
+# github.com/stlink-org/stlink/releases
+# 下载后解压，把bin目录加PATH
+
+# 烧录BIN文件
+st-flash write blink.bin 0x08000000
+
+# 烧录HEX文件
+st-flash --format ihex write blink.hex
+
+# 擦除整片Flash
+st-flash erase
+
+# 读取Flash内容
+st-flash read flash_dump.bin 0x08000000 0x10000</code></pre>
+
+<h3>串口ISP烧录（零硬件成本！）</h3>
+
+<div class="tip">💡 <b>没有ST-Link？用USB转TTL也能烧！</b>STM32内置Bootloader支持串口下载，只需要CH340模块（¥5）。速度比ST-Link慢，但<strong>零额外成本</strong>。</div>
+
+<pre><code># 方式1：FlyMcu（最简单的Windows串口烧录工具）
+# 下载：www.flymcu.com（免费，中文界面）
+# 使用：
+# 1. BOOT0跳线接1（或按住BOOT0键上电）
+# 2. 打开FlyMcu → 选择COM口和hex文件
+# 3. 点击"开始编程"
+# 4. 烧录完成后BOOT0接回0，按复位键运行
+
+# 方式2：stm32flash（命令行工具）
+# 下载：github.com/ARMin stm32flash
+# 使用：
+stm32flash -w blink.hex -v -g 0x0 COM3
+# -w 写入  -v 校验  -g 0x0 写完从0地址运行  COM3 你的串口</code></pre>
+
+<div class="note">⚠️ <b>串口烧录要点：</b><br>
+• BOOT0必须接高电平(1)才能进入下载模式<br>
+• 烧录完成后BOOT0接回低电平(0)，按复位键才能运行程序<br>
+• 有些最小系统板有BOOT0跳线帽，方便切换<br>
+• 每次烧录都要切换BOOT0，不如ST-Link方便，但学习阶段完全够用</div>
+
+<h3>GDB调试</h3>
+
+<div class="note">⚠️ <b>说明：</b>GDB调试需要硬件调试器（ST-Link/DAP-Link/J-Link）。如果你暂时没有调试器，可以先跳过GDB部分，用printf调试（第11章详解）。下面提供两种调试方案：<strong>方案A用OpenOCD</strong>（免费开源，DAP-Link/ST-Link通用），<strong>方案B用st-util</strong>（ST-Link专用，更简单）。</div>
+
+<h4>方案A：OpenOCD + GDB（推荐，通用性更好）</h4>
+
+<pre><code># 终端1：启动OpenOCD作为GDB Server
+openocd -f interface/stlink.cfg -f target/stm32f1x.cfg
+# 看到 "Info : stm32f1x.cpu: hardware has 6 breakpoints" 就说明连接成功
+
+# 终端2：启动GDB客户端
+arm-none-eabi-gdb build/blink.elf
+
+# GDB常用命令（两方案通用）
+(gdb) target remote :3333         # 连接OpenOCD（注意端口3333）
+(gdb) monitor reset halt          # 复位并停住
+(gdb) load                         # 烧录程序到芯片
+(gdb) break main                   # 在main函数设断点
+(gdb) continue                     # 继续运行
+(gdb) step                         # 单步（进入函数）
+(gdb) next                         # 单步（跳过函数）
+(gdb) print variable               # 打印变量值
+(gdb) watch variable               # 监视变量变化
+(gdb) backtrace                    # 查看调用栈
+(gdb) info registers               # 查看CPU寄存器
+(gdb) x/10x 0x20000000            # 查看内存（16进制）
+(gdb) delete                       # 删除所有断点
+(gdb) quit                         # 退出</code></pre>
+
+<h4>方案B：st-util + GDB（ST-Link专用，简单）</h4>
+
+<div class="warn">⚠️ <b>前提：</b>需安装stlink工具：<code>github.com/stlink-org/stlink/releases</code>（GitHub可能被墙，替代：STM32CubeIDE自带st-link驱动）</div>
+
+<pre><code># 终端1：启动GDB Server
+st-util -p 4242
+
+# 终端2：启动GDB客户端
+arm-none-eabi-gdb build/blink.elf
+
+# GDB连接st-util
+(gdb) target remote localhost:4242
+(gdb) load
+(gdb) break main
+(gdb) continue
+# 其余命令与方案A相同</code></pre>
+
+<div class="tip">💡 <b>没有调试器怎么办？</b>用<strong>串口printf调试</strong>！第11章详细介绍了printf重定向方法，足够解决80%的问题。买ST-Link只需¥10，建议入门后尽快入手。</div>
+
+<h3>VS Code Cortex-Debug 配置</h3>
+
+<div class="note">⚠️ <b>前提：</b>① 已安装Cortex-Debug插件 ② 已安装OpenOCD或stlink工具 ③ ST-Link调试器已连接</div>
+
+<h4>方案A配置：OpenOCD（推荐，与GDB方案A配套）</h4>
+
+<pre><code>// .vscode/launch.json - OpenOCD方案
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Cortex Debug (OpenOCD)",
+            "cwd": "${workspaceFolder}",
+            "executable": "build/blink.elf",
+            "request": "launch",
+            "type": "cortex-debug",
+            "runToEntryPoint": "main",
+            "serverType": "openocd",
+            "serverArgs": ["-f", "interface/stlink.cfg", "-f", "target/stm32f1x.cfg"],
+            "device": "STM32F103C8",
+            "svdFile": "STM32F103.svd"
+        }
+    ]
+}</code></pre>
+
+<h4>方案B配置：st-util（与GDB方案B配套）</h4>
+
+<pre><code>// .vscode/launch.json - st-util方案
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Cortex Debug (st-util)",
+            "cwd": "${workspaceFolder}",
+            "executable": "build/blink.elf",
+            "request": "launch",
+            "type": "cortex-debug",
+            "runToEntryPoint": "main",
+            "serverType": "stutil",
+            "serverArgs": ["-p", "4242"],
+            "device": "STM32F103C8",
+            "svdFile": "STM32F103.svd"
+        }
+    ]
+}</code></pre>
+
+<div class="trouble">🔍 <b>常见问题：GDB连接不上</b><br>
+1. ST-Link驱动是否安装？<code>st-info --probe</code> 测试<br>
+2. 是否有其他程序占用了ST-Link？（关闭STM32CubeIDE等）<br>
+3. 接线是否正确？SWDIO/SWCLK/GND三根线必须接</div>
+
+<!-- ====== 第6章 ====== -->
+<a id="ch6"></a>
+<div class="summary">📖 <b>第6章学完你能干啥：</b>会用STM32 HAL库操作GPIO/UART/TIM/ADC，理解中断优先级，能独立写STM32小程序。</div>
+
+<h2>第6章：STM32开发实战</h2>
+
+<p>STM32是ARM Cortex-M系列最流行的单片机，市场占有率超过50%。学会STM32，其他MCU都是触类旁通。</p>
+
+<div class="analogy">💡 <b>类比：</b>STM32就像一辆<strong>手动挡汽车</strong>——GPIO是方向盘（控制方向），UART是对讲机（通信），TIM是转速表（计时），ADC是油量表（测模拟量）。HAL库就是自动挡模式，LL库是手动挡模式。</div>
+
+<h3>HAL库 vs LL库</h3>
+
+<table>
+<tr><th>特性</th><th>HAL库</th><th>LL库</th></tr>
+<tr><td>抽象层级</td><td>高（封装完善）</td><td>低（接近寄存器）</td></tr>
+<tr><td>代码量</td><td>大</td><td>小</td></tr>
+<tr><td>执行效率</td><td>中等</td><td>高</td></tr>
+<tr><td>学习难度</td><td>低</td><td>高</td></tr>
+<tr><td>适用场景</td><td>快速开发/初学者</td><td>极致优化/专业项目</td></tr>
+</table>
+
+<div class="tip">💡 <b>建议：</b>入门先用HAL库，做产品时关键代码再换LL库优化。两者可以混用！</div>
+
+<h3>GPIO点灯 — 嵌入式的"Hello World"</h3>
+
+<div class="note">⚠️ <b>两种方式二选一：</b><br><br>
+<strong>方式1：纯寄存器（推荐新手，无需任何工具，立即可用）</strong><br>
+不依赖CubeMX和HAL库，直接操作寄存器。适合快速跑通第一个程序。<br><br>
+<strong>方式2：CubeMX + HAL库（正式项目推荐）</strong><br>
+① 下载安装 <a href="https://www.st.com/en/development-tools/stm32cubemx.html" style="color:var(--a)">STM32CubeMX</a>（需注册ST账号，免费）<br>
+② 新建项目→选择MCU型号→配置引脚→生成代码<br>
+③ 生成的工程已包含所有初始化函数，你只需在while(1)中写业务逻辑<br>
+④ 也可以用EIDE/PlatformIO插件创建项目，免去CubeMX<br><br>
+💡 <b>建议：</b>先用方式1跑通，有经验了再学CubeMX。</div>
+
+<h4>方式1：纯寄存器版（无需CubeMX，5分钟跑通）</h4>
+
+<pre><code>// main.c - STM32F103 点亮LED（PC13）— 纯寄存器版
+// 最小依赖：只需要启动文件+链接脚本（见第2章"5分钟快速上手"）
+
+// 寄存器地址定义
+#define RCC_APB2ENR  (*(volatile uint32_t*)0x40021018)
+#define GPIOC_CRH    (*(volatile uint32_t*)0x40011004)
+#define GPIOC_ODR    (*(volatile uint32_t*)0x4001100C)
+
+void delay(volatile uint32_t count) {
+    while(count--);
+}
+
+int main(void) {
+    // 步骤1：使能GPIOC时钟（必须先开时钟，否则引脚不工作！）
+    RCC_APB2ENR |= (1 &lt;&lt; 4);  // bit4 = IOPCEN
+    
+    // 步骤2：配置PC13为推挽输出（50MHz）
+    // CRH控制PC8-PC15，PC13对应bits [23:20]
+    GPIOC_CRH = (GPIOC_CRH &amp; ~0x00F00000) | 0x00300000;
+    
+    // 步骤3：循环翻转LED
+    while (1) {
+        GPIOC_ODR ^= (1 &lt;&lt; 13);  // 翻转PC13（XOR操作）
+        delay(500000);            // 约500ms延时（72MHz下）
+    }
+}</code></pre>
+
+<h4>方式2：CubeMX + HAL库版</h4>
+
+<p>如果你已经安装了STM32CubeMX并生成了工程，把下面的代码放在 <code>/* USER CODE BEGIN */</code> 区域内：</p>
+
+<pre><code>// main.c - STM32F103 点亮LED（PC13）— HAL库版
+// 前提：CubeMX已启用GPIOC Pin13为GPIO_Output
+#include "stm32f1xx_hal.h"
+
+// SystemClock_Config() 等初始化函数由CubeMX自动生成，不要手写！
+
+int main(void) {
+    HAL_Init();
+    SystemClock_Config();
+    // MX_GPIO_Init() 等初始化由CubeMX生成，自动调用
+
+    while (1) {
+        HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13);  // 翻转LED
+        HAL_Delay(500);                            // 延时500ms
+    }
+}</code></pre>
+
+<h3>UART发送接收</h3>
+
+<div class="note">⚠️ <b>前提：</b>以下UART代码基于HAL库，需用CubeMX启用USART1并配置为Asynchronous模式。EIDE/PlatformIO创建的项目也包含HAL库。纯寄存器方式见第2章"5分钟快速上手"。</div>
+
+<pre><code>// UART初始化 + printf重定向
+#include &lt;stdio.h&gt;
+
+UART_HandleTypeDef huart1;
+
+// printf重定向到UART1
+int fputc(int ch, FILE *f) {
+    HAL_UART_Transmit(&amp;huart1, (uint8_t *)&amp;ch, 1, HAL_MAX_DELAY);
+    return ch;
+}
+
+// 主循环
+while (1) {
+    printf("Temperature: %.1f C
+", read_temp());
+    HAL_Delay(1000);
+}
+
+// 接收中断
+uint8_t rx_buf[1];
+HAL_UART_Receive_IT(&amp;huart1, rx_buf, 1);
+
+// 中断回调
+void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
+    if (huart->Instance == USART1) {
+        // 处理接收到的字节 rx_buf[0]
+        HAL_UART_Receive_IT(&amp;huart1, rx_buf, 1);  // 重新开启接收
+    }
+}</code></pre>
+
+<h3>TIM定时器中断</h3>
+
+<pre><code>// 1ms定时器中断
+TIM_HandleTypeDef htim2;
+
+void MX_TIM2_Init(void) {
+    htim2.Instance = TIM2;
+    htim2.Init.Prescaler = 72 - 1;       // 72MHz/72 = 1MHz
+    htim2.Init.CounterMode = TIM_COUNTERMODE_UP;
+    htim2.Init.Period = 1000 - 1;         // 1MHz/1000 = 1kHz = 1ms
+    HAL_TIM_Base_Init(&amp;htim2);
+    HAL_TIM_Base_Start_IT(&amp;htim2);
+}
+
+// 中断回调（每1ms执行一次）
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
+    if (htim->Instance == TIM2) {
+        static uint32_t ms_count = 0;
+        ms_count++;
+    }
+}</code></pre>
+
+<h3>ADC读取</h3>
+
+<pre><code>// 读取PA0引脚的模拟电压
+ADC_HandleTypeDef hadc1;
+
+uint16_t read_adc(void) {
+    HAL_ADC_Start(&amp;hadc1);
+    HAL_ADC_PollForConversion(&amp;hadc1, HAL_MAX_DELAY);
+    return HAL_ADC_GetValue(&amp;hadc1);  // 0-4095 (12位ADC)
+}
+
+float read_voltage(void) {
+    uint16_t raw = read_adc();
+    return raw * 3.3f / 4096.0f;  // 转换为电压值
+}</code></pre>
+
+<h3>中断优先级 NVIC</h3>
+
+<pre><code>// 设置优先级分组（在main开头调用一次）
+HAL_NVIC_SetPriorityGrouping(NVIC_PRIORITYGROUP_4);  // 4位抢占优先级
+
+// 设置具体中断优先级（数字越小优先级越高）
+HAL_NVIC_SetPriority(USART1_IRQn, 0, 0);   // UART最高优先级
+HAL_NVIC_SetPriority(TIM2_IRQn, 1, 0);      // 定时器次之
+HAL_NVIC_SetPriority(ADC1_IRQn, 2, 0);       // ADC最低
+
+// 使能中断
+HAL_NVIC_EnableIRQ(USART1_IRQn);</code></pre>
+
+<div class="trouble">🔍 <b>常见问题：HAL_Delay卡死</b><br>
+HAL_Delay依赖SysTick中断。如果在其他中断里调用HAL_Delay且优先级高于SysTick，就会死锁。解决：确保调用HAL_Delay的中断优先级数字 > SysTick优先级数字（数字越大优先级越低）。</div>
+
+<div class="example-block">
+<div class="ex-title">📝 完整示例：STM32F103 LED闪烁</div>
+<div class="ex-input">硬件连接：PC13 → LED → 电阻(1K) → GND</div>
+<pre><code>// 烧录后串口输出（115200 8N1）：</code></pre>
+<div class="ex-output">运行效果：</div>
+<pre><code>LED on  (PC13=LOW, LED亮)
+...500ms...
+LED off (PC13=HIGH, LED灭)
+...500ms...
+LED on
+...500ms...
+LED off
+（无限循环）</pre>
+</div>
+
+<!-- ====== 第7章 ====== -->
+<a id="ch7"></a>
+<div class="summary">📖 <b>第7章学完你能干啥：</b>会用esptool烧录ESP32，能搭ESP-IDF环境，会写WiFi扫描/连接程序，了解BLE基础。</div>
+
+<h2>第7章：ESP32开发实战</h2>
+
+<p>ESP32=单片机界的<strong>瑞士军刀</strong>——自带WiFi+蓝牙，双核240MHz，520KB RAM，¥10一片。做物联网项目首选。</p>
+
+<div class="analogy">💡 <b>类比：</b>如果STM32是精工手表（精准、低功耗），ESP32就是智能手机（功能全面、联网、性能强）。做精确控制用STM32，做联网应用用ESP32。</div>
+
+<h3>esptool 烧录</h3>
+
+<pre><code># 查看ESP32信息
+esptool.py --chip esp32 -p COM3 chip_id
+
+# 烧录固件
+esptool.py --chip esp32 -p COM3 -b 460800     write_flash -z 0x1000 bootloader.bin     0x8000 partitions.bin     0x10000 firmware.bin
+
+# 擦除Flash
+esptool.py --chip esp32 -p COM3 erase_flash
+
+# 读取Flash
+esptool.py --chip esp32 -p COM3 read_flash 0 0x400000 flash_dump.bin</code></pre>
+
+<h3>ESP-IDF 基础（官方开发框架）</h3>
+
+<div class="warn">⚠️ <b>前提条件：</b>ESP-IDF需要完整安装（约2-3GB），<strong>初学者可先跳过</strong>，用Arduino框架也能跑ESP32。<br><br>
+<strong>Windows安装步骤：</strong><br>
+① 下载离线安装包：<a href="https://dl.espressif.com/dl/esp-idf/" style="color:var(--a)">dl.espressif.com/dl/esp-idf/</a>（推荐，包含所有依赖）<br>
+② 双击安装，选择默认路径 <code>C:\Espressif</code>，勾选"添加到PATH"<br>
+③ 安装约需10-20分钟，取决于网速<br>
+④ 安装完成后，打开"ESP-IDF 5.x CMD"快捷方式（安装器创建的）<br>
+⑤ 验证：<code>idf.py --version</code> → 输出版本号即成功<br><br>
+<strong>如果离线包下载慢：</strong><br>
+• 用手机热点试试（有时比WiFi快）<br>
+• 在有VPN的环境下载后拷贝过来<br>
+• 用PlatformIO插件（VS Code里装了）创建ESP32项目，无需单独装ESP-IDF</div>
+
+<pre><code>// WiFi扫描示例
+#include "esp_wifi.h"
+#include "esp_event.h"
+
+void wifi_scan(void) {
+    wifi_scan_config_t scan_config = {
+        .ssid = NULL,
+        .bssid = NULL,
+        .channel = 0,
+        .show_hidden = true
+    };
+
+    esp_wifi_set_mode(WIFI_MODE_STA);
+    esp_wifi_start();
+    esp_wifi_scan_start(&amp;scan_config, true);  // 阻塞扫描
+
+    uint16_t ap_count = 0;
+    esp_wifi_scan_get_ap_num(&amp;ap_count);
+
+    wifi_ap_record_t *ap_list = malloc(sizeof(wifi_ap_record_t) * ap_count);
+    esp_wifi_scan_get_ap_records(&amp;ap_count, ap_list);
+
+    for (int i = 0; i &lt; ap_count; i++) {
+        printf("%-32s RSSI: %d Ch: %d
+",
+            ap_list[i].ssid, ap_list[i].rssi, ap_list[i].primary);
+    }
+    free(ap_list);
+}</code></pre>
+
+<h3>WiFi连接</h3>
+
+<pre><code>// 连接WiFi
+void wifi_connect(const char *ssid, const char *password) {
+    wifi_config_t wifi_config = {0};
+    strncpy((char *)wifi_config.sta.ssid, ssid, 31);
+    strncpy((char *)wifi_config.sta.password, password, 63);
+
+    esp_wifi_set_mode(WIFI_MODE_STA);
+    esp_wifi_set_config(WIFI_IF_STA, &amp;wifi_config);
+    esp_wifi_start();
+    esp_wifi_connect();
+
+    // 等待连接成功事件
+    // 在事件处理函数中处理 WIFI_EVENT_STA_CONNECTED
+}</code></pre>
+
+<h3>Arduino vs ESP-IDF</h3>
+
+<table>
+<tr><th>特性</th><th>Arduino</th><th>ESP-IDF</th></tr>
+<tr><td>上手难度</td><td>极低</td><td>中等</td></tr>
+<tr><td>灵活性</td><td>受限</td><td>完全控制</td></tr>
+<tr><td>性能优化</td><td>一般</td><td>极致</td></tr>
+<tr><td>FreeRTOS</td><td>隐藏使用</td><td>显式使用</td></tr>
+<tr><td>适合</td><td>原型验证/初学者</td><td>产品开发/进阶</td></tr>
+</table>
+
+<div class="tip">💡 <b>建议：</b>Arduino快速验证想法，ESP-IDF做正式产品。PlatformIO支持两种框架切换。</div>
+
+<h3>⚡ ESP32 5分钟快速上手（Arduino框架）</h3>
+
+<div class="note">⚠️ <b>最快的方式：</b>用PlatformIO创建ESP32 Arduino项目，无需单独装ESP-IDF！</div>
+
+<div class="step"><b>步骤1：</b>VS Code → PlatformIO → New Project → Board: ESP32 Dev Module → Framework: Arduino</div>
+<div class="step"><b>步骤2：</b>把下面的代码粘贴到 <code>src/main.cpp</code></div>
+<pre><code>// ESP32 LED闪烁 + 串口输出（Arduino框架，5分钟跑通）
+// 大多数ESP32开发板的LED在GPIO2
+
+void setup() {
+    Serial.begin(115200);  // 初始化串口
+    pinMode(2, OUTPUT);     // GPIO2设为输出
+    Serial.println("ESP32 Started!");
+}
+
+void loop() {
+    digitalWrite(2, HIGH);   // LED亮
+    Serial.println("LED ON");
+    delay(500);
+    digitalWrite(2, LOW);    // LED灭
+    Serial.println("LED OFF");
+    delay(500);
+}
+</code></pre>
+<div class="step"><b>步骤3：</b>连接ESP32 → 点击PlatformIO的→箭头按钮（Upload） → 自动编译+烧录</div>
+<div class="step"><b>步骤4：</b>打开串口监视器（PlatformIO插头图标），看到"LED ON/OFF"交替输出就成功了！</div>
+
+<div class="trouble">🔍 <b>常见问题：esptool连接失败</b><br>
+1. 按住BOOT键再点RST键，进入下载模式<br>
+2. 检查COM口号是否正确<br>
+3. 某些ESP32板需要手动按BOOT进入下载模式<br>
+4. USB驱动：CP2102/CH340确认已安装</div>
+
+<!-- ====== 第8章 ====== -->
+<a id="ch8"></a>
+<div class="summary">📖 <b>第8章学完你能干啥：</b>理解RTOS概念，会创建任务/队列/信号量/互斥量，能把FreeRTOS移植到STM32上。</div>
+
+<h2>第8章：FreeRTOS入门</h2>
+
+<p>裸机程序（super loop）就像<strong>一个人干所有事</strong>——烧水、切菜、炒菜、摆盘，只能一件一件来。RTOS让多个任务<strong>同时运行</strong>（实际是快速切换），就像雇了多个厨师各司其职。</p>
+
+<div class="analogy">💡 <b>类比：</b>RTOS就像<strong>餐厅后厨</strong>——任务(Task)=厨师（各干各的活），队列(Queue)=传菜窗口（任务间传递数据），信号量(Semaphore)=叫号器（通知"饭好了"），互斥量(Mutex)=独占灶台（同一时间只有一个厨师用）。</div>
+
+<h3>任务创建与管理</h3>
+
+<pre><code>#include "FreeRTOS.h"
+#include "task.h"
+
+// 任务1：LED闪烁
+void vLEDTask(void *pvParameters) {
+    while (1) {
+        HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13);
+        vTaskDelay(pdMS_TO_TICKS(500));  // 延时500ms
+    }
+}
+
+// 任务2：串口打印
+void vPrintTask(void *pvParameters) {
+    while (1) {
+        printf("System running, tick: %lu
+", xTaskGetTickCount());
+        vTaskDelay(pdMS_TO_TICKS(1000));
+    }
+}
+
+int main(void) {
+    HAL_Init();
+    SystemClock_Config();
+
+    // 创建任务（参数：函数、名称、栈大小、参数、优先级、句柄）
+    xTaskCreate(vLEDTask,    "LED",   128, NULL, 1, NULL);
+    xTaskCreate(vPrintTask,  "Print", 256, NULL, 2, NULL);
+
+    // 启动调度器
+    vTaskStartScheduler();
+
+    while (1) {}  // 永远不会到这里
+}</code></pre>
+
+<h3>队列通信</h3>
+
+<pre><code>// 队列：任务间传递数据的"管道"
+QueueHandle_t xTempQueue;
+
+void vSensorTask(void *p) {
+    float temp;
+    while (1) {
+        temp = read_temperature();
+        // 发送到队列（等待最多10ms）
+        xQueueSend(xTempQueue, &amp;temp, pdMS_TO_TICKS(10));
+        vTaskDelay(pdMS_TO_TICKS(100));
+    }
+}
+
+void vDisplayTask(void *p) {
+    float temp;
+    while (1) {
+        // 从队列接收（等待最多100ms）
+        if (xQueueReceive(xTempQueue, &amp;temp, pdMS_TO_TICKS(100))) {
+            printf("Temp: %.1f C
+", temp);
+        }
+    }
+}
+
+// 创建队列（容量5，每项sizeof(float)字节）
+xTempQueue = xQueueCreate(5, sizeof(float));</code></pre>
+
+<h3>信号量与互斥量</h3>
+
+<pre><code>// 二值信号量：通知"事件发生了"
+SemaphoreHandle_t xButtonSem;
+
+// ISR中释放信号量
+void HAL_GPIO_EXTI_Callback(uint16_t pin) {
+    if (pin == BUTTON_PIN) {
+        BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+        xSemaphoreGiveFromISR(xButtonSem, &amp;xHigherPriorityTaskWoken);
+        portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
+    }
+}
+
+// 任务中等待信号量
+void vButtonTask(void *p) {
+    while (1) {
+        if (xSemaphoreTake(xButtonSem, portMAX_DELAY)) {
+            printf("Button pressed!\n");
+        }
+    }
+}
+
+// 互斥量：保护共享资源
+SemaphoreHandle_t xUartMutex;
+
+void task1(void *p) {
+    while (1) {
+        if (xSemaphoreTake(xUartMutex, pdMS_TO_TICKS(100))) {
+            printf("Task1: data=%d
+", sensor1_read());
+            xSemaphoreGive(xUartMutex);
+        }
+        vTaskDelay(pdMS_TO_TICKS(200));
+    }
+}
+
+// 创建
+xButtonSem = xSemaphoreCreateBinary();
+xUartMutex  = xSemaphoreCreateMutex();</code></pre>
+
+<h3>软件定时器</h3>
+
+<pre><code>// 周期性定时器（每5秒喂狗）
+void vFeedDogCallback(TimerHandle_t xTimer) {
+    HAL_GPIO_WritePin(GPIOB, WDI_PIN, GPIO_PIN_SET);
+    HAL_Delay(1);
+    HAL_GPIO_WritePin(GPIOB, WDI_PIN, GPIO_PIN_RESET);
+}
+
+TimerHandle_t xWdTimer = xTimerCreate(
+    "Watchdog",              // 名称
+    pdMS_TO_TICKS(5000),     // 周期5秒
+    pdTRUE,                  // 自动重载
+    NULL,                    // 参数
+    vFeedDogCallback         // 回调函数
+);
+xTimerStart(xWdTimer, 0);</code></pre>
+
+<div class="trouble">🔍 <b>常见问题：任务栈溢出</b><br>
+症状：程序跑飞、HardFault、变量莫名其妙变化。<br>
+排查：<code>uxTaskGetStackHighWaterMark(NULL)</code> 检查剩余栈空间，如果接近0就增大栈大小。<br>
+预防：创建任务时给足栈空间（printf需要至少256字节），开启 <code>configCHECK_FOR_STACK_OVERFLOW</code>。</div>
+
+<h3>FreeRTOS移植到STM32</h3>
+
+<p>上面的代码假设FreeRTOS已经在项目中。实际需要以下步骤：</p>
+
+<div class="step"><b>步骤1：</b>下载FreeRTOS源码：<code>github.com/FreeRTOS/FreeRTOS</code>（或从 <code>freertos.org</code> 下载）</div>
+<div class="step"><b>步骤2：</b>拷贝核心文件到项目：</div>
+<pre><code>FreeRTOS/Source/      → 复制到你的项目
+├── tasks.c           ← 必须
+├── queue.c           ← 必须
+├── list.c            ← 必须
+├── timers.c          ← 可选（软件定时器）
+├── event_groups.c    ← 可选（事件组）
+├── include/          ← 头文件目录
+├── portable/
+│   ├── MemMang/heap_4.c  ← 必须（内存管理方案4）
+│   └── GCC/ARM_CM3/      ← 必须（Cortex-M3移植文件）
+│       ├── port.c
+│       └── portmacro.h</code></pre>
+<div class="step"><b>步骤3：</b>创建 <code>FreeRTOSConfig.h</code>（配置文件，关键参数）：</div>
+<pre><code>#define configUSE_PREEMPTION        1    // 抢占式调度
+#define configCPU_CLOCK_HZ          72000000UL  // STM32F103主频72MHz
+#define configTICK_RATE_HZ          1000  // Tick频率1kHz（1ms）
+#define configMAX_PRIORITIES        5     // 最大优先级数
+#define configMINIMAL_STACK_SIZE    128   // 最小栈大小（单位：word）
+#define configTOTAL_HEAP_SIZE       (15 * 1024)  // 堆大小15KB
+#define configSUPPORT_STATIC_ALLOCATION  0
+#define configSUPPORT_DYNAMIC_ALLOCATION 1
+#define configUSE_MUTEXES           1
+#define configUSE_COUNTING_SEMAPHORES  1
+
+// 钩子函数
+#define configCHECK_FOR_STACK_OVERFLOW  2    // 栈溢出检测等级2
+#define configUSE_IDLE_HOOK          0
+#define configUSE_TICK_HOOK          0
+
+// 中断优先级（Cortex-M特有）
+#define configKERNEL_INTERRUPT_PRIORITY         (5 &lt;&lt; 4)  // 优先级5
+#define configMAX_SYSCALL_INTERRUPT_PRIORITY    (3 &lt;&lt; 4)  // 优先级3
+
+// 需要实现的函数
+void vApplicationStackOverflowHook(TaskHandle_t, char*);
+void vApplicationMallocFailedHook(void);</code></pre>
+<div class="step"><b>步骤4：</b>修改 <code>stm32f1xx_it.c</code>，把SysTick中断改为调用FreeRTOS：</div>
+<pre><code>// 替换原有的 SysTick_Handler
+void SysTick_Handler(void) {
+    if (xTaskGetSchedulerState() != taskSCHEDULER_NOT_STARTED) {
+        xPortSysTickHandler();  // FreeRTOS的Tick处理
+    }
+    HAL_IncTick();  // 保留HAL库的Tick
+}
+</code></pre>
+
+<div class="warn">⚠️ <b>HAL_Delay与FreeRTOS冲突：</b>HAL_Delay用轮询方式等待SysTick，在FreeRTOS任务中调用会<strong>阻塞整个系统</strong>！解决方案：<br>
+① 在任务中用 <code>vTaskDelay(pdMS_TO_TICKS(ms))</code> 代替 <code>HAL_Delay(ms)</code><br>
+② 在中断中可以用HAL_Delay（但不推荐，中断应尽快返回）<br>
+③ 如果必须用HAL_Delay，确保调用它的代码不在FreeRTOS任务内（如SystemClock_Config等初始化函数）</div>
+<div class="step"><b>步骤5：</b>在CMakeLists.txt/Makefile中添加源文件，编译即可</div>
+
+<div class="tip">💡 <b>更简单的方式：</b>CubeMX可以直接添加FreeRTOS！<code>Middleware → FREERTOS → Interface: CMSIS_V1</code>，生成代码已包含FreeRTOS。PlatformIO也支持 <code>lib_deps = FreeRTOS</code>。</div>
+
+<!-- ====== 第9章 ====== -->
+<a id="ch9"></a>
+<div class="summary">📖 <b>第9章学完你能干啥：</b>理解I2C/SPI/UART三种协议原理和区别，知道什么时候用哪种，会用逻辑分析仪抓信号。</div>
+
+<h2>第9章：通信协议详解</h2>
+
+<p>单片机要与传感器、显示屏、存储器等外设通信，离不开<strong>通信协议</strong>。最常用的三种：UART、I2C、SPI，各有各的场景。</p>
+
+<div class="analogy">💡 <b>类比：</b><br>
+• <strong>UART</strong>=对讲机（两点之间，全双工，各说各的）<br>
+• <strong>I2C</strong>=课堂点名（一条总线，老师(Master)点名，学生(Slave)应答，7位学号=地址）<br>
+• <strong>SPI</strong>=专线电话（四根线，一对一高速通话，片选=拨号选人）</div>
+
+<h3>三种协议对比</h3>
+
+<table>
+<tr><th>特性</th><th>UART</th><th>I2C</th><th>SPI</th></tr>
+<tr><td>线数</td><td>2 (TX/RX)</td><td>2 (SDA/SCL)</td><td>4 (MOSI/MISO/SCK/CS)</td></tr>
+<tr><td>拓扑</td><td>点对点</td><td>多从机（地址寻址）</td><td>多从机（片选线）</td></tr>
+<tr><td>速度</td><td>≤1Mbps</td><td>≤3.4Mbps</td><td>≤80Mbps</td></tr>
+<tr><td>双工</td><td>全双工</td><td>半双工</td><td>全双工</td></tr>
+<tr><td>距离</td><td>远（15m+）</td><td>近（1m）</td><td>极近（0.3m）</td></tr>
+<tr><td>典型用途</td><td>串口调试/GPS</td><td>传感器/EEPROM</td><td>Flash/显示屏/ADC</td></tr>
+</table>
+
+<h3>I2C协议详解</h3>
+
+<pre><code>// I2C读写示例（HAL库）
+// 写：主机→从机
+HAL_I2C_Mem_Write(&amp;hi2c1, 0x68&lt;&lt;1, 0x75, 1, &amp;data, 1, 1000);
+//           I2C句柄  从机地址(左移1位) 寄存器地址  长度  数据  长度  超时
+
+// 读：从机→主机
+uint8_t reg = 0x75;
+HAL_I2C_Mem_Read(&amp;hi2c1, 0x68&lt;&lt;1, reg, 1, &amp;who_am_i, 1, 1000);
+
+// I2C地址扫描（扫描0x03-0x77）
+void i2c_scan(void) {
+    printf("I2C Scan:\n");
+    for (uint8_t addr = 0x03; addr &lt; 0x78; addr++) {
+        if (HAL_I2C_IsDeviceReady(&amp;hi2c1, addr&lt;&lt;1, 3, 10) == HAL_OK) {
+            printf("  Found device at 0x%02X
+", addr);
+        }
+    }
+}</code></pre>
+
+<h3>SPI协议详解</h3>
+
+<pre><code>// SPI读写（HAL库）
+// 写数据到SPI
+uint8_t tx_buf[] = {0x9F};  // 命令：读取Flash ID
+uint8_t rx_buf[4] = {0};
+HAL_SPI_TransmitReceive(&amp;hspi1, tx_buf, rx_buf, 4, 1000);
+// rx_buf[1-3] = Manufacturer ID + Memory Type + Capacity
+
+// 带CS控制的SPI操作
+HAL_GPIO_WritePin(GPIOA, SPI_CS_PIN, GPIO_PIN_RESET);  // CS拉低
+HAL_SPI_Transmit(&amp;hspi1, &amp;cmd, 1, 1000);
+HAL_SPI_Receive(&amp;hspi1, rx_buf, len, 1000);
+HAL_GPIO_WritePin(GPIOA, SPI_CS_PIN, GPIO_PIN_SET);    // CS拉高</code></pre>
+
+<h3>CAN总线简介</h3>
+
+<p>CAN(Controller Area Network)是汽车和工业控制的<strong>标准总线</strong>。差分信号抗干扰，最高1Mbps，支持多节点，有优先级仲裁。</p>
+
+<div class="note">⚠️ <b>前提：</b>STM32的CAN外设需要配置波特率、过滤器、中断。以下代码基于STM32F103 + HAL库，需先用CubeMX启用CAN外设。</div>
+
+<pre><code>// STM32 HAL CAN初始化（CubeMX生成后补充）
+CAN_HandleTypeDef hcan;
+
+void MX_CAN_Init(void) {
+    hcan.Instance = CAN1;
+    hcan.Init.Prescaler = 4;           // 72MHz/4=18MHz
+    hcan.Init.Mode = CAN_MODE_NORMAL;
+    hcan.Init.SyncJumpWidth = CAN_SJW_1TQ;
+    hcan.Init.TimeSeg1 = CAN_BS1_13TQ; // 时间段1
+    hcan.Init.TimeSeg2 = CAN_BS2_2TQ;  // 时间段2
+    // 波特率 = 18MHz / (1+13+2) = 1MHz... 实际500Kbps常用
+    hcan.Init.TimeTriggeredMode = DISABLE;
+    hcan.Init.AutoBusOff = ENABLE;
+    hcan.Init.AutoWakeUp = DISABLE;
+    hcan.Init.AutoRetransmission = ENABLE;
+    HAL_CAN_Init(&amp;hcan);
+}
+
+// 配置过滤器（必须！否则收不到数据）
+CAN_FilterTypeDef filter;
+filter.FilterBank = 0;
+filter.FilterMode = CAN_FILTERMODE_IDMASK;
+filter.FilterScale = CAN_FILTERSCALE_32BIT;
+filter.FilterIdHigh = 0x0000;
+filter.FilterIdLow = 0x0000;
+filter.FilterMaskIdHigh = 0x0000;
+filter.FilterMaskIdLow = 0x0000;
+filter.FilterFIFOAssignment = CAN_RX_FIFO0;
+filter.FilterActivation = ENABLE;
+HAL_CAN_ConfigFilter(&amp;hcan, &amp;filter);
+HAL_CAN_Start(&amp;hcan);
+HAL_CAN_ActivateNotification(&amp;hcan, CAN_IT_RX_FIFO0_MSG_PENDING);</code></pre>
+
+<pre><code>// STM32 HAL CAN发送
+CAN_TxHeaderTypeDef tx_header;
+tx_header.StdId = 0x123;
+tx_header.IDE   = CAN_ID_STD;
+tx_header.RTR   = CAN_RTR_DATA;
+tx_header.DLC   = 8;
+
+uint8_t tx_data[8] = {0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08};
+uint32_t tx_mailbox;
+HAL_CAN_AddTxMessage(&amp;hcan, &amp;tx_header, tx_data, &amp;tx_mailbox);</code></pre>
+
+<pre><code>// CAN接收中断回调
+void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan) {
+    CAN_RxHeaderTypeDef rx_header;
+    uint8_t rx_data[8];
+    if (HAL_CAN_GetRxMessage(hcan, CAN_RX_FIFO0, &amp;rx_header, rx_data) == HAL_OK) {
+        printf("CAN ID:0x%lx DLC:%lu Data:", rx_header.StdId, rx_header.DLC);
+        for (int i = 0; i &lt; rx_header.DLC; i++) {
+            printf("%02X ", rx_data[i]);
+        }
+        printf("\n");
+    }
+}</code></pre>
+
+<h3>逻辑分析仪</h3>
+
+<p>逻辑分析仪是调试通信协议的<strong>必备神器</strong>——它同时抓取多路数字信号，用软件解码I2C/SPI/UART等协议的数据。</p>
+
+<div class="card">
+<div class="h"><span class="name">逻辑分析仪</span><span class="tag g">协议调试</span><span class="tag y">¥20-50</span></div>
+<div class="b">
+<div class="desc">8通道/24MHz采样率就够用。配合 sigrok/PulseView 开源软件，能自动解码I2C/SPI/UART/CAN等协议。</div>
+<pre><code># PulseView（开源逻辑分析仪软件）
+# 1. 下载：sigrok.org
+# 2. 连接逻辑分析仪到USB
+# 3. 选择通道和采样率（推荐8MHz以上）
+# 4. 添加协议解码器（I2C/SPI/UART等）
+# 5. 捕获→查看解码数据</code></pre>
+</div></div>
+
+<div class="trouble">🔍 <b>常见问题：I2C设备无响应</b><br>
+1. 上拉电阻！I2C的SDA/SCL必须各接4.7K上拉电阻到VCC<br>
+2. 地址是否正确？很多传感器有AD0引脚，接地/接VCC地址不同<br>
+3. 用 i2c_scan() 扫描确认设备是否存在<br>
+4. 逻辑分析仪抓波形，看是否有ACK</div>
+
+<div class="example-block">
+<div class="ex-title">📝 完整示例：I2C设备扫描</div>
+<div class="ex-input">场景：OLED屏幕(SSD1306)接在I2C1上，确认设备地址</div>
+<pre><code>// 调用 i2c_scan() 后串口输出：</code></pre>
+<div class="ex-output">输出结果：</div>
+<pre><code>I2C Scan:
+  Found device at 0x3C    ← 这就是OLED屏幕！
+  Found device at 0x68    ← MPU6050加速度计
+2 device(s) found</code></pre>
+<div class="ex-input">使用地址0x3C读写OLED：</div>
+<pre><code>uint8_t cmd = 0xAE;  // 关闭显示命令
+HAL_I2C_Mem_Write(&amp;hi2c1, 0x3C&lt;&lt;1, 0x00, 1, &amp;cmd, 1, 1000);
+// OLED屏幕关闭</code></pre>
+</div>
+
+<!-- ====== 第10章 ====== -->
+<a id="ch10"></a>
+<div class="summary">📖 <b>第10章学完你能干啥：</b>能看懂原理图，会读数据手册关键参数，会用万用表测电压/通断，了解焊接和基本元件。</div>
+
+<h2>第10章：PCB与硬件基础</h2>
+
+<p>嵌入式工程师不能只会写代码——<strong>硬件是软件的肉体</strong>。不懂硬件的程序员，遇到问题只会"可能是硬件问题"，然后束手无策。</p>
+
+<div class="analogy">💡 <b>类比：</b>原理图=建筑图纸（标注了每面墙、每根管线的位置），PCB=盖好的房子（电路板的物理实现），数据手册=建材规格表（每个元件的详细参数）。</div>
+
+<h3>原理图阅读方法</h3>
+
+<div class="step"><b>步骤1：</b>找电源——VCC/GND/VDD/3V3/5V，先搞清楚供电网络</div>
+<div class="step"><b>步骤2：</b>找MCU——大方框就是主芯片，周围引脚标了功能</div>
+<div class="step"><b>步骤3：</b>看信号流向——从左到右：输入→处理→输出</div>
+<div class="step"><b>步骤4：</b>看网络标号——相同标号=电气连接（即使没画线）</div>
+
+<h3>数据手册关键参数</h3>
+
+<table>
+<tr><th>参数</th><th>含义</th><th>在哪看</th></tr>
+<tr><td>VDD范围</td><td>供电电压范围</td><td>Absolute Maximum Ratings</td></tr>
+<tr><td>IO口电流</td><td>单个引脚最大输出电流</td><td>Electrical Characteristics</td></tr>
+<tr><td>工作温度</td><td>-40°C ~ 85°C(工业级) / 0~70°C(商业级)</td><td>Ordering Information</td></tr>
+<tr><td>封装尺寸</td><td>LQFP48/QFN32等</td><td>Mechanical Drawing</td></tr>
+<tr><td>时序图</td><td>通信信号的时间关系</td><td>Timing Diagrams</td></tr>
+</table>
+
+<div class="tip">💡 <b>读数据手册技巧：</b>不要从头读到尾！先看Pinout（引脚图）和Typical Application Circuit（典型应用电路），这两个最重要。其他参数用到再查。</div>
+
+<h3>万用表使用</h3>
+
+<pre><code># 测电压
+红笔接VDD，黑笔接GND → 读数应为3.3V或5V
+
+# 测通断（蜂鸣档）
+两根表笔分别接两端 → 蜂鸣=导通（短路），无声=断路
+
+# 测电阻
+断电！量程选对 → 读数应与色环/标称值一致
+
+# 测电流
+串联进电路 → 注意量程（mA档 or A档）</code></pre>
+
+<h3>焊接技巧</h3>
+
+<table>
+<tr><th>工具</th><th>推荐</th><th>价格</th></tr>
+<tr><td>烙铁</td><td>936/JBC C245/TS100</td><td>¥50-200</td></tr>
+<tr><td>焊锡</td><td>0.6mm 63/37有铅焊锡丝</td><td>¥15</td></tr>
+<tr><td>助焊剂</td><td>松香膏/免洗助焊剂</td><td>¥10</td></tr>
+<tr><td>吸锡器</td><td>手动/电动</td><td>¥10-50</td></tr>
+</table>
+
+<div class="note">⚠️ <b>焊接要点：</b>①先给焊盘上锡 ②放元件 ③烙铁同时加热焊盘和引脚 ④送焊锡 ⑤先撤焊锡再撤烙铁 ⑥检查焊点——光亮圆滑=好，灰暗毛刺=冷焊。新手一定要用助焊剂！</div>
+
+<h3>常用元件速查</h3>
+
+<table>
+<tr><th>元件</th><th>符号</th><th>作用</th><th>典型值</th></tr>
+<tr><td>电阻</td><td>R</td><td>限流/分压/上拉</td><td>4.7K(上拉)、10K(下拉)、330Ω(LED限流)</td></tr>
+<tr><td>电容</td><td>C</td><td>滤波/储能/耦合</td><td>100nF(去耦)、10μF(储能)、22pF(晶振)</td></tr>
+<tr><td>晶振</td><td>Y</td><td>提供时钟频率</td><td>8MHz(STM32外部)、32.768KHz(RTC)</td></tr>
+<tr><td>二极管</td><td>D</td><td>单向导通/保护</td><td>1N4148(开关)、1N5819(肖特基)</td></tr>
+<tr><td>MOSFET</td><td>Q</td><td>开关/驱动</td><td>AO3400(N沟道)、IRF9540(P沟道)</td></tr>
+<tr><td>LED</td><td>LED</td><td>指示灯</td><td>红色2V/绿色2.2V/蓝色3V</td></tr>
+</table>
+
+<div class="trouble">🔍 <b>常见问题：上电没反应</b><br>
+1. 万用表测VDD/GND之间电压 → 应为3.3V<br>
+2. 测晶振引脚 → 应有正弦波（示波器）或约1.6V DC（万用表）<br>
+3. 测RESET引脚 → 应为高电平(3.3V)，低电平=一直复位<br>
+4. 检查BOOT0/BOOT1引脚状态 → 都为低才从Flash启动</div>
+
+<!-- ====== 第11章 ====== -->
+<a id="ch11"></a>
+<div class="summary">📖 <b>第11章学完你能干啥：</b>掌握printf调试/SWO/HardFault分析方法，能快速定位常见Bug（空指针/栈溢出/中断竞争）。</div>
+
+<h2>第11章：调试技巧大全</h2>
+
+<p>写代码的时间占30%，调试的时间占70%。掌握高效的调试方法，是嵌入式工程师最重要的技能。</p>
+
+<div class="analogy">💡 <b>类比：</b>调试就像<strong>破案</strong>——printf=监控摄像头（全局观察），GDB=现场勘查（停下来仔细看），HardFault分析=验尸报告（分析死因），SWO=实时监控（不间断观察）。</div>
+
+<h3>printf调试 — 最简单最常用</h3>
+
+<pre><code>// 重定向printf到UART
+#include &lt;stdio.h&gt;
+
+int fputc(int ch, FILE *f) {
+    HAL_UART_Transmit(&amp;huart1, (uint8_t *)&amp;ch, 1, HAL_MAX_DELAY);
+    return ch;
+}
+
+// 使用ITM（SWO引脚）重定向——比UART快100倍！
+int fputc(int ch, FILE *f) {
+    ITM_SendChar(ch);
+    return ch;
+}
+
+// 调试宏
+#define DEBUG_PRINT(fmt, ...) printf("[%lu] " fmt "
+", HAL_GetTick(), ##__VA_ARGS__)
+// 使用：DEBUG_PRINT("ADC value: %d", adc_val);
+// 输出：[12345] ADC value: 2048</code></pre>
+
+<h3>SWO/ITM 输出</h3>
+
+<p>ITM(Instrumentation Trace Macrocell)是Cortex-M内置的调试输出通道，通过SWO引脚输出数据，比UART快得多且不占用串口资源。</p>
+
+<pre><code>// 在OpenOCD配置中启用SWO
+# openocd.cfg
+swj_newdap $_CHIPNAME cpu -irlen 4 -ircapture 0x1 -irmask 0xf -expected-id $_CPUTAPID
+$_TARGETNAME configure -event gdb-attach {
+    itm port 0 on
+}
+
+// GDB中查看ITM输出
+(gdb) monitor tpiu config internal /tmp/itm.log uart off 72000000
+(gdb) monitor itm port 0 on</code></pre>
+
+<h3>HardFault分析 — 程序崩溃急救</h3>
+
+<div class="note">⚠️ <b>注意：</b>下面的汇编代码使用了Thumb-2指令（<code>ITE EQ</code>），仅适用于Cortex-M3/M4/M7。Cortex-M0/M0+不支持，如STM32F0/G0系列需改用条件分支写法。</div>
+
+<pre><code>// HardFault处理函数（放在main.c中）
+void HardFault_Handler(void) {
+    __asm volatile (
+        "TST LR, #4
+"          // 检查使用哪个栈
+        "ITE EQ
+"
+        "MRSEQ R0, MSP
+"       // 主栈
+        "MRSNE R0, PSP
+"       // 进程栈
+        "B Hard_Fault_Handler
+" // 跳到C函数
+    );
+}
+
+void Hard_Fault_Handler(uint32_t *stack_frame) {
+    printf("
+==== HardFault! ====
+");
+    printf("R0  = 0x%08X
+", stack_frame[0]);
+    printf("R1  = 0x%08X
+", stack_frame[1]);
+    printf("R2  = 0x%08X
+", stack_frame[2]);
+    printf("R3  = 0x%08X
+", stack_frame[3]);
+    printf("R12 = 0x%08X
+", stack_frame[4]);
+    printf("LR  = 0x%08X
+", stack_frame[5]);   // 返回地址
+    printf("PC  = 0x%08X
+", stack_frame[6]);   // 崩溃地址！
+    printf("PSR = 0x%08X
+", stack_frame[7]);
+
+    // 在.map文件或反汇编中查找PC地址对应的函数
+    volatile uint32_t fault_addr = stack_frame[6];
+    while (1);  // 停在这里，用GDB查看
+}
+
+// GDB中查看崩溃位置
+(gdb) info line *0x08001234    // 把PC值换成实际的
+(gdb) list *0x08001234         // 显示源码</code></pre>
+
+<h3>常见Bug模式</h3>
+
+<table>
+<tr><th>Bug类型</th><th>症状</th><th>特征</th><th>排查方法</th></tr>
+<tr><td>空指针</td><td>HardFault</td><td>PC在非法地址</td><td>检查指针是否为NULL</td></tr>
+<tr><td>栈溢出</td><td>变量莫名变化、HardFault</td><td>局部变量被覆盖</td><td>uxTaskGetStackHighWaterMark()</td></tr>
+<tr><td>中断竞争</td><td>数据偶发错误</td><td>中断中修改共享变量</td><td>关中断保护或用原子操作</td></tr>
+<tr><td>未初始化变量</td><td>行为随机</td><td>上电第一次不正常</td><td>开启-Wall -Wuninitialized</td></tr>
+<tr><td>看门狗复位</td><td>程序周期性重启</td><td>IWDG超时</td><td>检查长阻塞代码</td></tr>
+</table>
+
+<div class="trouble">🔍 <b>常见问题：程序偶尔跑飞，无法稳定复现</b><br>
+90%是中断竞争。排查：<br>
+1. 检查中断和主循环是否访问同一变量<br>
+2. 如果是，用 <code>__disable_irq()</code> / <code>__enable_irq()</code> 保护<br>
+3. 或用 <code>volatile</code> 关键字声明共享变量<br>
+4. 更好的方案：用FreeRTOS队列/信号量</div>
+
+<div class="tip">💡 <b>调试黄金法则：</b><br>
+① 先让Bug稳定复现（100%复现=解决了一半）<br>
+② 二分法注释代码，缩小Bug范围<br>
+③ 看.map文件确认代码/数据地址<br>
+④ 永远开启 <code>-Wall -Werror</code> 编译</div>
+
+<!-- ====== 第12章 ====== -->
+<a id="ch12"></a>
+<div class="summary">📖 <b>第12章学完你能干啥：</b>能独立完成一个完整的嵌入式项目——从硬件接线到软件编写到烧录运行。</div>
+
+<h2>第12章：项目实战 — 环境监测站</h2>
+
+<p>做一个<strong>完整可运行</strong>的项目：DHT11温湿度传感器 → STM32读取 → 串口输出 → OLED显示屏显示。</p>
+
+<div class="analogy">💡 <b>类比：</b>这个项目就像做一道完整的菜——前面的章节是学切菜、调味、火候，现在要把这些技能组合起来，做一道真正的菜上桌。</div>
+
+<h3>🛠️ 项目创建（二选一）</h3>
+
+<div class="note">⚠️ <b>重要：</b>下面的代码依赖STM32 HAL库。你需要先创建一个HAL库项目，以下是两种方式：</div>
+
+<div class="card">
+<div class="h"><span class="name">方式1：STM32CubeMX（推荐）</span><span class="tag g">自动生成</span></div>
+<div class="b">
+<div class="desc">CubeMX自动生成初始化代码，你只需写业务逻辑。</div>
+<div class="step"><b>步骤1：</b>打开STM32CubeMX → New Project → 搜索 <code>STM32F103C8</code> → 双击选择</div>
+<div class="step"><b>步骤2：</b>配置引脚：PA1=GPIO_Output（DHT11）、PB6=I2C1_SCL、PB7=I2C1_SDA、PA9=USART1_TX、PA10=USART1_RX</div>
+<div class="step"><b>步骤3：</b>左侧配置：Connectivity → USART1 → Mode: Asynchronous → Baud: 115200</div>
+<div class="step"><b>步骤4：</b>Connectivity → I2C1 → 勾选 Enabled</div>
+<div class="step"><b>步骤5：</b>Project Manager → Toolchain: CMake → Generate Code</div>
+<div class="step"><b>步骤6：</b>生成的工程中，在 <code>/* USER CODE BEGIN */</code> 区域内写你的代码</div>
+</div></div>
+
+<div class="card">
+<div class="h"><span class="name">方式2：EIDE/PlatformIO插件（免CubeMX）</span><span class="tag b">VS Code内</span></div>
+<div class="b">
+<div class="desc">已安装的VS Code插件，可以在VS Code内直接创建STM32项目。</div>
+<pre><code>// EIDE方式（推荐）
+// 1. VS Code → Ctrl+Shift+P → "EIDE: New Project"
+// 2. 选择 "Cortex-M Project" → STM32F103C8
+// 3. 项目自动包含HAL库和启动文件
+
+// PlatformIO方式
+// 1. VS Code → PlatformIO → New Project
+// 2. Board: BluePill F103C8 → Framework: STM32Cube
+// 3. 自动下载HAL库和编译工具链</code></pre>
+</div></div>
+
+<div class="tip">💡 <b>还没装CubeMX？</b>项目实战可以先跳过，把前面章节的纯寄存器代码练熟。CubeMX是效率工具，不是必需品。</div>
+
+<h3>硬件连接</h3>
+
+<table>
+<tr><th>DHT11引脚</th><th>STM32引脚</th><th>说明</th></tr>
+<tr><td>VCC</td><td>3.3V</td><td>供电</td></tr>
+<tr><td>GND</td><td>GND</td><td>地</td></tr>
+<tr><td>DATA</td><td>PA1</td><td>数据线（需4.7K上拉）</td></tr>
+</table>
+
+<table>
+<tr><th>OLED(SSD1306)</th><th>STM32引脚</th><th>说明</th></tr>
+<tr><td>VCC</td><td>3.3V</td><td>供电</td></tr>
+<tr><td>GND</td><td>GND</td><td>地</td></tr>
+<tr><td>SCL</td><td>PB6(I2C1_SCL)</td><td>I2C时钟</td></tr>
+<tr><td>SDA</td><td>PB7(I2C1_SDA)</td><td>I2C数据</td></tr>
+</table>
+
+<h3>DHT11驱动代码</h3>
+
+<pre><code>// dht11.h
+#ifndef DHT11_H
+#define DHT11_H
+#include "stm32f1xx_hal.h"
+
+typedef struct {
+    uint8_t humidity_int;    // 湿度整数部分
+    uint8_t humidity_dec;    // 湿度小数部分
+    uint8_t temp_int;        // 温度整数部分
+    uint8_t temp_dec;        // 温度小数部分
+} DHT11_Data_t;
+
+uint8_t DHT11_Read(DHT11_Data_t *data, GPIO_TypeDef *port, uint16_t pin);
+
+#endif</code></pre>
+
+<pre><code>// dht11.c
+#include "dht11.h"
+
+static void delay_us(uint32_t us) {
+    uint32_t ticks = us * (SystemCoreClock / 1000000) / 5;
+    while (ticks--);
+}
+
+uint8_t DHT11_Read(DHT11_Data_t *data, GPIO_TypeDef *port, uint16_t pin) {
+    uint8_t buf[5] = {0};
+    GPIO_InitTypeDef GPIO_InitStruct = {0};
+
+    // 主机发送起始信号（拉低18ms）
+    GPIO_InitStruct.Pin = pin;
+    GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
+    HAL_GPIO_Init(port, &amp;GPIO_InitStruct);
+    HAL_GPIO_WritePin(port, pin, GPIO_PIN_RESET);
+    HAL_Delay(18);
+    HAL_GPIO_WritePin(port, pin, GPIO_PIN_SET);
+    delay_us(30);
+
+    // 切换为输入
+    GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+    GPIO_InitStruct.Pull = GPIO_PULLUP;
+    HAL_GPIO_Init(port, &amp;GPIO_InitStruct);
+
+    // 等待DHT11响应
+    uint32_t timeout = 100;
+    while (HAL_GPIO_ReadPin(port, pin) &amp;&amp; timeout--) delay_us(1);
+    if (timeout == 0) return 1;  // 无响应
+
+    // 接收40位数据
+    for (int i = 0; i &lt; 5; i++) {
+        for (int j = 0; j &lt; 8; j++) {
+            timeout = 100;
+            while (!HAL_GPIO_ReadPin(port, pin) &amp;&amp; timeout--) delay_us(1);
+            delay_us(40);
+            if (HAL_GPIO_ReadPin(port, pin)) {
+                buf[i] |= (1 &lt;&lt; (7 - j));
+                timeout = 100;
+                while (HAL_GPIO_ReadPin(port, pin) &amp;&amp; timeout--) delay_us(1);
+            }
+        }
+    }
+
+    // 校验
+    if (buf[4] != (uint8_t)(buf[0] + buf[1] + buf[2] + buf[3]))
+        return 2;  // 校验失败
+
+    data->humidity_int = buf[0];
+    data->humidity_dec = buf[1];
+    data->temp_int     = buf[2];
+    data->temp_dec     = buf[3];
+    return 0;  // 成功
+}</code></pre>
+
+<h3>主程序</h3>
+
+<pre><code>// main.c
+#include "stm32f1xx_hal.h"
+#include "dht11.h"
+#include &lt;stdio.h&gt;
+
+DHT11_Data_t dht;
+extern UART_HandleTypeDef huart1;
+extern I2C_HandleTypeDef hi2c1;
+
+int fputc(int ch, FILE *f) {
+    HAL_UART_Transmit(&amp;huart1, (uint8_t *)&amp;ch, 1, HAL_MAX_DELAY);
+    return ch;
+}
+
+int main(void) {
+    HAL_Init();
+    SystemClock_Config();
+    MX_GPIO_Init();
+    MX_USART1_UART_Init();
+    MX_I2C1_Init();
+
+    printf("
+=== Environment Monitor ===
+");
+
+    while (1) {
+        uint8_t ret = DHT11_Read(&amp;dht, GPIOA, GPIO_PIN_1);
+        if (ret == 0) {
+            printf("Temp: %d.%d C, Humi: %d.%d %%\n",
+                dht.temp_int, dht.temp_dec,
+                dht.humidity_int, dht.humidity_dec);
+        } else {
+            printf("DHT11 error: %d\n", ret);
+        }
+        HAL_Delay(2000);  // DHT11最小间隔2秒
+    }
+}</code></pre>
+
+<div class="card">
+<div class="h"><span class="name">OLED显示屏扩展</span><span class="tag b">SSD1306 I2C</span><span class="tag y">可选</span></div>
+<div class="b">
+<div class="desc">想让温湿度数据显示在OLED屏上？按以下步骤操作：</div>
+
+<div class="step"><b>步骤1：</b>下载ssd1306驱动：<code>github.com/afiskon/stm32-ssd1306</code>（GitHub可能被墙，替代：淘宝搜"SSD1306 STM32驱动代码"）</div>
+<div class="step"><b>步骤2：</b>将 <code>ssd1306.c</code>、<code>ssd1306.h</code>、<code>ssd1306_fonts.c</code> 复制到你的 <code>src/</code> 和 <code>inc/</code> 目录</div>
+<div class="step"><b>步骤3：</b>在main.c顶部添加：<code>#include "ssd1306.h"</code></div>
+<div class="step"><b>步骤4：</b>在while(1)的DHT11读取成功分支里加入OLED显示代码：</div>
+
+<pre><code>// OLED显示代码（在DHT11读取成功后添加）
+ssd1306_Init();  // 只需调用一次，建议放在main()初始化区
+char buf[32];
+snprintf(buf, sizeof(buf), "Temp:%d.%dC", dht.temp_int, dht.temp_dec);
+ssd1306_SetCursor(0, 0);
+ssd1306_WriteString(buf, Font_7x10, White);
+snprintf(buf, sizeof(buf), "Humi:%d.%d%%", dht.humidity_int, dht.humidity_dec);
+ssd1306_SetCursor(0, 16);
+ssd1306_WriteString(buf, Font_7x10, White);
+ssd1306_UpdateScreen(&amp;hi2c1);</code></pre>
+
+<div class="step"><b>步骤5：</b>CMakeLists.txt的SOURCES中添加：<code>src/ssd1306.c src/ssd1306_fonts.c</code></div>
+
+<div class="tip">💡 <b>暂时没有OLED？</b>没关系！只用串口输出也完全OK，先跑通DHT11传感器再说。OLED是锦上添花。</div>
+</div></div>
+
+<h3>CMakeLists.txt 完整版</h3>
+
+<pre><code>cmake_minimum_required(VERSION 3.20)
+project(env_monitor C ASM)
+
+set(SOURCES
+    src/main.c src/dht11.c src/stm32f1xx_it.c
+    src/system_stm32f1xx.c
+    # 如果要启用OLED显示，取消下行注释：
+    # src/ssd1306.c
+)
+
+include_directories(inc CMSIS)
+
+add_compile_options(
+    -mcpu=cortex-m3 -mthumb -Wall -O2 -g3
+    -ffunction-sections -fdata-sections -DSTM32F103C8T6
+)
+
+add_link_options(
+    -mcpu=cortex-m3 -mthumb -Wl,--gc-sections
+    -T${CMAKE_SOURCE_DIR}/STM32F103C8Tx.ld
+    -Wl,-Map=${PROJECT_NAME}.map
+    --specs=nano.specs --specs=nosys.specs
+)
+
+add_executable(${PROJECT_NAME}.elf ${SOURCES})
+
+add_custom_command(TARGET ${PROJECT_NAME}.elf POST_BUILD
+    COMMAND ${CMAKE_OBJCOPY} -O binary ${PROJECT_NAME}.elf ${PROJECT_NAME}.bin
+    COMMAND ${CMAKE_OBJCOPY} -O ihex ${PROJECT_NAME}.elf ${PROJECT_NAME}.hex
+    COMMAND ${CMAKE_SIZE} ${PROJECT_NAME}.elf
+    COMMAND echo "Flash: st-flash write ${PROJECT_NAME}.bin 0x08000000"
+)</code></pre>
+
+<div class="tip">💡 <b>扩展方向：</b><br>
+• 加ESP8266/ESP32模块，通过WiFi上传到服务器<br>
+• 加MQTT协议，接入Home Assistant<br>
+• 加蜂鸣器，温度超限报警<br>
+• 加SD卡，记录历史数据</div>
+
+<!-- ====== 第13章 ====== -->
+<a id="ch13"></a>
+<div class="summary">📖 <b>第13章学完你能干啥：</b>有了一整套速查手册——启动文件/链接脚本/GDB命令/Makefile模板/常用寄存器/位操作宏，随时查阅。</div>
+
+<h2>第13章：常用代码速查</h2>
+
+<h3>启动文件(startup)说明</h3>
+
+<p>启动文件用汇编编写，做三件事：①初始化堆栈指针 ②初始化中断向量表 ③调用SystemInit()和main()</p>
+
+<pre><code>// startup_stm32f103xx.s 关键部分
+  .section .isr_vector,"a",%progbits
+  .word _estack              // 初始栈指针（RAM末尾）
+  .word Reset_Handler         // 复位向量
+  .word NMI_Handler
+  .word HardFault_Handler
+  .word MemManage_Handler
+  .word BusFault_Handler
+  // ... 更多中断向量 ...
+
+Reset_Handler:
+  ldr sp, =_estack           // 设置栈指针
+  bl SystemInit              // 初始化时钟
+  bl __libc_init_array       // C库初始化
+  bl main                    // 跳转到main()
+  bx lr                      // main不应返回</code></pre>
+
+<h3>Linker Script (STM32F103C8T6)</h3>
+
+<pre><code>/* STM32F103C8Tx.ld - 完整版 */
+ENTRY(Reset_Handler)
+
+_estack = ORIGIN(RAM) + LENGTH(RAM);  /* 栈顶 = RAM末尾 */
+
+MEMORY {
+  FLASH (rx) : ORIGIN = 0x08000000, LENGTH = 64K
+  RAM (rwx)  : ORIGIN = 0x20000000, LENGTH = 20K
+}
+
+SECTIONS {
+  .isr_vector : {
+    . = ALIGN(4);
+    KEEP(*(.isr_vector))
+    . = ALIGN(4);
+  } > FLASH
+
+  .text : {
+    . = ALIGN(4);
+    *(.text)
+    *(.text*)
+    *(.glue_7)
+    *(.glue_7t)
+    *(.eh_frame)
+    KEEP(*(.init))
+    KEEP(*(.fini))
+    . = ALIGN(4);
+    _etext = .;
+  } > FLASH
+
+  .rodata : {
+    . = ALIGN(4);
+    *(.rodata)
+    *(.rodata*)
+    . = ALIGN(4);
+  } > FLASH
+
+  .ARM.extab : { *(.ARM.extab* .gnu.linkonce.armextab.*) } > FLASH
+  .ARM : {
+    __exidx_start = .;
+    *(.ARM.exidx*)
+    __exidx_end = .;
+  } > FLASH
+
+  .data : {
+    . = ALIGN(4);
+    _sdata = .;
+    *(.data)
+    *(.data*)
+    . = ALIGN(4);
+    _edata = .;
+  } > RAM AT > FLASH
+
+  .bss : {
+    . = ALIGN(4);
+    _sbss = .;
+    __bss_start__ = _sbss;
+    *(.bss)
+    *(.bss*)
+    *(COMMON)
+    . = ALIGN(4);
+    _ebss = .;
+    __bss_end__ = _ebss;
+  } > RAM
+
+  /DISCARD/ : { *(.ARM.attributes) }
+}</code></pre>
+
+<h3>GDB常用命令速查表</h3>
+
+<table>
+<tr><th>命令</th><th>缩写</th><th>说明</th></tr>
+<tr><td>break main</td><td>b main</td><td>设断点</td></tr>
+<tr><td>break file.c:42</td><td>b file.c:42</td><td>在指定行设断点</td></tr>
+<tr><td>continue</td><td>c</td><td>继续运行</td></tr>
+<tr><td>step</td><td>s</td><td>单步进入函数</td></tr>
+<tr><td>next</td><td>n</td><td>单步跳过函数</td></tr>
+<tr><td>finish</td><td>fin</td><td>执行到函数返回</td></tr>
+<tr><td>print var</td><td>p var</td><td>打印变量</td></tr>
+<tr><td>print *ptr@10</td><td>p *ptr@10</td><td>打印数组前10项</td></tr>
+<tr><td>print /x var</td><td>p/x var</td><td>十六进制打印</td></tr>
+<tr><td>watch var</td><td>wa var</td><td>监视变量变化</td></tr>
+<tr><td>backtrace</td><td>bt</td><td>调用栈</td></tr>
+<tr><td>info registers</td><td>i r</td><td>CPU寄存器</td></tr>
+<tr><td>x/16x 0x20000000</td><td>-</td><td>查看内存(16个32位数)</td></tr>
+<tr><td>delete</td><td>d</td><td>删除断点</td></tr>
+<tr><td>info breakpoints</td><td>i b</td><td>查看断点</td></tr>
+<tr><td>load</td><td>-</td><td>烧录到芯片</td></tr>
+<tr><td>target remote :4242</td><td>-</td><td>连接GDB Server</td></tr>
+</table>
+
+<h3>串口重定向printf</h3>
+
+<pre><code>// 方法1：HAL_UART（最常用）
+int fputc(int ch, FILE *f) {
+    HAL_UART_Transmit(&amp;huart1, (uint8_t *)&amp;ch, 1, HAL_MAX_DELAY);
+    return ch;
+}
+
+// 方法2：ITM/SWO（更快，不占串口）
+int fputc(int ch, FILE *f) {
+    ITM_SendChar(ch);
+    return ch;
+}
+
+// 方法3：DMA+环形缓冲区（最优雅，非阻塞）
+#define TX_BUF_SIZE 256
+static uint8_t tx_buf[TX_BUF_SIZE];
+static volatile uint16_t tx_head = 0, tx_tail = 0;
+
+int fputc(int ch, FILE *f) {
+    tx_buf[tx_head] = ch;
+    tx_head = (tx_head + 1) % TX_BUF_SIZE;
+    // 触发DMA发送...
+    return ch;
+}</code></pre>
+
+<h3>常用位操作宏</h3>
+
+<pre><code>// 位操作 — 嵌入式开发天天用
+#define BIT(x)          (1U &lt;&lt; (x))           // 第x位置1
+#define SET_BIT(reg, x)  ((reg) |= BIT(x))     // 置位
+#define CLR_BIT(reg, x)  ((reg) &amp;= ~BIT(x))   // 清零
+#define TOG_BIT(reg, x)  ((reg) ^= BIT(x))     // 翻转
+#define GET_BIT(reg, x)  (((reg) >> (x)) &amp; 1)  // 读取
+
+// 多位操作
+#define SET_MASK(reg, mask)   ((reg) |= (mask))
+#define CLR_MASK(reg, mask)   ((reg) &amp;= ~(mask))
+
+// 寄存器写入（防编译器优化）
+#define REG32(addr)  (*(volatile uint32_t *)(addr))
+#define REG16(addr)  (*(volatile uint16_t *)(addr))
+#define REG8(addr)   (*(volatile uint8_t *)(addr))
+
+// 示例：直接操作STM32寄存器
+#define RCC_APB2ENR  REG32(0x40021018)
+#define GPIOC_CRH    REG32(0x40011004)
+#define GPIOC_ODR    REG32(0x4001100C)
+
+// 使能GPIOC时钟
+SET_BIT(RCC_APB2ENR, 4);    // RCC_APB2ENR bit4 = IOPCEN
+// PC13推挽输出
+GPIOC_CRH = (GPIOC_CRH &amp; ~0x00F00000) | 0x00300000;
+// PC13输出高
+SET_BIT(GPIOC_ODR, 13);</code></pre>
+
+<h3>STM32F103常用寄存器地址</h3>
+
+<table>
+<tr><th>外设</th><th>寄存器</th><th>地址</th><th>说明</th></tr>
+<tr><td>RCC</td><td>CR</td><td>0x40021000</td><td>时钟控制</td></tr>
+<tr><td>RCC</td><td>APB2ENR</td><td>0x40021018</td><td>APB2外设时钟使能</td></tr>
+<tr><td>RCC</td><td>APB1ENR</td><td>0x4002101C</td><td>APB1外设时钟使能</td></tr>
+<tr><td>GPIOA</td><td>CRL</td><td>0x40010800</td><td>PA0-PA7配置</td></tr>
+<tr><td>GPIOA</td><td>CRH</td><td>0x40010804</td><td>PA8-PA15配置</td></tr>
+<tr><td>GPIOA</td><td>ODR</td><td>0x4001080C</td><td>输出数据</td></tr>
+<tr><td>GPIOA</td><td>IDR</td><td>0x40010808</td><td>输入数据</td></tr>
+<tr><td>GPIOC</td><td>CRH</td><td>0x40011004</td><td>PC8-PC15配置</td></tr>
+<tr><td>GPIOC</td><td>ODR</td><td>0x4001100C</td><td>输出数据</td></tr>
+<tr><td>USART1</td><td>SR</td><td>0x40013800</td><td>状态寄存器</td></tr>
+<tr><td>USART1</td><td>DR</td><td>0x40013804</td><td>数据寄存器</td></tr>
+<tr><td>USART1</td><td>BRR</td><td>0x40013808</td><td>波特率</td></tr>
+</table>
+
+<div class="tip">💡 <b>小技巧：</b>用HAL库开发时一般不需要直接操作寄存器，但理解寄存器对排错很重要。当HAL库行为不符合预期时，查看寄存器值是最终手段。</div>
+
+<h3>寄存器地址计算规则</h3>
+
+<p>上面的地址表看起来很多，但其实有规律。记住这个方法，换任何芯片都能自己算：</p>
+
+<pre><code>// 寄存器地址 = 总线基地址 + 外设偏移 + 寄存器偏移
+//
+// STM32F103总线基地址：
+//   APB1: 0x40000000  (TIM2-TIM7, USART2-5, I2C, SPI2, CAN, USB...)
+//   APB2: 0x40010000  (AFIO, GPIOA-C, ADC1-2, TIM1, USART1, SPI1...)
+//   AHB:  0x40018000  (DMA, SDIO, FSMC...)
+//
+// 举例：GPIOC_ODR = APB2基地址 + GPIOC偏移 + ODR偏移
+//                   0x40010000 + 0x00010000 + 0x0C = 0x4001100C
+//
+// 不同芯片基地址不同，查看对应芯片的Reference Manual:
+//   第1章 "Memory Map" 表格</code></pre>
+
+<h3>常见错误码速查</h3>
+
+<table>
+<tr><th>来源</th><th>错误码</th><th>含义</th><th>解决</th></tr>
+<tr><td>HAL库</td><td>HAL_OK (0)</td><td>成功</td><td>—</td></tr>
+<tr><td>HAL库</td><td>HAL_ERROR (1)</td><td>一般错误</td><td>检查参数和硬件连接</td></tr>
+<tr><td>HAL库</td><td>HAL_BUSY (2)</td><td>外设忙</td><td>等待或检查上一次操作是否完成</td></tr>
+<tr><td>HAL库</td><td>HAL_TIMEOUT (3)</td><td>超时</td><td>检查接线/波特率/时钟配置</td></tr>
+<tr><td>DHT11</td><td>1</td><td>传感器无响应</td><td>检查接线、上拉电阻、换传感器</td></tr>
+<tr><td>DHT11</td><td>2</td><td>校验失败</td><td>读取间隔太短（最少2秒）</td></tr>
+<tr><td>esptool</td><td>Failed to connect</td><td>ESP32未进入下载模式</td><td>按住BOOT键点RST，或手动拉低GPIO0</td></tr>
+<tr><td>I2C</td><td>HAL_TIMEOUT</td><td>设备无应答</td><td>用i2c_scan确认地址，检查上拉电阻</td></tr>
+</table>
+
+<h3>社区与学习资源</h3>
+
+<table>
+<tr><th>资源</th><th>链接/说明</th><th>适合</th></tr>
+<tr><td>正点原子教程</td><td><a href="http://www.openedv.com/" style="color:var(--a)">openedv.com</a> （视频+代码+开发板）</td><td>系统学STM32</td></tr>
+<tr><td>野火教程</td><td><a href="https://doc.embedfire.com/" style="color:var(--a)">doc.embedfire.com</a></td><td>系统学STM32</td></tr>
+<tr><td>STM32中文论坛</td><td><a href="https://www.stmcu.org.cn/" style="color:var(--a)">stmcu.org.cn</a></td><td>问题求助</td></tr>
+<tr><td>ESP-IDF官方文档</td><td><a href="https://docs.espressif.com/projects/esp-idf/zh_CN/" style="color:var(--a)">docs.espressif.com</a></td><td>ESP32开发</td></tr>
+<tr><td>FreeRTOS官方</td><td><a href="https://www.freertos.org/" style="color:var(--a)">freertos.org</a></td><td>RTOS学习</td></tr>
+<tr><td>B站嵌入式</td><td>搜"正点原子""野火""江协科技"</td><td>视频学习</td></tr>
+<tr><td>ST官方HAL库文档</td><td>STM32Cube_FW_F1/Drivers/STM32F1xx_HAL_Driver/</td><td>API参考</td></tr>
+</table>
+
+<hr style="border:1px solid var(--br);margin:30px 0;">
+
+<h2 style="text-align:center;border:none;">🎉 恭喜！你已经读完嵌入式开发小白完全指南</h2>
+
+<div class="summary" style="text-align:center;">
+<b>你的嵌入式开发路线图：</b><br><br>
+✅ 搭好环境 → ✅ 学会编译 → ✅ 学会构建 → ✅ 学会串口 → ✅ 学会烧录调试<br>
+→ ✅ STM32实战 → ✅ ESP32实战 → ✅ RTOS入门 → ✅ 通信协议<br>
+→ ✅ 硬件基础 → ✅ 调试技巧 → ✅ 完整项目 → ✅ 代码速查<br><br>
+<b>下一步：</b>买一块STM32F103板子，跟着第6章点亮第一个LED！🚀
+</div>
+
+<p style="text-align:center;color:var(--t2);font-size:.8em;margin-top:20px;">
+文档版本 v1.3 | 2026-06-16 | 环境基于 Windows 10 + ARM GCC 14.2 + CMake 4.3 + VS Code<br>
+工具安装清单见：<code>embedded-tools-setup_20260614.md</code> | <a href="embedded-tools/index.html" style="color:var(--a)">🧰 各工具细致教程合集</a>
+</p>
+
+<script>
+// === 代码复制按钮 ===
+document.querySelectorAll('pre').forEach(pre => {
+    const btn = document.createElement('button');
+    btn.className = 'copy-btn';
+    btn.textContent = '复制';
+    btn.onclick = () => {
+        const code = pre.querySelector('code')?.textContent || pre.textContent;
+        navigator.clipboard.writeText(code).then(() => {
+            btn.textContent = '已复制!';
+            btn.classList.add('copied');
+            setTimeout(() => { btn.textContent = '复制'; btn.classList.remove('copied'); }, 1500);
+        });
+    };
+    pre.appendChild(btn);
+});
+
+// === 章节导航 ===
+const chapters = ['ch0','ch1','ch2','ch3','ch4','ch5','ch6','ch7','ch8','ch9','ch10','ch11','ch12','ch13'];
+const chNames = ['环境搭建','ARM GCC','CMake','Makefile','串口通信','烧录调试','STM32实战','ESP32实战','FreeRTOS','通信协议','PCB硬件','调试技巧','项目实战','代码速查'];
+document.querySelectorAll('h2').forEach(h2 => {
+    const id = h2.previousElementSibling?.id || h2.id;
+    const idx = chapters.indexOf(id);
+    if (idx === -1) return;
+    const nav = document.createElement('div');
+    nav.className = 'ch-nav';
+    if (idx > 0) nav.innerHTML = `<a href="#${chapters[idx-1]}">⬅️ 第${idx-1}章 ${chNames[idx-1]}</a>`;
+    if (idx < chapters.length - 1) nav.innerHTML += `<a href="#${chapters[idx+1]}">第${idx+1}章 ${chNames[idx+1]} ➡️</a>`;
+    h2.parentElement.insertBefore(nav, h2.nextSibling?.nextSibling?.nextSibling?.nextSibling);
+});
+
+// === 平滑滚动 ===
+document.querySelectorAll('a[href^="#"]').forEach(a => {
+    a.addEventListener('click', e => {
+        e.preventDefault();
+        document.querySelector(a.getAttribute('href'))?.scrollIntoView({behavior:'smooth',block:'start'});
+    });
+});
+
+// === 学习进度追踪 ===
+const progress = JSON.parse(localStorage.getItem('emb_progress') || '{}');
+chapters.forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const summary = el.nextElementSibling;
+    if (!summary || !summary.classList.contains('summary')) return;
+    const check = document.createElement('label');
+    check.style.cssText = 'float:right;cursor:pointer;font-size:.85em;color:var(--g)';
+    check.innerHTML = `<input type="checkbox" ${progress[id]?'checked':''} style="margin-right:4px" /> 已掌握`;
+    check.querySelector('input').onchange = function() {
+        progress[id] = this.checked;
+        localStorage.setItem('emb_progress', JSON.stringify(progress));
+        updateProgress();
+    };
+    summary.appendChild(check);
+});
+function updateProgress() {
+    const done = Object.values(progress).filter(Boolean).length;
+    const pct = Math.round(done / chapters.length * 100);
+    const badge = document.querySelector('.toc summary');
+    if (badge) badge.textContent = `📋 14章目录（已完成 ${done}/14 = ${pct}%）`;
+}
+updateProgress();
+
+// === 当前章节高亮（滚动时自动标注） ===
+const chAnchors = chapters.map(id => document.getElementById(id)).filter(Boolean);
+function highlightChapter() {
+    const scrollY = window.scrollY + 120;
+    let activeId = '';
+    for (const a of chAnchors) {
+        if (a.offsetTop <= scrollY) activeId = a.id;
+    }
+    document.querySelectorAll('.toc a').forEach(a => {
+        const href = a.getAttribute('href');
+        if (href === '#' + activeId) {
+            a.style.color = 'var(--g)';
+            a.style.fontWeight = '700';
+        } else {
+            a.style.color = ''; a.style.fontWeight = '';
+        }
+    });
+}
+window.addEventListener('scroll', highlightChapter, {passive: true});
+highlightChapter();
+
+// === 搜索框 ===
+const searchBox = document.createElement('div');
+searchBox.style.cssText = 'margin-bottom:14px;position:relative';
+searchBox.innerHTML = '<input type="text" placeholder="🔍 搜索教程内容..." style="width:100%;padding:8px 12px;background:var(--bg2);border:1px solid var(--br);border-radius:8px;color:var(--t);font-size:.9em;outline:none" id="searchInput" />';
+const tocEl = document.querySelector('.toc');
+tocEl.parentElement.insertBefore(searchBox, tocEl);
+const searchInput = document.getElementById('searchInput');
+searchInput.addEventListener('input', function() {
+    const q = this.value.toLowerCase().trim();
+    if (!q) { document.querySelectorAll('h2,h3,pre,table,.card,.note,.warn,.tip,.example-block').forEach(el => el.style.display = ''); return; }
+    document.querySelectorAll('h2').forEach(h2 => h2.style.display = '');
+    document.querySelectorAll('.note,.warn,.tip,.example-block,.card').forEach(el => el.style.display = '');
+});
+searchInput.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') {
+        const q = this.value.toLowerCase().trim();
+        if (!q) return;
+        // 简单搜索：高亮匹配的章节
+        let found = false;
+        chAnchors.forEach((a, i) => {
+            const nextA = chAnchors[i+1];
+            const sectionEnd = nextA ? nextA.offsetTop : document.body.scrollHeight;
+            const text = document.body.innerText.substring(0, sectionEnd);
+            const sectionText = document.body.innerText.substring(a.offsetTop > 500 ? a.offsetTop - 500 : 0, sectionEnd);
+            if (sectionText.toLowerCase().includes(q) && !found) {
+                a.scrollIntoView({behavior:'smooth',block:'start'});
+                found = true;
+            }
+        });
+        if (!found) alert('未找到: ' + q);
+    }
+});
+</script>
+
+
+<hr><h2>❓ 常见问题 FAQ</h2>
+
+<div style="margin:12px 0;padding:12px 16px;background:var(--bg2);border-left:3px solid var(--a);border-radius:0 8px 8px 0">
+  <p style="font-weight:600;color:var(--c1);margin-bottom:4px">Q: STM32和Arduino哪个先学？</p>
+  <p style="color:var(--t)">A: 如果你目标是做产品，先学STM32（寄存器级理解）；如果想快速出原型，先学Arduino。建议：先STM32打基础，Arduino当工具。</p>
+</div>
+
+<div style="margin:12px 0;padding:12px 16px;background:var(--bg2);border-left:3px solid var(--a);border-radius:0 8px 8px 0">
+  <p style="font-weight:600;color:var(--c1);margin-bottom:4px">Q: 需要学51单片机吗？</p>
+  <p style="color:var(--t)">A: 不必须。51架构古老，但教学资源丰富。如果学校课程用51，跟着学；否则直接STM32更高效。</p>
+</div>
+
+<div style="margin:12px 0;padding:12px 16px;background:var(--bg2);border-left:3px solid var(--a);border-radius:0 8px 8px 0">
+  <p style="font-weight:600;color:var(--c1);margin-bottom:4px">Q: HAL库和寄存器操作哪个好？</p>
+  <p style="color:var(--t)">A: 初学用HAL库快速上手，但要理解底层寄存器原理。工作后两种都要会。</p>
+</div>
+
+<div style="margin:12px 0;padding:12px 16px;background:var(--bg2);border-left:3px solid var(--a);border-radius:0 8px 8px 0">
+  <p style="font-weight:600;color:var(--c1);margin-bottom:4px">Q: C语言要学到什么程度？</p>
+  <p style="color:var(--t)">A: 至少掌握：指针、结构体、位操作、volatile关键字、回调函数。不需要学C++面向对象。</p>
+</div>
+
+<hr><h2>🔗 相关教程</h2>
+<div style="display:flex;flex-wrap:wrap;gap:8px;margin:12px 0">
+<a href="#" onclick="parent.loadPage && parent.loadPage('arm-gcc')" style="display:inline-block;padding:6px 14px;background:var(--bg3);border:1px solid var(--br);border-radius:6px;color:var(--a);text-decoration:none;font-size:.85em">ARM GCC →</a>
+<a href="#" onclick="parent.loadPage && parent.loadPage('stm32')" style="display:inline-block;padding:6px 14px;background:var(--bg3);border:1px solid var(--br);border-radius:6px;color:var(--a);text-decoration:none;font-size:.85em">STM32开发 →</a>
+<a href="#" onclick="parent.loadPage && parent.loadPage('serial')" style="display:inline-block;padding:6px 14px;background:var(--bg3);border:1px solid var(--br);border-radius:6px;color:var(--a);text-decoration:none;font-size:.85em">串口通信 →</a>
+<a href="#" onclick="parent.loadPage && parent.loadPage('flash-debug')" style="display:inline-block;padding:6px 14px;background:var(--bg3);border:1px solid var(--br);border-radius:6px;color:var(--a);text-decoration:none;font-size:.85em">烧录与调试 →</a>
+</div>
+
+</body>
+</html>
