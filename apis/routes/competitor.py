@@ -118,7 +118,7 @@ async def _run_comp_analysis(task_id: str, my_product: str, competitors: str, di
     except Exception as e:
         log.error(f"competitor analysis error: {e}", exc_info=True)
         _COMP_TASKS[task_id]["status"] = "error"
-        _COMP_TASKS[task_id]["error"] = f"分析失败: {str(e)[:100]}"
+        _COMP_TASKS[task_id]["error"] = "分析失败，请稍后重试"
 
 @router.get("/task/{task_id}")
 async def get_comp_task(task_id: str):

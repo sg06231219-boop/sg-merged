@@ -15,16 +15,14 @@ import hashlib
 from pathlib import Path
 from typing import Any
 
-from fastapi import APIRouter, Form, HTTPException, Request, Depends
+from fastapi import APIRouter, Form, HTTPException, Request
 from fastapi.responses import FileResponse, JSONResponse
 
 from core.engine import get_engine
 from builders.site_planner import SitePlanner
 import time as _time
-from collections import defaultdict as _dd
-from apis.routes.auth import check_usage_limit, _increment_usage, _is_pro, _load_users, _save_users, get_current_user, FREE_DAILY_LIMIT
 
-# ── 异步任务队列（化解Render 30s超时） ─────────────────
+# ── 异步任务队列（化解超时） ───────────────────────────
 _GEN_TASKS: dict[str, dict] = {}  # {task_id: {status, result, created_at}}
 
 # ── 语义缓存（Prompt哈希→结果） ───────────────────────
@@ -56,51 +54,6 @@ def _cache_get(key: str) -> dict | None:
         hit['_ts'] = _time.time()  # 更新访问时间
     return hit
 
-# ── 未登录用户每日限制（按IP） ───────────────────────────
-_ANON_DAILY_STORE: dict[str, dict] = _dd(dict)  # {ip: {date: count}}
-ANON_DAILY_LIMIT = 3  # 未登录用户每日3次
-
-def _check_anon_daily_limit(ip: str) -> None:
-    """检查未登录IP的每日生成次数，超限抛429"""
-    today = __import__('datetime').date.today().isoformat()
-    store = _ANON_DAILY_STORE.setdefault(ip, {})
-    # 清理7天前的记录
-    for k in list(store.keys()):
-        if k < today:
-            del store[k]
-    count = store.get(today, 0)
-    if count >= ANON_DAILY_LIMIT:
-        raise HTTPException(429, f"未登录用户每日限{ANON_DAILY_LIMIT}次，注册后每日免费{FREE_DAILY_LIMIT}次，升级专业版无限制")
-    store[today] = count + 1
-
-
-def _save_history(user: dict, result: dict, mode: str, info: dict):
-    """保存生成记录到用户历史"""
-    users = _load_users()
-    uid = user["uid"]
-    if "history" not in users[uid]:
-        users[uid]["history"] = []
-    entry = {
-        "page_id": result.get("page_id") or result.get("site_id"),
-        "mode": mode,
-        "name": info.get("name", ""),
-        "ai_used": result.get("ai_used", False),
-        "created_at": __import__('datetime').datetime.now().isoformat(),
-    }
-    users[uid]["history"].insert(0, entry)
-    # 最多保留50条
-    users[uid]["history"] = users[uid]["history"][:50]
-    _save_users(users)
-
-
-def _verify_task_owner(task_id: str, request: Request):
-    """验证task请求者是否为创建者"""
-    owner_ip = _task_owners.get(task_id)
-    if not owner_ip:
-        return  # 旧task无记录，放行
-    client_ip = request.client.host if request.client else "unknown"
-    if client_ip != owner_ip:
-        raise HTTPException(403, "无权访问此资源")
 
 router = APIRouter(tags=["生成"])
 
@@ -145,7 +98,6 @@ def _sanitize(s: str, max_len: int) -> str:
 async def generate(
     request: Request,
     mode: str = Form(default="landing"),
-    use_trial: bool = Form(default=False),  # 是否使用专业版试用机会
     name: str = Form(...),
     industry: str = Form(default=""),
     description: str = Form(default=""),
@@ -158,7 +110,7 @@ async def generate(
     async_mode: str = Form(default="auto"),  # auto|sync|async
 ):
     """
-    生成站点（支持异步模式化解Render超时）
+    生成站点（支持异步模式化解超时）
 
     mode: landing | site | pricing | shop
     async_mode: auto(智能切换) | sync(同步) | async(后台)
@@ -178,57 +130,14 @@ async def generate(
 
     if not info["name"]:
         raise HTTPException(422, "品牌名称必填")
-    
-    # 输入长度熔断：所有字段总长度不超过限制
+
+    # 输入长度熔断
     _total_input_len = sum(len(v) for v in info.values() if isinstance(v, str))
     if _total_input_len > 5000:
         raise HTTPException(422, f"输入内容总长度超限({_total_input_len}/5000)，请精简后重试")
 
     if mode not in ("landing", "site", "pricing", "shop"):
         raise HTTPException(400, "不支持的生成模式")
-
-    
-    # ── 专业版试用检查 ──
-    trial_used_this_time = False
-    if not _is_pro_user and use_trial and user and user.get("trial_available", False):
-        # 用户选择使用试用机会
-        users = _load_users()
-        uid = user["uid"]
-        users[uid]["trial_available"] = False
-        users[uid]["trial_used_at"] = _time.time()
-        _save_users(users)
-        _is_pro_user = True  # 本次享受专业版待遇
-        trial_used_this_time = True
-    
-# ── 免费版模式限制 ──
-    _is_pro_user = False
-    try:
-        user_check = await get_current_user(request)
-        _is_pro_user = _is_pro(user_check)
-    except Exception:
-        pass
-    if not _is_pro_user and mode in ("pricing", "shop"):
-        raise HTTPException(403, f"{{'mode': '{mode}'}}模式需升级专业版，定价页和商城为专业版专属功能")
-
-    # ── 付费墙检查 ──
-    user = None
-    ip = request.client.host if request.client else "unknown"
-    try:
-        user = await get_current_user(request)
-        if not _is_pro(user):
-            usage = _increment_usage(user)
-            if usage > FREE_DAILY_LIMIT:
-                raise HTTPException(429, f"免费用户每日限{FREE_DAILY_LIMIT}次，请升级专业版无限制")
-            _save_users(_load_users())  # reload & save
-            users = _load_users()
-            users[user["uid"]] = user
-            _save_users(users)
-    except HTTPException:
-        if user is None:
-            # 未登录用户，按IP限制每日3次
-            _check_anon_daily_limit(ip)
-        else:
-            raise
 
     # ── 语义缓存检查 ──
     cache_key = _cache_key(info, mode)
@@ -237,9 +146,6 @@ async def generate(
         result = dict(cached)
         result.pop("_ts", None)
         result["cached"] = True
-        if user:
-            try: _save_history(user, result, mode, info)
-            except Exception: pass
         return JSONResponse(_format_result(result))
 
     # ── 决定同步/异步模式 ──
@@ -249,41 +155,37 @@ async def generate(
         task_id = uuid.uuid4().hex[:12]
         _GEN_TASKS[task_id] = {
             "status": "pending", "mode": mode, "info": info,
-            "user": user, "pro_flag": _is_pro_user, "created_at": _time.time(),
+            "created_at": _time.time(),
         }
-        asyncio.create_task(_run_generate_task(task_id, mode, info, user, _is_pro_user, cache_key))
+        asyncio.create_task(_run_generate_task(task_id, mode, info, cache_key))
         return JSONResponse({
             "success": True, "async": True, "task_id": task_id, "mode": mode,
             "message": "任务已提交，请轮询状态",
             "status_url": f"/api/v1/generate/status/{task_id}",
         })
 
-    # 同步模式（landing/pricing通常足够快）
+    # 同步模式
     engine = await get_engine()
-    pro_flag = _is_pro_user
     try:
         match mode:
             case "landing":
-                result = await engine.build_landing(info, is_pro=pro_flag)
+                result = await engine.build_landing(info, is_pro=True)
             case "site":
-                result = await engine.build_site(info, is_pro=pro_flag)
+                result = await engine.build_site(info, is_pro=True)
             case "pricing":
-                result = await engine.build_pricing(info, is_pro=pro_flag)
+                result = await engine.build_pricing(info, is_pro=True)
             case "shop":
-                result = await engine.build_shop(info, is_pro=pro_flag)
+                result = await engine.build_shop(info, is_pro=True)
     except Exception as e:
         raise HTTPException(500, "生成失败，请稍后重试")
 
     _cache_put(cache_key, result)
-    if user:
-        try: _save_history(user, result, mode, info)
-        except Exception: pass
     return JSONResponse(_format_result(result))
 
 
 
 # ── 异步任务执行 ──────────────────────────────────────
-async def _run_generate_task(task_id: str, mode: str, info: dict, user, pro_flag: bool, cache_key: str):
+async def _run_generate_task(task_id: str, mode: str, info: dict, cache_key: str):
     """后台执行生成任务"""
     task = _GEN_TASKS[task_id]
     task["status"] = "running"
@@ -291,24 +193,21 @@ async def _run_generate_task(task_id: str, mode: str, info: dict, user, pro_flag
         engine = await get_engine()
         match mode:
             case "landing":
-                result = await engine.build_landing(info, is_pro=pro_flag)
+                result = await engine.build_landing(info, is_pro=True)
             case "site":
-                result = await engine.build_site(info, is_pro=pro_flag)
+                result = await engine.build_site(info, is_pro=True)
             case "pricing":
-                result = await engine.build_pricing(info, is_pro=pro_flag)
+                result = await engine.build_pricing(info, is_pro=True)
             case "shop":
-                result = await engine.build_shop(info, is_pro=pro_flag)
+                result = await engine.build_shop(info, is_pro=True)
             case _:
-                result = await engine.build_landing(info, is_pro=pro_flag)
+                result = await engine.build_landing(info, is_pro=True)
         task["status"] = "done"
         task["result"] = result
         _cache_put(cache_key, result)
-        if user:
-            try: _save_history(user, result, mode, info)
-            except Exception: pass
     except Exception as e:
         task["status"] = "error"
-        task["error"] = str(e)
+        task["error"] = "生成失败，请稍后重试"
 
 
 def _format_result(result: dict) -> dict:
@@ -411,31 +310,13 @@ async def generate_from_text(
     email: str = Form(default=""),
     address: str = Form(default=""),
     website: str = Form(default=""),
+    async_mode: str = Form(default="async"),  # v9.0.1: 默认异步防HF超时
 ):
     """
-    一句话生成站点（限流：每分钟 10 次）
+    一句话生成站点（支持异步模式）
 
     示例输入: "我要一个卖手工皂的独立站，品牌叫'皂物集'"
     """
-    # ── 付费墙检查（一句话生成也受限） ──
-    ip2 = request.client.host if request.client else "unknown"
-    user2 = None
-    try:
-        user2 = await get_current_user(request)
-        if not _is_pro(user2):
-            usage2 = _increment_usage(user2)
-            if usage2 > FREE_DAILY_LIMIT:
-                raise HTTPException(429, f"免费用户每日限{FREE_DAILY_LIMIT}次，请升级专业版无限制")
-            _save_users(_load_users())
-            users2 = _load_users()
-            users2[user2["uid"]] = user2
-            _save_users(users2)
-    except HTTPException:
-        if user2 is None:
-            _check_anon_daily_limit(ip2)
-        else:
-            raise
-
     text = _sanitize(text, _MAX_TEXT_LEN)
     if not text.strip():
         raise HTTPException(422, "请输入需求描述")
@@ -449,6 +330,21 @@ async def generate_from_text(
         result["cached"] = True
         return JSONResponse(_format_result(result))
 
+    # 异步模式：提交后台任务
+    if async_mode in ("async", "auto"):
+        task_id = uuid.uuid4().hex[:12]
+        _GEN_TASKS[task_id] = {
+            "status": "pending", "mode": "from-text", "info": {"text": text},
+            "created_at": _time.time(),
+        }
+        asyncio.create_task(_run_generate_from_text_task(task_id, text, phone, email, address, website, cache_key2))
+        return JSONResponse({
+            "success": True, "async": True, "task_id": task_id, "mode": "from-text",
+            "message": "任务已提交，请轮询状态",
+            "status_url": f"/api/v1/generate/status/{task_id}",
+        })
+
+    # 同步模式（兼容旧调用）
     planner = SitePlanner()
     result = await planner.process(
         text,
@@ -461,6 +357,27 @@ async def generate_from_text(
     _cache_put(cache_key2, result)
 
     return JSONResponse(_format_result(result))
+
+
+async def _run_generate_from_text_task(task_id: str, text: str, phone: str, email: str, address: str, website: str, cache_key2: str):
+    """后台执行一句话生成（v9.0.1新增）"""
+    task = _GEN_TASKS[task_id]
+    task["status"] = "running"
+    try:
+        planner = SitePlanner()
+        result = await planner.process(
+            text,
+            phone=_sanitize(phone, _MAX_PHONE_LEN),
+            email=_sanitize(email, _MAX_EMAIL_LEN),
+            address=_sanitize(address, _MAX_ADDRESS_LEN),
+            website=_sanitize(website, _MAX_WEBSITE_LEN),
+        )
+        task["status"] = "done"
+        task["result"] = result
+        _cache_put(cache_key2, result)
+    except Exception as e:
+        task["status"] = "error"
+        task["error"] = "生成失败，请稍后重试"
 
 
 # ── 后端列表 ──────────────────────────────────────────

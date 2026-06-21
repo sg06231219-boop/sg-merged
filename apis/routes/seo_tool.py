@@ -115,7 +115,7 @@ async def _run_seo_analysis(task_id: str, industry: str, style: str, lang: str, 
     except Exception as e:
         log.error(f"seo analysis error: {e}", exc_info=True)
         _SEO_TASKS[task_id]["status"] = "error"
-        _SEO_TASKS[task_id]["error"] = f"分析失败: {str(e)[:100]}"
+        _SEO_TASKS[task_id]["error"] = "SEO分析失败，请稍后重试"
 
 @router.get("/task/{task_id}")
 async def get_seo_task(task_id: str):

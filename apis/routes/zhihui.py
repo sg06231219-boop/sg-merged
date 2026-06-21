@@ -220,7 +220,7 @@ async def create_skill_map(req: SkillMapRequest):
         result = build_skill_map(req.job_name, req.major)
     except Exception as e:
         result = _fallback_skill_map(req.job_name, req.major)
-        result["warning"] = f"AI生成失败，使用预置数据（{str(e)[:60]}）"
+        result["warning"] = "AI生成失败，使用预置数据"
 
     if not result.get("knowledge_points"):
         result["knowledge_points"] = _load_knowledge_base()
@@ -256,7 +256,7 @@ async def discover_new_job(req: NewJobRequest):
             "bonus_skills": ["项目管理", "团队协作", "行业知识"],
             "scenarios": ["企业数字化转型", "智能化产品开发", "技术咨询与服务"],
             "why_emerging": f"随着{kw}等技术的快速发展，市场对能够将新技术与业务结合的复合型人才需求激增。",
-            "warning": f"AI分析失败({str(e)[:50]})，使用基础模板",
+            "warning": "AI分析失败，使用基础模板",
         }
     return result
 
@@ -294,7 +294,7 @@ async def diagnose(req: DiagnoseRequest):
                 "软技能": {"gap": 1, "detail": "需实践提升"},
             },
             "diagnosis_summary": f"已掌握{len(skills)}项技能，与目标岗位{req.target_job}存在一定差距，建议系统学习。",
-            "warning": f"AI诊断失败({str(e)[:50]})，使用基础诊断",
+            "warning": "AI诊断失败，使用基础诊断",
         }
 
     diag_file = DATA_DIR / "diagnoses.json"
@@ -353,7 +353,7 @@ async def generate_learn_path(req: LearnPathRequest):
                 {"week": req.weeks * 2 // 3, "score": 75},
                 {"week": req.weeks, "score": 85},
             ],
-            "warning": f"AI生成失败({str(e)[:50]})，使用预置学习路径",
+            "warning": "AI生成失败，使用预置学习路径",
         }
     return result
 
@@ -440,7 +440,7 @@ async def chat(req: ChatRequest):
     except Exception as e:
         last_msg = req.messages[-1].content if req.messages else ""
         reply = _match_fallback(last_msg)
-        return {"reply": reply, "fallback": True, "error": str(e)[:50]}
+        return {"reply": reply, "fallback": True, "error": "AI服务暂不可用"}
 
 
 # ============================================================
@@ -476,10 +476,10 @@ async def task_convert(req: TaskConvertRequest):
                 "success": True,
                 "data": fallback,
                 "source": "fallback",
-                "warning": f"AI服务暂不可用，已使用预置数据。原因: {str(e)[:50]}",
+                "warning": "AI服务暂不可用，已使用预置数据",
             }
         except Exception as fe:
-            raise HTTPException(status_code=500, detail=f"服务异常: {str(fe)[:80]}")
+            raise HTTPException(status_code=500, detail="服务暂时不可用，请稍后重试")
 
 
 @router.get("/api/v1/preset-tasks")
@@ -502,7 +502,7 @@ async def preset_tasks(job_name: str = "前端开发工程师"):
             })
         return {"success": True, "data": summary, "job_name": job_name}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e)[:80])
+        raise HTTPException(status_code=500, detail="服务暂时不可用，请稍后重试")
 
 
 @router.get("/api/v1/preset-tasks/{task_id}")
@@ -520,7 +520,7 @@ async def preset_task_detail(task_id: str, job_name: str = "前端开发工程�
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e)[:80])
+        raise HTTPException(status_code=500, detail="服务器内部错误")
 
 
 # ============================================================

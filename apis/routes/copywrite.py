@@ -109,7 +109,7 @@ async def _run_copy_generation(task_id: str, product: str, copy_type: str, tone:
     except Exception as e:
         log.error(f"copy generation error: {e}", exc_info=True)
         _COPY_TASKS[task_id]["status"] = "error"
-        _COPY_TASKS[task_id]["error"] = f"生成失败: {str(e)[:100]}"
+        _COPY_TASKS[task_id]["error"] = "文案生成失败，请稍后重试"
 
 @router.get("/task/{task_id}")
 async def get_copy_task(task_id: str):

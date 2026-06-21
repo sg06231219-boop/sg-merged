@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="SG工具集 — 5个实用AI工具：职慧Agent、小说翻改、多智能体教育、IP检测、嵌入式开发教程">
+<title>SG工具集 — 5合1实用AI工具箱</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans SC",sans-serif;background:linear-gradient(160deg,#0f0c29 0%,#1a1a3e 40%,#2d1b69 100%);color:#fff;min-height:100vh}
+a{text-decoration:none}
+
+.container{max-width:1100px;margin:0 auto;padding:60px 24px}
+.hero{text-align:center;padding:40px 0 50px}
+.hero-badge{display:inline-block;padding:6px 16px;border-radius:20px;background:rgba(108,92,231,.2);border:1px solid rgba(108,92,231,.3);color:#a29bfe;font-size:13px;font-weight:600;margin-bottom:20px}
+.hero h1{font-size:clamp(28px,5vw,48px);font-weight:800;margin-bottom:16px}
+.hero h1 .gradient{background:linear-gradient(90deg,#6c5ce7,#a29bfe,#fd79a8);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.hero p{font-size:17px;color:rgba(255,255,255,.6);max-width:600px;margin:0 auto}
+
+.tools-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:20px;margin-top:20px}
+.tool-card{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);border-radius:16px;padding:32px 28px;transition:all .3s;cursor:pointer;position:relative;backdrop-filter:blur(10px)}
+.tool-card:hover{transform:translateY(-4px);background:rgba(255,255,255,.1);border-color:rgba(108,92,231,.3);box-shadow:0 12px 40px rgba(108,92,231,.15)}
+.tool-card .icon{font-size:44px;margin-bottom:16px;line-height:1}
+.tool-card h3{font-size:20px;font-weight:700;margin-bottom:8px;display:flex;align-items:center;gap:10px}
+.tool-card .version{font-size:11px;padding:2px 8px;border-radius:10px;background:rgba(108,92,231,.2);color:#a29bfe;font-weight:600}
+.tool-card .desc{font-size:14px;color:rgba(255,255,255,.55);line-height:1.7;margin-bottom:16px}
+.tool-card .tags{display:flex;gap:8px;flex-wrap:wrap}
+.tool-card .tag{padding:3px 10px;border-radius:6px;background:rgba(255,255,255,.06);font-size:11px;color:rgba(255,255,255,.5)}
+.tool-card .arrow{position:absolute;top:28px;right:28px;font-size:20px;color:rgba(255,255,255,.3);transition:all .3s}
+.tool-card:hover .arrow{color:#a29bfe;transform:translateX(4px)}
+
+.voices{text-align:center;padding:40px 0 20px}
+.voices p{font-size:14px;color:rgba(255,255,255,.35)}
+
+/* 响应式 */
+@media (max-width:600px){
+  .container{padding:30px 16px}
+  .tools-grid{grid-template-columns:1fr}
+  .tool-card{padding:24px 20px}
+}
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="hero">
+    <div class="hero-badge">📦 工具合集 · 免费 · 无广告</div>
+    <h1><span class="gradient">SG工具集</span></h1>
+    <p>5个独立AI工具，覆盖职业规划、小说创作、智能教育、网络工具、嵌入式学习</p>
+  </div>
+
+  <div class="tools-grid">
+
+    <a href="/zhihui/" class="tool-card">
+      <div class="arrow">→</div>
+      <div class="icon">🧠</div>
+      <h3>职慧Agent <span class="version">v1.3.2</span></h3>
+      <div class="desc">职业教育岗位技能智能体。输入岗位名称，AI自动生成能力图谱、学习路径、新岗位发现、典型任务转化。挑战杯 XA-202603 参赛项目。</div>
+      <div class="tags">
+        <span class="tag">岗位能力图谱</span>
+        <span class="tag">学习路径</span>
+        <span class="tag">AI问答</span>
+        <span class="tag">GLM-4</span>
+      </div>
+    </a>
+
+    <a href="/novel/" class="tool-card">
+      <div class="arrow">→</div>
+      <div class="icon">📖</div>
+      <h3>小说翻改工具 <span class="version">v7.4.0</span></h3>
+      <div class="desc">AI批量改写小说。书库管理、名称替换、句式改写(light/medium/heavy)、SSE流式翻改、差异高亮、整本导出(含EPUB)。支持多AI提供商。</div>
+      <div class="tags">
+        <span class="tag">书库管理</span>
+        <span class="tag">AI改写</span>
+        <span class="tag">流式输出</span>
+        <span class="tag">EPUB导出</span>
+      </div>
+    </a>
+
+    <a href="/edu/" class="tool-card">
+      <div class="arrow">→</div>
+      <div class="icon">🎓</div>
+      <h3>多智能体教育 <span class="version">v6.2.0</span></h3>
+      <div class="desc">7个AI Agent协同学习：诊断→知识生成→审核辩论→实操→测试→迭代→苏格拉底导学。SSE实时推送。挑战杯 XH-202630 参赛项目。</div>
+      <div class="tags">
+        <span class="tag">7 Agent协同</span>
+        <span class="tag">SSE流式</span>
+        <span class="tag">学情诊断</span>
+        <span class="tag">知识图谱</span>
+      </div>
+    </a>
+
+    <a href="/ip/" class="tool-card">
+      <div class="arrow">→</div>
+      <div class="icon">📍</div>
+      <h3>IP位置检测</h3>
+      <div class="desc">智能IP地理定位工具。检测当前IP的归属地、ISP运营商、经纬度坐标、时区信息。支持JSON API接口，可用于开发集成。</div>
+      <div class="tags">
+        <span class="tag">IP定位</span>
+        <span class="tag">ISP查询</span>
+        <span class="tag">JSON API</span>
+      </div>
+    </a>
+
+    <a href="/tutorials/" class="tool-card">
+      <div class="arrow">→</div>
+      <div class="icon">🔧</div>
+      <h3>嵌入式开发教程 <span class="version">v1.6.3</span></h3>
+      <div class="desc">从零入门嵌入式开发。14章系统教程(ARM GCC/CMake/STM32/ESP32/FreeRTOS/通信协议/PCB)、4级项目实战(LED→小车→CAN总线→汽车电子)。</div>
+      <div class="tags">
+        <span class="tag">14章教程</span>
+        <span class="tag">4级实战</span>
+        <span class="tag">STM32</span>
+        <span class="tag">ESP32</span>
+      </div>
+    </a>
+
+  </div>
+
+  <div class="voices">
+    <p>所有工具永久免费 · 无需注册 · 本地不存储数据</p>
+  </div>
+</div>
+</body>
+</html>

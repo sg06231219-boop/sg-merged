@@ -111,7 +111,7 @@ async def _run_name_generation(task_id: str, description: str, style: str, indus
     except Exception as e:
         log.error(f"naming generation error: {e}", exc_info=True)
         _NAME_TASKS[task_id]["status"] = "error"
-        _NAME_TASKS[task_id]["error"] = f"生成失败: {str(e)[:100]}"
+        _NAME_TASKS[task_id]["error"] = "品牌命名失败，请稍后重试"
 
 @router.get("/task/{task_id}")
 async def get_name_task(task_id: str):

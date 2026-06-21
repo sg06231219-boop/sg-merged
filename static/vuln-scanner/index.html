@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VulnScanner - Web Vulnerability Scanner</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#0a0e1a; --card:#111827; --border:#1e293b;
+  --text:#e2e8f0; --muted:#94a3b8; --accent:#ef4444;
+  --critical:#dc2626; --high:#f97316; --medium:#eab308; --low:#22c55e; --info:#3b82f6;
+}
+body{font-family:system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+.container{max-width:900px;margin:0 auto;padding:32px 20px}
+header{text-align:center;margin-bottom:40px}
+header h1{font-size:32px;font-weight:800;background:linear-gradient(135deg,#ef4444,#f97316);-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:8px}
+header p{color:var(--muted);font-size:15px}
+
+.scan-form{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:28px;margin-bottom:24px}
+.form-row{display:flex;gap:12px;margin-bottom:16px;flex-wrap:wrap}
+.form-row label{font-size:13px;color:var(--muted);display:block;margin-bottom:6px}
+.url-input{flex:1;min-width:280px}
+.url-input input{width:100%;padding:12px 16px;background:#0a0e1a;border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:15px;font-family:monospace;outline:none;transition:border .2s}
+.url-input input:focus{border-color:var(--accent)}
+.speed-select select,.module-select select{padding:12px 16px;background:#0a0e1a;border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:14px;outline:none;min-width:130px}
+.speed-select select:focus,.module-select select:focus{border-color:var(--accent)}
+.modules-row{display:flex;gap:16px;flex-wrap:wrap;margin-bottom:20px}
+.modules-row label{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--muted);cursor:pointer;user-select:none}
+.modules-row input[type=checkbox]{accent-color:var(--accent)}
+.btn-row{display:flex;gap:12px}
+.btn{flex:1;padding:14px 24px;border:none;border-radius:8px;font-size:15px;font-weight:600;cursor:pointer;transition:all .2s}
+.btn-primary{background:linear-gradient(135deg,#dc2626,#f97316);color:#fff}
+.btn-primary:hover{transform:translateY(-1px);box-shadow:0 4px 20px rgba(220,38,38,.3)}
+.btn-primary:disabled{opacity:.5;cursor:not-allowed;transform:none;box-shadow:none}
+.btn-secondary{background:var(--border);color:var(--text)}
+.btn-secondary:hover{background:#334155}
+
+.results{padding:24px 0}
+.results-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:12px}
+.results-header h2{font-size:20px}
+.summary-badges{display:flex;gap:8px;flex-wrap:wrap}
+.badge{padding:4px 12px;border-radius:20px;font-size:12px;font-weight:600}
+.badge-critical{background:rgba(220,38,38,.15);color:var(--critical)}
+.badge-high{background:rgba(249,115,22,.15);color:var(--high)}
+.badge-medium{background:rgba(234,179,8,.15);color:var(--medium)}
+.badge-low{background:rgba(34,197,94,.15);color:var(--low)}
+.badge-info{background:rgba(59,130,246,.15);color:var(--info)}
+
+.result-card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:20px;margin-bottom:12px;transition:border .2s}
+.result-card:hover{border-color:#374151}
+.result-card.critical{border-left:3px solid var(--critical)}
+.result-card.high{border-left:3px solid var(--high)}
+.result-card.medium{border-left:3px solid var(--medium)}
+.result-card.low{border-left:3px solid var(--low)}
+.result-card.info{border-left:3px solid var(--info)}
+.result-title{font-size:16px;font-weight:600;margin-bottom:8px;display:flex;align-items:center;gap:8px}
+.result-title .risk-tag{padding:2px 8px;border-radius:4px;font-size:11px;font-weight:700;text-transform:uppercase}
+.risk-critical{background:var(--critical);color:#fff}
+.risk-high{background:var(--high);color:#fff}
+.risk-medium{background:var(--medium);color:#000}
+.risk-low{background:var(--low);color:#000}
+.risk-info{background:var(--info);color:#fff}
+.result-meta{font-size:12px;color:var(--muted);margin-bottom:8px}
+.result-detail{font-size:14px;color:#cbd5e1;margin-bottom:8px;line-height:1.5}
+.result-url{font-family:monospace;font-size:12px;color:var(--muted);word-break:break-all;margin-bottom:8px}
+.result-evidence{background:#0a0e1a;border:1px solid var(--border);border-radius:6px;padding:12px;font-family:monospace;font-size:12px;color:var(--muted);white-space:pre-wrap;word-break:break-all;max-height:150px;overflow-y:auto}
+
+.loading{text-align:center;padding:40px;color:var(--muted)}
+.spinner{width:36px;height:36px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 16px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.empty{text-align:center;padding:60px 20px;color:var(--muted)}
+.empty-icon{font-size:48px;margin-bottom:16px}
+.error-msg{background:rgba(220,38,38,.1);border:1px solid rgba(220,38,38,.3);border-radius:8px;padding:16px;color:var(--critical);margin:16px 0;font-size:14px}
+.footer{text-align:center;padding:40px;color:var(--muted);font-size:12px}
+.toast{position:fixed;bottom:24px;right:24px;padding:12px 24px;border-radius:8px;color:#fff;font-size:14px;z-index:999;animation:slideIn .3s ease;max-width:400px}
+.toast-ok{background:#166534;border:1px solid #22c55e}
+.toast-err{background:#7f1d1d;border:1px solid #dc2626}
+@keyframes slideIn{from{transform:translateX(100%);opacity:0}to{transform:translateX(0);opacity:1}}
+
+@media(max-width:640px){
+  .form-row{flex-direction:column}
+  .btn-row{flex-direction:column}
+}
+</style>
+</head>
+<body>
+<div class="container">
+<header>
+  <h1>VulnScanner</h1>
+  <p>Lightweight Web Vulnerability Scanner for Bug Bounty</p>
+</header>
+
+<div class="scan-form">
+  <div class="form-row">
+    <div class="url-input">
+      <label>Target URL</label>
+      <input type="text" id="targetUrl" placeholder="https://example.com" value="">
+    </div>
+    <div class="speed-select">
+      <label>Scan Speed</label>
+      <select id="scanSpeed">
+        <option value="fast">Fast</option>
+        <option value="normal" selected>Normal</option>
+        <option value="thorough">Thorough</option>
+      </select>
+    </div>
+  </div>
+  <div class="modules-row" id="moduleCheckboxes">
+    <label><input type="checkbox" value="sqli" checked> SQL Injection</label>
+    <label><input type="checkbox" value="xss" checked> XSS</label>
+    <label><input type="checkbox" value="sensitive" checked> Sensitive Files</label>
+    <label><input type="checkbox" value="headers" checked> Headers</label>
+    <label><input type="checkbox" value="redirect" checked> Open Redirect</label>
+    <label><input type="checkbox" value="info" checked> Info</label>
+  </div>
+  <div class="btn-row">
+    <button class="btn btn-primary" id="scanBtn" onclick="startScan()">Start Scan</button>
+    <button class="btn btn-secondary" onclick="clearResults()">Clear</button>
+  </div>
+</div>
+
+<div id="resultsArea" class="results"></div>
+<div class="footer">VulnScanner v1.0.0 &middot; For authorized testing only</div>
+</div>
+
+<script>
+async function startScan(){
+  const url = document.getElementById('targetUrl').value.trim();
+  if(!url){showToast('Please enter a target URL','err');return}
+  if(!url.startsWith('http')){showToast('URL must start with http:// or https://','err');return}
+
+  const speed = document.getElementById('scanSpeed').value;
+  const modules = [...document.querySelectorAll('#moduleCheckboxes input:checked')].map(c=>c.value);
+  if(!modules.length){showToast('Select at least one module','err');return}
+
+  const btn = document.getElementById('scanBtn');
+  btn.disabled = true;
+  btn.textContent = 'Scanning...';
+
+  const area = document.getElementById('resultsArea');
+  area.innerHTML = '<div class="loading"><div class="spinner"></div><p>Scanning ' + escapeHtml(url) + '...</p></div>';
+
+  try{
+    const resp = await fetch('/vuln-scanner/api/scan',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({url,speed,modules})
+    });
+    if(!resp.ok){
+      const err = await resp.text();
+      throw new Error(err || 'Scan failed');
+    }
+    const data = await resp.json();
+    renderResults(data);
+    showToast('Scan complete: ' + data.summary.total + ' findings','ok');
+  }catch(e){
+    area.innerHTML = '<div class="error-msg">Error: ' + escapeHtml(e.message) + '</div>';
+    showToast('Scan failed: ' + e.message,'err');
+  }finally{
+    btn.disabled = false;
+    btn.textContent = 'Start Scan';
+  }
+}
+
+function renderResults(data){
+  const area = document.getElementById('resultsArea');
+  const s = data.summary;
+  let html = '<div class="results-header"><h2>Scan Results</h2><div class="summary-badges">';
+  if(s.critical) html += '<span class="badge badge-critical">Critical: ' + s.critical + '</span>';
+  if(s.high) html += '<span class="badge badge-high">High: ' + s.high + '</span>';
+  if(s.medium) html += '<span class="badge badge-medium">Medium: ' + s.medium + '</span>';
+  if(s.low) html += '<span class="badge badge-low">Low: ' + s.low + '</span>';
+  if(s.info) html += '<span class="badge badge-info">Info: ' + s.info + '</span>';
+  html += '<span class="badge" style="background:rgba(148,163,184,.1);color:var(--muted)">Total: ' + s.total + '</span>';
+  html += '</div></div>';
+
+  if(!data.results || !data.results.length){
+    html += '<div class="empty"><div class="empty-icon">&#9989;</div><p>No vulnerabilities found</p></div>';
+  } else {
+    const sorted = [...data.results].sort((a,b)=>{
+      const order={critical:0,high:1,medium:2,low:3,info:4};
+      return (order[a.risk]||5) - (order[b.risk]||5);
+    });
+    for(const r of sorted){
+      html += '<div class="result-card ' + r.risk + '">';
+      html += '<div class="result-title"><span class="risk-tag risk-' + r.risk + '">' + r.risk + '</span>' + escapeHtml(r.title) + '</div>';
+      html += '<div class="result-meta">Module: ' + escapeHtml(r.module) + '</div>';
+      if(r.detail) html += '<div class="result-detail">' + escapeHtml(r.detail) + '</div>';
+      html += '<div class="result-url">' + escapeHtml(r.url) + '</div>';
+      if(r.evidence) html += '<div class="result-evidence">' + escapeHtml(r.evidence) + '</div>';
+      html += '</div>';
+    }
+  }
+  area.innerHTML = html;
+}
+
+function clearResults(){
+  document.getElementById('resultsArea').innerHTML = '';
+}
+
+function escapeHtml(s){
+  if(!s) return '';
+  const d = document.createElement('div');
+  d.textContent = s;
+  return d.innerHTML;
+}
+
+function showToast(msg,type){
+  const t = document.createElement('div');
+  t.className = 'toast toast-' + (type==='err'?'err':'ok');
+  t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(()=>{t.style.opacity='0';t.style.transition='opacity .3s';setTimeout(()=>t.remove(),300)},3000);
+}
+</script>
+</body>
+</html>

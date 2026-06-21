@@ -1,44 +1,42 @@
-# SG合并版 - 7项目统一依赖
+# SG智能建站 - 永久免费版依赖
 # Python 3.12+
 
 # Web框架
 fastapi>=0.100.0
-uvicorn[standard]>=0.22.0
+uvicorn>=0.22.0
 python-multipart>=0.0.6
 jinja2>=3.0
 
-# 数据库
-aiosqlite>=0.19.0
-alembic>=1.12.0
-sqlalchemy>=2.0.0
-
 # AI后端
-zhipuai==2.1.5.20250825
 httpx>=0.24.0
 
 # 安全
 pyjwt>=2.8.0
-argon2-cffi>=23.1.0
-cryptography>=41.0.0
-itsdangerous==2.2.0
-
-# 会话
-python-dotenv>=1.0.0
+itsdangerous>=2.0.0
 
 # 数据格式
 pyyaml>=6.0
-requests
+
+# 环境变量
+python-dotenv>=1.0.0
 
 # EPUB导出（小说翻改）
 ebooklib>=0.18
+lxml>=5.0.0
 
-# 企业级（可选，降级安全）
-pydantic-settings>=2.0.0
-prometheus-client>=0.19.0
-structlog>=23.2.0
-redis[hiredis]>=5.0.0
+# HTTP请求
+requests
 
-# 测试
-pytest>=7.4.0
-pytest-asyncio>=0.21.0
-pytest-cov>=4.1.0
+# VulnScanner
+beautifulsoup4>=4.12.0
+
+# 异步依赖
+sniffio>=1.3.0
+
+# AI SDK
+zhipuai>=2.0.0
+
+# 数据分析（Edu Agent）
+numpy>=1.24.0
+pandas>=2.0.0
+scikit-learn>=1.3.0

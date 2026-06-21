@@ -131,7 +131,7 @@ async def _run_drama_generation(task_id: str, theme: str, style: str, episodes: 
     except Exception as e:
         log.error(f"drama generation error: {e}", exc_info=True)
         _DRAMA_TASKS[task_id]["status"] = "error"
-        _DRAMA_TASKS[task_id]["error"] = f"生成失败: {str(e)[:100]}"
+        _DRAMA_TASKS[task_id]["error"] = "短剧生成失败，请稍后重试"
 
 @router.get("/task/{task_id}")
 async def get_task(task_id: str):

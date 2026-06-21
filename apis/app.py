@@ -40,10 +40,10 @@ except ImportError:
     import logging as _logging_mod
     class _FallbackConfig:
         version = os.environ.get("APP_VERSION", "9.0.0")
-        site_domain = os.environ.get("SITE_DOMAIN", "auto-site-builder.onrender.com")
+        site_domain = os.environ.get("SITE_DOMAIN", "lz-sg-sg-site-builder.hf.space")
         is_production = os.environ.get("APP_ENVIRONMENT", "development") == "production"
         is_development = not is_production
-        cors_origin_list = os.environ.get("SECURITY_CORS_ORIGINS", "http://localhost:8000,http://localhost:3000,http://127.0.0.1:8000,http://127.0.0.1:3000,https://auto-site-builder.onrender.com").split(",")
+        cors_origin_list = os.environ.get("SECURITY_CORS_ORIGINS", "http://localhost:8000,http://localhost:3000,http://127.0.0.1:8000,http://127.0.0.1:3000,https://lz-sg-sg-site-builder.hf.space").split(",")
         class environment:
             value = os.environ.get("APP_ENVIRONMENT", "development")
         class observability:
@@ -61,6 +61,8 @@ except ImportError:
             max_entries = 200
             ttl_seconds = 3600
             redis_ttl_seconds = 3600
+        class security:
+            jwt_secret = os.environ.get("JWT_SECRET", "sg-site-builder-secret-change-me")
         class rate_limit:
             enabled = os.environ.get("RATELIMIT_ENABLED", "true").lower() == "true"
             backend = os.environ.get("RATELIMIT_BACKEND", "memory")
@@ -96,46 +98,6 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse, JSONResponse, FileResponse, PlainTextResponse
 
 from core.engine import get_engine
-
-# ── 商城配置弹窗模板 ─────────────────────────────────────
-_SHOP_SETUP_WIDGET = r'''
-<style>
-#shop-setup-btn{position:fixed;right:20px;bottom:80px;width:50px;height:50px;border-radius:50%;background:#667eea;color:#fff;border:none;cursor:pointer;box-shadow:0 4px 12px rgba(0,0,0,0.15);z-index:9999;font-size:20px;transition:transform .2s}
-#shop-setup-btn:hover{transform:scale(1.1)}
-#shop-setup-modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:10000;align-items:center;justify-content:center}
-#shop-setup-modal.open{display:flex}
-#shop-setup-form{background:#fff;border-radius:12px;padding:24px;width:90%;max-width:480px;max-height:80vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.3)}
-#shop-setup-form h3{margin:0 0 16px;font-size:18px;color:#333}
-#shop-setup-form label{display:block;margin:12px 0 4px;font-size:13px;color:#666}
-#shop-setup-form input,#shop-setup-form select{width:100%;padding:10px;border:1px solid #ddd;border-radius:6px;font-size:14px;box-sizing:border-box}
-#shop-setup-form .btns{display:flex;gap:12px;margin-top:20px}
-#shop-setup-form button{flex:1;padding:12px;border:none;border-radius:6px;cursor:pointer;font-size:14px;font-weight:600}
-#shop-setup-form .save{background:#667eea;color:#fff}
-#shop-setup-form .cancel{background:#f0f0f0;color:#666}
-#shop-setup-form .msg{margin-top:12px;padding:8px;border-radius:4px;font-size:13px}
-</style>
-<button id="shop-setup-btn" style="display:none" title="商城设置">\u2699\ufe0f</button>
-<div id="shop-setup-modal"><form id="shop-setup-form">
-<h3>\u{1f3e0} 商城设置</h3>
-<label>店铺名称</label><input name="site_name" placeholder="我的店铺">
-<label>店铺标语</label><input name="slogan" placeholder="优质商品，放心购买">
-<label>联系邮箱</label><input name="contact_email" type="email" placeholder="shop@example.com">
-<label>联系电话</label><input name="contact_phone" placeholder="400-123-4567">
-<label>客服链接</label><input name="customer_service_url" placeholder="https://work.weixin.qq.com/...">
-<label>付款渠道（多选用逗号分隔）</label><input name="payment_methods" placeholder="wechat,alipay,paypal">
-<label>主题风格</label><select name="theme"><option value="tech_blue">科技蓝</option><option value="luxury_gold">奢华金</option><option value="fresh_green">清新绿</option></select>
-<label>管理密码（保存时验证）</label><input name="admin_password" type="password" placeholder="输入管理密码">
-<div class="btns"><button type="button" class="cancel" id="shop-setup-cancel">取消</button><button type="submit" class="save">保存</button></div>
-<div class="msg" id="setup-msg" style="display:none"></div>
-</form></div>
-<script>
-(function(){
-var btn=document.getElementById('shop-setup-btn'),modal=document.getElementById('shop-setup-modal'),form=document.getElementById('shop-setup-form'),msg=document.getElementById('setup-msg');
-if(location.search.indexOf('admin=1')!==-1){document.getElementById('shop-setup-btn').style.display='block'}var cancelBtn=document.getElementById('shop-setup-cancel');cancelBtn.addEventListener('click',function(){modal.classList.remove('open')});btn.addEventListener('click',function(){modal.classList.add('open');fetch('/api/v1/shop/setup?site_id={{SITE_ID}}').then(r=>r.json()).then(d=>{for(var k in d)if(form.elements[k]){var v=d[k];if(k==='payment_methods'&&Array.isArray(v))v=v.join(',');form.elements[k].value=v}})};
-form.addEventListener('submit',function(e){e.preventDefault();var fd=new FormData(form),data={site_id:'{{SITE_ID}}'};fd.forEach(function(v,k){if(v)data[k]=v});if(data.payment_methods)data.payment_methods=data.payment_methods.split(',').map(s=>s.trim()).filter(s=>s);msg.style.display='block';msg.className='msg';msg.style.background='#f0f0f0';msg.textContent='保存中...';fetch('/api/v1/shop/setup',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)}).then(r=>r.json()).then(d=>{if(d.success){msg.style.background='#d4edda';msg.textContent='\u2705 '+d.message;setTimeout(function(){modal.classList.remove('open');location.reload()},800)}else{msg.style.background='#f8d7da';msg.textContent='\u274c '+(d.detail||'保存失败')}}).catch(function(err){msg.style.background='#f8d7da';msg.textContent='\u274c 网络错误'})};
-})();
-</script>
-'''
 
 # ── 日志已由 core.observability 统一配置 ────────
 
@@ -252,7 +214,7 @@ app.add_middleware(GZipMiddleware, minimum_size=4096)
 # Session 中间件（小说翻改等合并项目需要 request.session）
 app.add_middleware(
     SessionMiddleware,
-    secret_key=os.environ.get("SESSION_SECRET", config.auth.jwt_secret),
+    secret_key=os.environ.get("SESSION_SECRET", config.security.jwt_secret),
     session_cookie="sg_session",
     max_age=86400,  # 24小时
 )
@@ -340,31 +302,12 @@ try:
 except ImportError:
     _HAS_SHOP = False
 
-try:
-    from apis.routes.payment import router as payment_router
-    _HAS_PAYMENT = True
-except ImportError:
-    _HAS_PAYMENT = False
-
-try:
-    from apis.routes.admin_ecommerce import router as admin_ecom_router
-    _HAS_ADMIN_ECOM = True
-except ImportError:
-    _HAS_ADMIN_ECOM = False
-
 # 程序化SEO引擎路由（核心差异化功能）
 try:
     from apis.routes.seo import router as seo_router
     _HAS_SEO = True
 except ImportError:
     _HAS_SEO = False
-
-# 虎皮椒个人支付路由（无需企业资质）
-try:
-    from apis.routes.xunhupay import router as xunhupay_router
-    _HAS_XUNHU = True
-except ImportError:
-    _HAS_XUNHU = False
 
 # UniPulse 选校报告工具（可选）
 try:
@@ -434,19 +377,20 @@ try:
 except ImportError:
     _HAS_TUTORIALS = False
 
+# VulnScanner Web漏洞扫描器
+try:
+    from apis.routes.vulnscanner import router as vulnscanner_router
+    _HAS_VULNSCANNER = True
+except ImportError:
+    _HAS_VULNSCANNER = False
+
 app.include_router(gen_router, prefix="/api/v1")
 app.include_router(auth_router, prefix="/api/v1")
 
 if _HAS_SHOP:
     app.include_router(shop_router, prefix="/api/v1")
-if _HAS_PAYMENT:
-    app.include_router(payment_router, prefix="/api/v1")
-if _HAS_ADMIN_ECOM:
-    app.include_router(admin_ecom_router, prefix="/api/v1")
 if _HAS_SEO:
     app.include_router(seo_router, prefix="/api/v1")
-if _HAS_XUNHU:
-    app.include_router(xunhupay_router, prefix="/api/v1")
 if _HAS_UNIPULSE:
     app.include_router(unipulse_router, prefix="/api/v1")
 if _HAS_WATERMARK:
@@ -471,11 +415,13 @@ if _HAS_IP:
     app.include_router(ip_router)
 if _HAS_TUTORIALS:
     app.include_router(tutorials_router)
+if _HAS_VULNSCANNER:
+    app.include_router(vulnscanner_router)
 
 # 静态文件
 app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 # 合并项目静态文件
-for _sub, _dir in [("zhihui", "zhihui"), ("novel", "novel"), ("edu", "edu"), ("ip", "ip"), ("tutorials", "tutorials"), ("worldcup", "worldcup")]:
+for _sub, _dir in [("zhihui", "zhihui"), ("novel", "novel"), ("edu", "edu"), ("ip", "ip"), ("tutorials", "tutorials"), ("worldcup", "worldcup"), ("vuln-scanner", "vuln-scanner")]:
     _sub_dir = STATIC_DIR / _dir
     if _sub_dir.exists():
         app.mount(f"/{_sub}/static", StaticFiles(directory=str(_sub_dir)), name=f"static-{_sub}")
@@ -497,177 +443,6 @@ async def favicon():
     if favicon_path.exists():
         return FileResponse(str(favicon_path), media_type="image/x-icon")
     raise HTTPException(status_code=404)
-
-
-# ── 商城前台 ──────────────────────────────────────────
-@app.get("/shop", response_class=HTMLResponse)
-async def shop_page(theme: str = "tech_blue", site_id: str = "default"):
-    try:
-        from core.backends.template.shop_template import get_template
-        # 读取site_config覆盖默认值
-        config_path = Path("data") / f"site_config_{site_id}.json"
-        overrides = {}
-        if config_path.exists():
-            try:
-                import json as _json
-                cfg = _json.loads(config_path.read_text(encoding="utf-8"))
-                if cfg.get("site_name"):
-                    overrides["shop_name"] = cfg["site_name"]
-                    overrides["name"] = cfg["site_name"]
-                if cfg.get("slogan"):
-                    overrides["shop_slogan"] = cfg["slogan"]
-                if cfg.get("meta_description"):
-                    overrides["meta_description"] = cfg["meta_description"]
-                if cfg.get("theme") and cfg["theme"] != "default":
-                    theme = cfg["theme"]
-                if cfg.get("currency"):
-                    overrides["currency"] = cfg["currency"]
-                if cfg.get("currency_symbol"):
-                    overrides["currency_symbol"] = cfg["currency_symbol"]
-                if cfg.get("contact_email"):
-                    overrides["contact_email"] = cfg["contact_email"]
-                if cfg.get("contact_phone"):
-                    overrides["contact_phone"] = cfg["contact_phone"]
-                if cfg.get("customer_service_url"):
-                    overrides["customer_service_url"] = cfg["customer_service_url"]
-                if cfg.get("payment_methods"):
-                    overrides["payment_methods"] = cfg["payment_methods"]
-                    # 解析支付方式列表，设置布尔开关
-                    methods = cfg["payment_methods"]
-                    if isinstance(methods, list):
-                        overrides["payment_wechat"] = "wechat" in methods or "微信" in methods
-                        overrides["payment_alipay"] = "alipay" in methods or "支付宝" in methods
-                        overrides["payment_bank"] = "bank" in methods or "银行卡" in methods
-                        overrides["payment_paypal"] = "paypal" in methods or "PayPal" in methods
-                        overrides["payment_card"] = "card" in methods or "VISA" in methods
-                # 收款账号信息
-                for key in ["wechat_pay_id", "alipay_account", "bank_name", "bank_account", "bank_holder", "paypal_id", "contact_wechat"]:
-                    if cfg.get(key):
-                        overrides[key] = cfg[key]
-            except Exception as e:
-                logger.warning(f"读取site_config失败: {e}")
-        overrides["site_id"] = site_id
-        html = get_template(theme_name=theme, **overrides)
-        
-        # 注入商城配置弹窗（在</body>前）
-        setup_widget = _SHOP_SETUP_WIDGET.replace("{{SITE_ID}}", site_id)
-        html = html.replace("</body>", setup_widget + "\n</body>")
-        
-        return HTMLResponse(html)
-    except Exception as e:
-        logger.error(f"商城模板渲染失败: {e}")
-        return HTMLResponse(f"<h1>商城页面加载失败</h1><p>{e}</p>", status_code=500)
-
-
-# ── 商城快速配置（无需admin认证，用管理密码） ──────────────
-@app.post("/api/v1/shop/setup")
-async def shop_setup(request: Request):
-    """商城快速配置 - 设置店铺信息/联系方式/付款渠道
-    
-    Body: {
-        "site_id": "default",
-        "admin_password": "xxx",
-        "site_name": "我的店铺",
-        "slogan": "好物推荐",
-        "contact_email": "shop@example.com",
-        "contact_phone": "400-123-4567",
-        "customer_service_url": "https://work.weixin.qq.com/xxx",
-        "payment_methods": ["wechat", "alipay", "paypal"],
-        "theme": "tech_blue"
-    }
-    """
-    body = await request.json()
-    site_id = body.get("site_id", "default")
-    password = body.get("admin_password", "")
-    
-    # 简单密码验证 - 检查是否有admin用户或setup_key
-    import os as _os
-    import hashlib, hmac
-    setup_key = _os.environ.get("SHOP_SETUP_KEY", "")
-    auth_ok = False
-    if setup_key and hmac.compare_digest(password, setup_key):
-        auth_ok = True
-    else:
-        # 检查admin用户密码
-        from apis.routes.auth import _load_users
-        users = _load_users()
-        admin = next((u for u in users.values() if u.get("role") == "admin"), None)
-        if admin:
-            pwd_hash = hashlib.sha256((password + admin.get('password_salt', '')).encode()).hexdigest()
-            if hmac.compare_digest(pwd_hash, admin.get('password_hash', '')):
-                auth_ok = True
-        else:
-            # 没有admin用户时（首次部署），用ADMIN_PASSWORD环境变量
-            admin_pwd = _os.environ.get('ADMIN_PASSWORD', '')
-            if admin_pwd and hmac.compare_digest(password, admin_pwd):
-                auth_ok = True
-    
-    if not auth_ok:
-        raise HTTPException(401, "管理密码错误")
-    
-    # 更新site_config
-    config_path = Path("data") / f"site_config_{site_id}.json"
-    import json as _json
-    cfg = {}
-    if config_path.exists():
-        cfg = _json.loads(config_path.read_text(encoding="utf-8"))
-    
-    for key in ["site_name", "slogan", "meta_description", "contact_email",
-                "contact_phone", "customer_service_url", "payment_methods",
-                "theme", "currency", "currency_symbol",
-                "wechat_pay_id", "alipay_account",
-                "bank_name", "bank_account", "bank_holder",
-                "paypal_id", "contact_wechat"]:
-        if key in body:
-            cfg[key] = body[key]
-    
-    config_path.parent.mkdir(exist_ok=True)
-    config_path.write_text(_json.dumps(cfg, ensure_ascii=False, indent=2), encoding="utf-8")
-    
-    return {"success": True, "message": "配置已保存", "config": cfg}
-
-
-@app.get("/api/v1/shop/setup")
-async def shop_get_config(site_id: str = "default", admin: str = ""):
-    """获取商城配置 - admin参数验证后才返回完整配置"""
-    if not admin:
-        return {"site_id": site_id, "site_name": "我的店铺", "theme": "tech_blue"}
-    # 先尝试SiteConfigStore（电商模块的配置）
-    ecom_path = Path("data") / "ecommerce" / "site_config" / site_id / "config.json"
-    simple_path = Path("data") / f"site_config_{site_id}.json"
-    cfg = {}
-    
-    # 读取简单配置
-    if simple_path.exists():
-        import json as _json
-        cfg = _json.loads(simple_path.read_text(encoding="utf-8"))
-    # 也读取电商模块配置中的相关字段
-    if ecom_path.exists():
-        import json as _json
-        ecom_cfg = _json.loads(ecom_path.read_text(encoding="utf-8"))
-        for k in ["site_name", "slogan", "contact_email", "contact_phone", "customer_service_url", "payment_methods", "theme", "currency", "currency_symbol"]:
-            if k in ecom_cfg and k not in cfg:
-                cfg[k] = ecom_cfg[k]
-    
-    # 默认值
-    defaults = {
-        "site_id": site_id,
-        "site_name": cfg.pop("shop_name", "") or cfg.get("site_name", "我的店铺"),
-        "slogan": cfg.pop("shop_slogan", "") or cfg.get("slogan", "优质商品，放心购买"),
-        "contact_email": cfg.get("contact_email", ""),
-        "contact_phone": cfg.get("contact_phone", ""),
-        "customer_service_url": cfg.get("customer_service_url", ""),
-        "payment_methods": cfg.get("payment_methods", []),
-        "theme": cfg.get("theme", "tech_blue"),
-    }
-    # 合并cfg中剩余字段
-    defaults.update(cfg)
-    defaults["site_id"] = site_id
-    defaults.pop("admin_password", None)
-    # payment_methods是数组，转成逗号字符串方便前端回显
-    if isinstance(defaults.get("payment_methods"), list):
-        defaults["payment_methods_display"] = ",".join(defaults["payment_methods"])
-    return defaults
 
 
 # ── 管理员后台 ──────────────────────────────────────────
@@ -756,12 +531,12 @@ async def naming_page():
 # ── SEO路由：robots.txt + sitemap.xml ─────────────────
 @app.get("/robots.txt", response_class=PlainTextResponse)
 async def robots_txt():
-    domain = os.environ.get("SITE_DOMAIN", "auto-site-builder.onrender.com")
+    domain = os.environ.get("SITE_DOMAIN", "lz-sg-sg-site-builder.hf.space")
     return f"User-agent: *\nAllow: /\nDisallow: /admin\nDisallow: /api/\nSitemap: https://{domain}/sitemap.xml"
 
 @app.get("/sitemap.xml", response_class=HTMLResponse)
 async def sitemap_xml():
-    domain = os.environ.get("SITE_DOMAIN", "auto-site-builder.onrender.com")
+    domain = os.environ.get("SITE_DOMAIN", "lz-sg-sg-site-builder.hf.space")
     return Response(
         f'<?xml version="1.0" encoding="UTF-8"?>'
         f'<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'
@@ -773,6 +548,7 @@ async def sitemap_xml():
         f'<url><loc>https://{domain}/tools/copywrite</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>'
         f'<url><loc>https://{domain}/tools/competitor</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>'
         f'<url><loc>https://{domain}/tools/naming</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>'
+        f'<url><loc>https://{domain}/vuln-scanner</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>'
         f'</urlset>',
         media_type="application/xml"
     )
@@ -815,6 +591,7 @@ async def health_legacy():
             "watermark": _HAS_WATERMARK,
             "drama": _HAS_DRAMA,
             "unipulse": _HAS_UNIPULSE,
+            "vuln-scanner": _HAS_VULNSCANNER,
             "seo_keyword": _HAS_INQUIRY,
             "copywrite": _HAS_INQUIRY,
             "competitor": _HAS_INQUIRY,
