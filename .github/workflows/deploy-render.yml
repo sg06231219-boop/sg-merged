@@ -1,0 +1,22 @@
+name: Deploy to Render
+
+on:
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy to Render via Blueprint
+        env:
+          RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
+        run: |
+          # Create or update Render service from render.yaml
+          curl -s -X POST "https://api.render.com/v1/blueprints/sync" \
+            -H "Authorization: Bearer $RENDER_API_KEY" \
+            -H "Content-Type: application/json" \
+            -d "{\"repo\": \"${{ github.repository }}\", \"branch\": \"${{ github.ref_name }}\"}" || true
+          
+          echo "Blueprint sync triggered. Check https://dashboard.render.com"
